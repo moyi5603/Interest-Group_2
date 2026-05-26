@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* EXP Mobile App Design System - 现代企业级智能体应用 */
+
+@layer base {
+  :root {
+    --background: 220 33% 98%;
+    --foreground: 230 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 230 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 25% 15%;
+
+    /* 主品牌色 - 科技蓝紫 */
+    --primary: 245 75% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 260 85% 70%;
+
+    --secondary: 220 30% 95%;
+    --secondary-foreground: 230 25% 25%;
+
+    --muted: 220 25% 95%;
+    --muted-foreground: 230 12% 50%;
+
+    --accent: 250 60% 96%;
+    --accent-foreground: 245 75% 50%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 92%;
+    --input: 220 20% 92%;
+    --ring: 245 75% 60%;
+
+    --radius: 1rem;
+
+    /* 金刚区 10 个分类色 */
+    --cat-1: 210 90% 60%;   /* 找同事 - 蓝 */
+    --cat-2: 25 95% 60%;    /* 办手续 - 橙 */
+    --cat-3: 160 70% 45%;   /* 查政策 - 青绿 */
+    --cat-4: 350 85% 62%;   /* 看热点 - 红粉 */
+    --cat-5: 270 70% 62%;   /* 谋发展 - 紫 */
+    --cat-6: 45 95% 55%;    /* 收成果 - 金黄 */
+    --cat-7: 330 80% 65%;   /* 享福利 - 玫瑰 */
+    --cat-8: 15 85% 65%;    /* 暖关怀 - 珊瑚 */
+    --cat-9: 195 80% 55%;   /* 提反馈 - 天蓝 */
+    --cat-10: 230 15% 55%;  /* 更多 - 中性灰 */
+
+    /* 渐变 */
+    --gradient-primary: linear-gradient(135deg, hsl(245 75% 60%), hsl(270 80% 68%));
+    --gradient-banner: linear-gradient(135deg, hsl(245 80% 65%) 0%, hsl(280 75% 65%) 50%, hsl(330 80% 70%) 100%);
+    --gradient-banner-2: linear-gradient(135deg, hsl(200 85% 60%) 0%, hsl(220 85% 65%) 100%);
+    --gradient-banner-3: linear-gradient(135deg, hsl(15 90% 65%) 0%, hsl(340 85% 65%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 30% 98%));
+    --gradient-input: linear-gradient(135deg, hsl(245 100% 97%), hsl(280 100% 97%));
+
+    /* 阴影 */
+    --shadow-soft: 0 2px 12px -2px hsl(245 50% 50% / 0.08);
+    --shadow-card: 0 4px 20px -4px hsl(245 40% 40% / 0.1);
+    --shadow-glow: 0 8px 30px -6px hsl(245 75% 60% / 0.35);
+    --shadow-tab: 0 -4px 20px -4px hsl(230 30% 30% / 0.08);
+
+    /* 过渡 */
+    --transition-base: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body, #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  .gradient-banner {
+    background: var(--gradient-banner);
+  }
+  .gradient-banner-2 {
+    background: var(--gradient-banner-2);
+  }
+  .gradient-banner-3 {
+    background: var(--gradient-banner-3);
+  }
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+  .gradient-input {
+    background: var(--gradient-input);
+  }
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .shadow-tab {
+    box-shadow: var(--shadow-tab);
+  }
+  .transition-base {
+    transition: var(--transition-base);
+  }
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.4s ease-out;
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+}
