@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { RefreshCw, Sparkles } from "lucide-react";
 
 const allQuestions = [
@@ -11,6 +12,7 @@ const allQuestions = [
 ];
 
 const SuggestedQuestions = () => {
+  const navigate = useNavigate();
   const [groupIdx, setGroupIdx] = useState(0);
   const [spinning, setSpinning] = useState(false);
 
@@ -45,6 +47,11 @@ const SuggestedQuestions = () => {
         {current.map((q, i) => (
           <button
             key={i}
+            type="button"
+            onClick={() => {
+              if (q.includes("兴趣小组"))
+                navigate("/agents/interest-groups");
+            }}
             className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-left text-[13px] text-foreground transition-base active:scale-[0.98] active:border-primary/40 active:bg-accent"
           >
             <span className="line-clamp-1 flex-1 pr-2">{q}</span>

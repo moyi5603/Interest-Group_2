@@ -12,6 +12,17 @@ import EmployeeProfile from "./pages/EmployeeProfile.tsx";
 import DepartmentDetail from "./pages/DepartmentDetail.tsx";
 import CapabilityDetail from "./pages/CapabilityDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import InterestGroupHome from "./pages/interest/InterestGroupHome.tsx";
+import InterestGroupChat from "./pages/interest/InterestGroupChat.tsx";
+import GroupDetail from "./pages/interest/GroupDetail.tsx";
+import GroupCreate from "./pages/interest/GroupCreate.tsx";
+import ActivityDetail from "./pages/interest/ActivityDetail.tsx";
+import ActivityCreate from "./pages/interest/ActivityCreate.tsx";
+import ActivityEdit from "./pages/interest/ActivityEdit.tsx";
+import MyInterests from "./pages/interest/MyInterests.tsx";
+import InterestGroupSectionList from "./pages/interest/InterestGroupSectionList.tsx";
+import InterestGroupDiscover from "./pages/interest/InterestGroupDiscover.tsx";
+import InterestGroupMyActivities from "./pages/interest/InterestGroupMyActivities.tsx";
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -26,6 +37,17 @@ const App = () => (
         <Route path="/agents/humanity-care/:type" element={<CareModuleDetail />} />
         <Route path="/agents/humanity-care/:type/new" element={<CareCreateRule />} />
         <Route path="/agents/humanity-care/:type/receive" element={<CareReceive />} />
+        <Route path="/agents/interest-groups" element={<InterestGroupHome />} />
+        <Route path="/agents/interest-groups/chat" element={<InterestGroupChat />} />
+        <Route path="/agents/interest-groups/new" element={<GroupCreate />} />
+        <Route path="/agents/interest-groups/discover" element={<InterestGroupDiscover />} />
+        <Route path="/agents/interest-groups/my-activities" element={<InterestGroupMyActivities />} />
+        <Route path="/agents/interest-groups/list/:section" element={<InterestGroupSectionList />} />
+        <Route path="/agents/interest-groups/:groupId/activities/new" element={<ActivityCreate />} />
+        <Route path="/agents/interest-groups/activities/:activityId/edit" element={<ActivityEdit />} />
+        <Route path="/agents/interest-groups/activities/:activityId" element={<ActivityDetail />} />
+        <Route path="/agents/interest-groups/:groupId" element={<GroupDetail />} />
+        <Route path="/profile/interests" element={<MyInterests />} />
         <Route path="/colleagues" element={<ColleagueAgent />} />
         <Route path="/colleagues/employee/:id" element={<EmployeeDetail />} />
         <Route path="/colleagues/employee/:id/profile" element={<EmployeeProfile />} />

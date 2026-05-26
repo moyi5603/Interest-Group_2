@@ -1,10 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { CalendarDays, ChevronRight } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { CalendarDays, ChevronRight, Clock3 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+
+/** 15 分钟一档 */
+export const TIME_STEP_SECONDS = 900;
 
 const ITEM_H = 44;
 const WHEEL_PAD = 2;
+const WHEEL_H = ITEM_H * 5;
+const MINUTE_OPTIONS = [0, 15, 30, 45];
+
+export const snapMinute = (m: number) => {
+  const clamped = Math.max(0, Math.min(59, m));
+  return MINUTE_OPTIONS.reduce((prev, curr) =>
+    Math.abs(curr - clamped) < Math.abs(prev - clamped) ? curr : prev,
+  );
+};
 
 /** ISO YYYY-MM-DD → 2025年5月19日 */
 export const formatMobileDate = (iso: string | undefined) => {
@@ -12,6 +35,90 @@ export const formatMobileDate = (iso: string | undefined) => {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return "请选择日期";
   return `${y}年${m}月${d}日`;
+};
+
+/** 列表行展示：同年省略年份 */
+export const formatShortDate = (iso: string | undefined) => {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const year = new Date().getFullYear();
+  return y === year ? `${m}月${d}日` : `${y}年${m}月${d}日`;
+};
+
+/** HH:mm → 19:00 */
+export const formatMobileTime = (time: string | undefined) => {
+  if (!time) return "--:--";
+  const [h, m] = time.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "--:--";
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+export const combineDateAndTime = (date: string, time: string) =>
+  date && time ? `${date}T${time}` : "";
+
+export const splitDatetimeLocal = (value: string) => {
+  if (!value) return { date: "", time: "" };
+  const [date, time = ""] = value.split("T");
+  return { date, time: time.slice(0, 5) };
+};
+
+const parseTime = (time?: string) => {
+  if (!time) return null;
+  const [h, m] = time.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return {
+    h: Math.max(0, Math.min(23, h)),
+    m: snapMinute(Math.max(0, Math.min(59, m))),
+  };
+};
+
+const toTime = (h: number, m: number) =>
+  `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+
+const timeToMinutes = (h: number, m: number) => h * 60 + m;
+
+const isEndAfterStart = (
+  startH: number,
+  startM: number,
+  endH: number,
+  endM: number,
+) => timeToMinutes(endH, endM) > timeToMinutes(startH, startM);
+
+const getEndHourOptions = (startH: number, startM: number) =>
+  Array.from({ length: 24 }, (_, i) => i).filter((h) => {
+    if (h > startH) return true;
+    if (h < startH) return false;
+    return MINUTE_OPTIONS.some((m) => m > startM);
+  });
+
+const getEndMinuteOptions = (
+  startH: number,
+  startM: number,
+  endH: number,
+) => {
+  if (endH > startH) return MINUTE_OPTIONS;
+  if (endH < startH) return [];
+  return MINUTE_OPTIONS.filter((m) => m > startM);
+};
+
+const clampEndTime = (
+  startH: number,
+  startM: number,
+  endH: number,
+  endM: number,
+) => {
+  const hours = getEndHourOptions(startH, startM);
+  let h = hours.includes(endH) ? endH : (hours[0] ?? startH);
+  const minutes = getEndMinuteOptions(startH, startM, h);
+  let m = minutes.includes(endM)
+    ? endM
+    : (minutes[0] ?? snapMinute(startM + 15));
+  if (!isEndAfterStart(startH, startM, h, m)) {
+    h = hours[0] ?? startH;
+    m = getEndMinuteOptions(startH, startM, h)[0] ?? MINUTE_OPTIONS[0];
+  }
+  return { h, m };
 };
 
 const parseIso = (iso?: string) => {
@@ -57,16 +164,18 @@ type WheelColumnProps = {
   items: number[];
   value: number;
   onChange: (v: number) => void;
-  unit: string;
+  format: (n: number) => string;
   scrollKey: string;
+  suffix?: string;
 };
 
 const WheelColumn = ({
   items,
   value,
   onChange,
-  unit,
+  format,
   scrollKey,
+  suffix,
 }: WheelColumnProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const scrollTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -100,7 +209,10 @@ const WheelColumn = ({
   };
 
   return (
-    <div className="relative h-[220px] flex-1 overflow-hidden touch-pan-y">
+    <div
+      className="relative flex-1 overflow-hidden touch-pan-y"
+      style={{ height: WHEEL_H }}
+    >
       <div
         ref={ref}
         onScroll={handleScroll}
@@ -115,15 +227,15 @@ const WheelColumn = ({
           <div
             key={n}
             className={cn(
-              "flex items-center justify-center text-base transition-colors",
+              "flex items-center justify-center font-medium tabular-nums transition-colors",
               n === value
-                ? "font-semibold text-foreground"
-                : "text-muted-foreground",
+                ? "text-lg text-foreground"
+                : "text-base text-muted-foreground/60",
             )}
             style={{ height: ITEM_H, scrollSnapAlign: "center" }}
           >
-            {n}
-            {unit}
+            {format(n)}
+            {suffix}
           </div>
         ))}
         <div style={{ height: ITEM_H * WHEEL_PAD }} aria-hidden />
@@ -132,39 +244,302 @@ const WheelColumn = ({
   );
 };
 
-type DateWheelModalProps = {
+const WheelHighlight = () => (
+  <div
+    className="pointer-events-none absolute inset-x-2 top-1/2 z-0 h-11 -translate-y-1/2 rounded-xl border border-primary/10 bg-primary/5"
+    aria-hidden
+  />
+);
+
+type PickerTriggerProps = {
+  label: string;
+  display: string;
+  placeholder: string;
+  filled: boolean;
+  onClick: () => void;
+  icon?: "date" | "time";
+  compact?: boolean;
+  className?: string;
+};
+
+const PickerTrigger = ({
+  label,
+  display,
+  placeholder,
+  filled,
+  onClick,
+  icon = "date",
+  compact,
+  className,
+}: PickerTriggerProps) => {
+  const Icon = icon === "date" ? CalendarDays : Clock3;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex w-full min-w-0 items-center justify-between rounded-lg border border-border bg-card text-left active:bg-secondary/60",
+        compact ? "px-2 py-1.5" : "px-3 py-2.5",
+        className,
+      )}
+    >
+      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+        {!compact && (
+          <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="min-w-0">
+          <span
+            className={cn(
+              "block text-muted-foreground",
+              compact ? "text-[10px]" : "text-[11px]",
+            )}
+          >
+            {label}
+          </span>
+          <span
+            className={cn(
+              "block truncate text-sm font-medium tabular-nums",
+              filled ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {filled ? display : placeholder}
+          </span>
+        </span>
+      </span>
+      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+    </button>
+  );
+};
+
+type CompactPickerRowProps = {
+  label: string;
+  value: string;
+  placeholder: string;
+  filled: boolean;
+  onClick: () => void;
+};
+
+/** 系列场次：左标签 + 右值 + 箭头，类似系统设置列表 */
+const CompactPickerRow = ({
+  label,
+  value,
+  placeholder,
+  filled,
+  onClick,
+}: CompactPickerRowProps) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex w-full items-center gap-2 px-2.5 py-2 text-left active:bg-secondary/50"
+  >
+    <span className="w-9 shrink-0 text-xs text-muted-foreground">{label}</span>
+    <span
+      className={cn(
+        "min-w-0 flex-1 truncate text-sm font-medium tabular-nums",
+        filled ? "text-foreground" : "text-muted-foreground",
+      )}
+    >
+      {filled ? value : placeholder}
+    </span>
+    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+  </button>
+);
+
+const ConfirmButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground"
+  >
+    确定
+  </button>
+);
+
+type DateWheelPanelProps = {
+  y: number;
+  m: number;
+  d: number;
+  setY: (v: number) => void;
+  setM: (v: number) => void;
+  setD: (v: number) => void;
+  years: number[];
+  months: number[];
+  days: number[];
+  scrollKey: string;
+};
+
+const DateWheelPanel = ({
+  y,
+  m,
+  d,
+  setY,
+  setM,
+  setD,
+  years,
+  months,
+  days,
+  scrollKey,
+}: DateWheelPanelProps) => (
+  <div className="px-2 pb-2">
+    <div className="mb-2 grid grid-cols-3 gap-1 text-center text-[11px] text-muted-foreground">
+      <span>年</span>
+      <span>月</span>
+      <span>日</span>
+    </div>
+    <div className="relative flex touch-pan-y">
+      <WheelHighlight />
+      <WheelColumn
+        items={years}
+        value={y}
+        onChange={setY}
+        format={(n) => String(n)}
+        suffix="年"
+        scrollKey={`y-${scrollKey}`}
+      />
+      <WheelColumn
+        items={months}
+        value={m}
+        onChange={setM}
+        format={(n) => String(n)}
+        suffix="月"
+        scrollKey={`m-${scrollKey}`}
+      />
+      <WheelColumn
+        items={days}
+        value={d}
+        onChange={setD}
+        format={(n) => String(n)}
+        suffix="日"
+        scrollKey={`d-${scrollKey}-${days.length}`}
+      />
+    </div>
+  </div>
+);
+
+type TimeWheelPanelProps = {
+  h: number;
+  min: number;
+  setH: (v: number) => void;
+  setMin: (v: number) => void;
+  scrollKey: string;
+  /** 结束时间：隐藏早于开始时间的选项 */
+  notBefore?: { h: number; m: number };
+};
+
+const TimeWheelPanel = ({
+  h,
+  min,
+  setH,
+  setMin,
+  scrollKey,
+  notBefore,
+}: TimeWheelPanelProps) => {
+  const allHours = useMemo(
+    () => Array.from({ length: 24 }, (_, i) => i),
+    [],
+  );
+
+  const hours = useMemo(
+    () =>
+      notBefore
+        ? getEndHourOptions(notBefore.h, notBefore.m)
+        : allHours,
+    [allHours, notBefore],
+  );
+
+  const minutes = useMemo(
+    () =>
+      notBefore
+        ? getEndMinuteOptions(notBefore.h, notBefore.m, h)
+        : MINUTE_OPTIONS,
+    [notBefore, h],
+  );
+
+  useEffect(() => {
+    if (!notBefore) return;
+    if (!hours.includes(h)) {
+      const nextH = hours[0];
+      if (nextH !== undefined) setH(nextH);
+    }
+  }, [hours, h, notBefore, setH]);
+
+  useEffect(() => {
+    if (!notBefore) return;
+    if (!minutes.includes(min)) {
+      const nextM = minutes[0];
+      if (nextM !== undefined) setMin(nextM);
+    }
+  }, [minutes, min, notBefore, setMin]);
+
+  const handleSetH = (nextH: number) => {
+    setH(nextH);
+    if (notBefore) {
+      const validM = getEndMinuteOptions(notBefore.h, notBefore.m, nextH);
+      if (!validM.includes(min)) setMin(validM[0] ?? min);
+    }
+  };
+
+  return (
+    <div className="px-4 pb-2">
+      <div className="relative flex items-center touch-pan-y">
+        <WheelHighlight />
+        <WheelColumn
+          items={hours.length > 0 ? hours : allHours}
+          value={hours.includes(h) ? h : (hours[0] ?? h)}
+          onChange={handleSetH}
+          format={(n) => String(n).padStart(2, "0")}
+          scrollKey={`h-${scrollKey}`}
+          suffix="时"
+        />
+        <span className="relative z-10 shrink-0 px-1 text-xl font-light text-muted-foreground">
+          :
+        </span>
+        <WheelColumn
+          items={minutes.length > 0 ? minutes : MINUTE_OPTIONS}
+          value={minutes.includes(min) ? min : (minutes[0] ?? min)}
+          onChange={setMin}
+          format={(n) => String(n).padStart(2, "0")}
+          scrollKey={`m-${scrollKey}`}
+          suffix="分"
+        />
+      </div>
+    </div>
+  );
+};
+
+type DatePickerSheetProps = {
   open: boolean;
+  onOpenChange: (open: boolean) => void;
   title: string;
   value: string;
   min?: string;
   max?: string;
   onConfirm: (iso: string) => void;
-  onOpenChange: (open: boolean) => void;
 };
 
-const DateWheelModal = ({
+const DatePickerSheet = ({
   open,
+  onOpenChange,
   title,
   value,
   min,
   max,
   onConfirm,
-  onOpenChange,
-}: DateWheelModalProps) => {
+}: DatePickerSheetProps) => {
   const today = new Date();
   const minP = parseIso(min);
   const maxP = parseIso(max);
-  const startYear = minP?.y ?? today.getFullYear() - 2;
-  const endYear = maxP?.y ?? today.getFullYear() + 5;
+  const startYear = minP?.y ?? today.getFullYear();
+  const endYear = maxP?.y ?? today.getFullYear() + 2;
 
   const initial = useMemo(() => {
+    const now = new Date();
     const p = parseIso(value) ?? {
-      y: today.getFullYear(),
-      m: today.getMonth() + 1,
-      d: today.getDate(),
+      y: now.getFullYear(),
+      m: now.getMonth() + 1,
+      d: now.getDate(),
     };
     return clampYmd(p.y, p.m, p.d, min, max);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, min, max]);
 
   const [y, setY] = useState(initial.y);
@@ -173,11 +548,10 @@ const DateWheelModal = ({
 
   useEffect(() => {
     if (!open) return;
-    const next = clampYmd(initial.y, initial.m, initial.d, min, max);
-    setY(next.y);
-    setM(next.m);
-    setD(next.d);
-  }, [open, initial.y, initial.m, initial.d, min, max]);
+    setY(initial.y);
+    setM(initial.m);
+    setD(initial.d);
+  }, [open, initial.y, initial.m, initial.d]);
 
   const years = useMemo(
     () =>
@@ -210,69 +584,219 @@ const DateWheelModal = ({
     if (!days.includes(d)) setD(days[days.length - 1] ?? 1);
   }, [days, d]);
 
-  const wheelKey = `${open}-${y}-${m}`;
+  const scrollKey = `${open}-${y}-${m}`;
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <DialogPrimitive.Content
-          className="fixed inset-x-0 bottom-0 z-[100] rounded-t-2xl bg-background pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom duration-300"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          aria-describedby={undefined}
-        >
-          <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="text-sm text-muted-foreground active:opacity-70"
-            >
-              取消
-            </button>
-            <span className="text-sm font-semibold text-foreground">{title}</span>
-            <button
-              type="button"
-              onClick={() => {
-                onConfirm(toIso(y, m, d));
-                onOpenChange(false);
-              }}
-              className="text-sm font-semibold text-primary active:opacity-70"
-            >
-              确定
-            </button>
-          </div>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="rounded-t-3xl px-2 pb-8 pt-2">
+        <SheetHeader className="px-2 pb-1 text-left">
+          <SheetTitle className="text-base">{title}</SheetTitle>
+        </SheetHeader>
+        <p className="mb-3 text-center text-sm font-medium tabular-nums text-foreground">
+          {formatMobileDate(toIso(y, m, d))}
+        </p>
+        <DateWheelPanel
+          y={y}
+          m={m}
+          d={d}
+          setY={setY}
+          setM={setM}
+          setD={setD}
+          years={years}
+          months={months}
+          days={days}
+          scrollKey={scrollKey}
+        />
+        <div className="px-2 pt-2">
+          <ConfirmButton
+            onClick={() => {
+              onConfirm(toIso(y, m, d));
+              onOpenChange(false);
+            }}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
 
-          <div className="relative flex px-2 touch-pan-y">
-            <div
-              className="pointer-events-none absolute inset-x-4 top-1/2 z-0 h-11 -translate-y-1/2 rounded-lg bg-secondary/80"
-              aria-hidden
-            />
-            <WheelColumn
-              items={years}
-              value={y}
-              onChange={setY}
-              unit="年"
-              scrollKey={`y-${wheelKey}`}
-            />
-            <WheelColumn
-              items={months}
-              value={m}
-              onChange={setM}
-              unit="月"
-              scrollKey={`m-${wheelKey}`}
-            />
-            <WheelColumn
-              items={days}
-              value={d}
-              onChange={setD}
-              unit="日"
-              scrollKey={`d-${wheelKey}-${days.length}`}
-            />
-          </div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+type TimePickerSheetProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  value: string;
+  onConfirm: (time: string) => void;
+  /** 结束时间须晚于该开始时间 */
+  notBefore?: { h: number; m: number };
+};
+
+const TimePickerSheet = ({
+  open,
+  onOpenChange,
+  title,
+  value,
+  onConfirm,
+  notBefore,
+}: TimePickerSheetProps) => {
+  const parsed = parseTime(value) ?? { h: 19, m: 0 };
+  const [h, setH] = useState(parsed.h);
+  const [min, setMin] = useState(parsed.m);
+
+  useEffect(() => {
+    if (!open) return;
+    let p = parseTime(value) ?? { h: 19, m: 0 };
+    if (notBefore) {
+      p = clampEndTime(notBefore.h, notBefore.m, p.h, p.m);
+    }
+    setH(p.h);
+    setMin(p.m);
+  }, [open, value, notBefore?.h, notBefore?.m]);
+
+  const scrollKey = `${open}-${h}-${min}-${notBefore?.h}-${notBefore?.m}`;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="rounded-t-3xl px-2 pb-8 pt-2">
+        <SheetHeader className="px-2 pb-1 text-left">
+          <SheetTitle className="text-base">{title}</SheetTitle>
+        </SheetHeader>
+        <p className="mb-3 text-center text-2xl font-semibold tabular-nums">
+          {formatMobileTime(toTime(h, min))}
+        </p>
+        <TimeWheelPanel
+          h={h}
+          min={min}
+          setH={setH}
+          setMin={setMin}
+          scrollKey={scrollKey}
+          notBefore={notBefore}
+        />
+        <div className="px-2 pt-2">
+          <ConfirmButton
+            onClick={() => {
+              onConfirm(toTime(h, min));
+              onOpenChange(false);
+            }}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+type TimeRangePickerSheetProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  startTime: string;
+  endTime: string;
+  onConfirm: (startTime: string, endTime: string) => void;
+};
+
+const TimeRangePickerSheet = ({
+  open,
+  onOpenChange,
+  title,
+  startTime,
+  endTime,
+  onConfirm,
+}: TimeRangePickerSheetProps) => {
+  const [active, setActive] = useState<"start" | "end">("start");
+  const start = parseTime(startTime) ?? { h: 19, m: 0 };
+  const end = parseTime(endTime) ?? { h: 21, m: 0 };
+  const [startH, setStartH] = useState(start.h);
+  const [startM, setStartM] = useState(start.m);
+  const [endH, setEndH] = useState(end.h);
+  const [endM, setEndM] = useState(end.m);
+
+  useEffect(() => {
+    if (!open) return;
+    setActive("start");
+    const s = parseTime(startTime) ?? start;
+    const e = parseTime(endTime) ?? end;
+    setStartH(s.h);
+    setStartM(s.m);
+    const clamped = clampEndTime(s.h, s.m, e.h, e.m);
+    setEndH(clamped.h);
+    setEndM(clamped.m);
+  }, [open, startTime, endTime]);
+
+  useEffect(() => {
+    const clamped = clampEndTime(startH, startM, endH, endM);
+    if (clamped.h !== endH || clamped.m !== endM) {
+      setEndH(clamped.h);
+      setEndM(clamped.m);
+    }
+    // 仅在开始时间变化时校正结束时间
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startH, startM]);
+
+  const isStart = active === "start";
+  const h = isStart ? startH : endH;
+  const minVal = isStart ? startM : endM;
+  const setH = isStart ? setStartH : setEndH;
+  const setMinVal = isStart ? setStartM : setEndM;
+  const scrollKey = `${open}-${active}-${h}-${minVal}`;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="rounded-t-3xl px-2 pb-8 pt-2">
+        <SheetHeader className="px-2 pb-1 text-left">
+          <SheetTitle className="text-base">{title}</SheetTitle>
+        </SheetHeader>
+
+        <div className="mx-2 mb-3 flex rounded-xl bg-secondary/70 p-1">
+          {(
+            [
+              {
+                key: "start" as const,
+                label: `开始 ${formatMobileTime(toTime(startH, startM))}`,
+              },
+              {
+                key: "end" as const,
+                label: `结束 ${formatMobileTime(toTime(endH, endM))}`,
+              },
+            ] as const
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActive(key)}
+              className={cn(
+                "flex-1 rounded-lg py-2 text-xs font-medium",
+                active === key
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <p className="mb-3 text-center text-2xl font-semibold tabular-nums">
+          {formatMobileTime(toTime(h, minVal))}
+        </p>
+
+        <TimeWheelPanel
+          h={h}
+          min={minVal}
+          setH={setH}
+          setMin={setMinVal}
+          scrollKey={scrollKey}
+          notBefore={isStart ? undefined : { h: startH, m: startM }}
+        />
+
+        <div className="px-2 pt-2">
+          <ConfirmButton
+            onClick={() => {
+              onConfirm(toTime(startH, startM), toTime(endH, endM));
+              onOpenChange(false);
+            }}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 
@@ -285,9 +809,6 @@ type MobileDateFieldProps = {
   className?: string;
 };
 
-/**
- * 移动端日期：点击行 → 底部蒙层 + 年/月/日滚轮（Radix Dialog 嵌套，避免 Sheet 拦截点击）。
- */
 export const MobileDateField = ({
   label,
   value,
@@ -299,35 +820,15 @@ export const MobileDateField = ({
   const [open, setOpen] = useState(false);
 
   return (
-    <>
-      <button
-        type="button"
+    <div className={className}>
+      <PickerTrigger
+        label={label}
+        display={formatMobileDate(value)}
+        placeholder="请选择日期"
+        filled={!!value}
         onClick={() => setOpen(true)}
-        className={cn(
-          "flex w-full items-center justify-between rounded-xl border border-border bg-background px-3 py-3 text-left active:bg-secondary/60",
-          className,
-        )}
-      >
-        <span className="flex min-w-0 flex-1 items-center gap-2.5">
-          <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0">
-            <span className="block text-[11px] text-muted-foreground">
-              {label}
-            </span>
-            <span
-              className={cn(
-                "block truncate text-sm font-medium",
-                value ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {formatMobileDate(value)}
-            </span>
-          </span>
-        </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-      </button>
-
-      <DateWheelModal
+      />
+      <DatePickerSheet
         open={open}
         title={label}
         value={value}
@@ -336,6 +837,207 @@ export const MobileDateField = ({
         onOpenChange={setOpen}
         onConfirm={onChange}
       />
+    </div>
+  );
+};
+
+type MobileTimeRangeFieldProps = {
+  label: string;
+  startTime: string;
+  endTime: string;
+  onChange: (startTime: string, endTime: string) => void;
+  className?: string;
+};
+
+export const MobileTimeRangeField = ({
+  label,
+  startTime,
+  endTime,
+  onChange,
+  className,
+}: MobileTimeRangeFieldProps) => {
+  const [open, setOpen] = useState(false);
+  const filled = !!startTime && !!endTime;
+
+  return (
+    <div className={cn("space-y-2", className)}>
+      <span className="text-xs font-medium text-foreground">{label}</span>
+      <PickerTrigger
+        label="活动时段"
+        display={`${formatMobileTime(startTime)} – ${formatMobileTime(endTime)}`}
+        placeholder="请选择开始与结束时间"
+        filled={filled}
+        icon="time"
+        onClick={() => setOpen(true)}
+      />
+      <TimeRangePickerSheet
+        open={open}
+        title={label}
+        startTime={startTime}
+        endTime={endTime}
+        onOpenChange={setOpen}
+        onConfirm={onChange}
+      />
+    </div>
+  );
+};
+
+export type MobileDateTimeRangeValue = {
+  date: string;
+  startTime: string;
+  endTime: string;
+};
+
+type MobileDateTimeRangeFieldProps = {
+  label: string;
+  value: MobileDateTimeRangeValue;
+  onChange: (value: MobileDateTimeRangeValue) => void;
+  minDate?: string;
+  maxDate?: string;
+  className?: string;
+  compact?: boolean;
+};
+
+export const MobileDateTimeRangeField = ({
+  label,
+  value,
+  onChange,
+  minDate,
+  maxDate,
+  className,
+  compact,
+}: MobileDateTimeRangeFieldProps) => {
+  const [dateOpen, setDateOpen] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
+  const [rangeOpen, setRangeOpen] = useState(false);
+
+  const patch = (partial: Partial<MobileDateTimeRangeValue>) =>
+    onChange({ ...value, ...partial });
+
+  const dateLabel = compact ? "日期" : "活动日期";
+  const startLabel = compact ? "开始" : "开始时间";
+  const endLabel = compact ? "结束" : "结束时间";
+  const timeRangeFilled = !!value.startTime && !!value.endTime;
+  const timeRangeDisplay = timeRangeFilled
+    ? `${formatMobileTime(value.startTime)} – ${formatMobileTime(value.endTime)}`
+    : "";
+
+  if (compact) {
+    return (
+      <div className={className}>
+        <div className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/60 bg-background">
+          <CompactPickerRow
+            label={dateLabel}
+            value={formatShortDate(value.date)}
+            placeholder="选择日期"
+            filled={!!value.date}
+            onClick={() => setDateOpen(true)}
+          />
+          <CompactPickerRow
+            label="时段"
+            value={timeRangeDisplay}
+            placeholder="选择开始与结束"
+            filled={timeRangeFilled}
+            onClick={() => setRangeOpen(true)}
+          />
+        </div>
+        <DatePickerSheet
+          open={dateOpen}
+          title={`${label} · 日期`}
+          value={value.date}
+          min={minDate}
+          max={maxDate}
+          onOpenChange={setDateOpen}
+          onConfirm={(date) => patch({ date })}
+        />
+        <TimeRangePickerSheet
+          open={rangeOpen}
+          title={`${label} · 时段`}
+          startTime={value.startTime}
+          endTime={value.endTime}
+          onOpenChange={setRangeOpen}
+          onConfirm={(startTime, endTime) => patch({ startTime, endTime })}
+        />
+      </div>
+    );
+  }
+
+  const sheets = (
+    <>
+      <DatePickerSheet
+        open={dateOpen}
+        title={compact ? `${label} · 日期` : label}
+        value={value.date}
+        min={minDate}
+        max={maxDate}
+        onOpenChange={setDateOpen}
+        onConfirm={(date) => patch({ date })}
+      />
+      <TimePickerSheet
+        open={startOpen}
+        title={`${label} · 开始时间`}
+        value={value.startTime}
+        onOpenChange={setStartOpen}
+        onConfirm={(startTime) => {
+          const s = parseTime(startTime);
+          const e = parseTime(value.endTime);
+          if (s && e && !isEndAfterStart(s.h, s.m, e.h, e.m)) {
+            const clamped = clampEndTime(s.h, s.m, e.h, e.m);
+            patch({
+              startTime,
+              endTime: toTime(clamped.h, clamped.m),
+            });
+          } else {
+            patch({ startTime });
+          }
+        }}
+      />
+      <TimePickerSheet
+        open={endOpen}
+        title={`${label} · 结束时间`}
+        value={value.endTime}
+        onOpenChange={setEndOpen}
+        notBefore={parseTime(value.startTime) ?? undefined}
+        onConfirm={(endTime) => patch({ endTime })}
+      />
     </>
+  );
+
+  return (
+    <div className={cn("space-y-2", className)}>
+      <span className="text-xs font-medium text-foreground">{label}</span>
+
+      <PickerTrigger
+        label={dateLabel}
+        display={formatMobileDate(value.date)}
+        placeholder="选择日期"
+        filled={!!value.date}
+        onClick={() => setDateOpen(true)}
+      />
+
+      <div className="grid grid-cols-2 gap-2">
+        <PickerTrigger
+          label={startLabel}
+          display={formatMobileTime(value.startTime)}
+          placeholder="开始"
+          filled={!!value.startTime}
+          icon="time"
+          compact
+          onClick={() => setStartOpen(true)}
+        />
+        <PickerTrigger
+          label={endLabel}
+          display={formatMobileTime(value.endTime)}
+          placeholder="结束"
+          filled={!!value.endTime}
+          icon="time"
+          compact
+          onClick={() => setEndOpen(true)}
+        />
+      </div>
+
+      {sheets}
+    </div>
   );
 };

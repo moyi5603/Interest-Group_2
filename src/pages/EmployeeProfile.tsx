@@ -1,6 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Award, Star, Coins, Users } from "lucide-react";
+import GroupAvatar from "@/components/interest/GroupAvatar";
 import { getEmployee, getYearsOfService } from "@/data/colleagueData";
+import { getGroupById } from "@/data/interestGroups";
+import { resolveGroupCover } from "@/data/interestImages";
 
 /* Tenure tier system */
 const getTenureTier = (years: number) => {
@@ -163,12 +166,28 @@ const EmployeeProfile = () => {
           </h3>
           <div className="space-y-2">
             {emp.interestGroups.map((g) => {
-              const Icon = g.icon;
+              const fullGroup = getGroupById(g.id);
+              const cover = resolveGroupCover({
+                id: g.id,
+                coverUrl: fullGroup?.coverUrl,
+              });
               return (
-                <div key={g.id} className="flex items-center gap-3 rounded-xl bg-secondary/50 px-3 py-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent">
-                    <Icon className="h-4 w-4 text-accent-foreground" />
-                  </div>
+                <div
+                  key={g.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/agents/interest-groups/${g.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")
+                      navigate(`/agents/interest-groups/${g.id}`);
+                  }}
+                  className="flex cursor-pointer items-center gap-3 rounded-xl bg-secondary/50 px-3 py-2.5 active:scale-[0.99]"
+                >
+                  <GroupAvatar
+                    coverUrl={cover}
+                    name={g.name}
+                    className="h-9 w-9 text-sm"
+                  />
                   <div className="flex-1">
                     <p className="text-xs font-semibold text-foreground">{g.name}</p>
                     <p className="text-[10px] text-muted-foreground">{g.members} 位成员</p>

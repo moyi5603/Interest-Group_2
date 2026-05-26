@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, Search, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { agents, categoryMeta, type AgentCategory } from "@/data/agents";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,10 @@ const tabs: { key: TabKey; label: string }[] = [
 
 const MoreAgents = () => {
   const navigate = useNavigate();
-  const [active, setActive] = useState<TabKey>("communication");
+  const location = useLocation();
+  const initialTab =
+    (location.state as { tab?: TabKey } | null)?.tab ?? "communication";
+  const [active, setActive] = useState<TabKey>(initialTab);
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -94,6 +97,8 @@ const MoreAgents = () => {
                   const Icon = agent.icon;
                   const handleClick = () => {
                     if (agent.id === "care-humanity") navigate("/agents/humanity-care");
+                    if (agent.id === "dev-interest-group")
+                      navigate("/agents/interest-groups");
                   };
                   return (
                     <li
@@ -125,16 +130,16 @@ const MoreAgents = () => {
                               backgroundColor: `hsl(var(${agent.colorVar}) / 0.12)`,
                             }}
                           >
-                            {categoryMeta[agent.category].short}
+                            {categoryMeta[agent.category].cardBadge}
                           </span>
                         </div>
                         <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                           {agent.description}
                         </p>
-                        <div className="mt-1.5 flex items-center gap-1 rounded-lg bg-accent/60 px-2 py-1">
-                          <Sparkles className="h-3 w-3 shrink-0 text-accent-foreground" />
-                          <p className="truncate text-[11px] text-accent-foreground">
-                            "{agent.example}"
+                        <div className="mt-1.5 flex items-center gap-1.5 rounded-full bg-primary/[0.08] px-2.5 py-1.5">
+                          <Sparkles className="h-3 w-3 shrink-0 text-primary" />
+                          <p className="truncate text-[11px] font-medium text-primary">
+                            「{agent.example}」
                           </p>
                         </div>
                       </div>

@@ -18,14 +18,21 @@ type Item = {
   icon: LucideIcon;
   colorVar: string;
   to?: string;
+  state?: { tab: "development" };
 };
 
 const items: Item[] = [
   { label: "找同事", icon: Users, colorVar: "var(--cat-1)", to: "/colleagues" },
   { label: "办手续", icon: FileCheck, colorVar: "var(--cat-2)" },
   { label: "查政策", icon: BookOpen, colorVar: "var(--cat-3)" },
-  { label: "谋发展", icon: TrendingUp, colorVar: "var(--cat-5)" },
-  { label: "悦文化", icon: Flame, colorVar: "var(--cat-4)" },
+  {
+    label: "谋发展",
+    icon: TrendingUp,
+    colorVar: "var(--cat-5)",
+    to: "/agents",
+    state: { tab: "development" as const },
+  },
+  { label: "悦文化", icon: Flame, colorVar: "var(--cat-4)", to: "/agents/interest-groups" },
   { label: "享福利", icon: Gift, colorVar: "var(--cat-7)" },
   { label: "提反馈", icon: MessageSquareHeart, colorVar: "var(--cat-9)" },
   { label: "更多Agent", icon: LayoutGrid, colorVar: "var(--cat-10)", to: "/agents" },
@@ -41,7 +48,7 @@ const QuickActionsGrid = () => {
           return (
             <button
               key={item.label}
-              onClick={() => item.to && navigate(item.to)}
+              onClick={() => item.to && navigate(item.to, { state: item.state })}
               className="group flex flex-col items-center gap-1.5 transition-bounce active:scale-90"
             >
               <div

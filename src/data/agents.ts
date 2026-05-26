@@ -27,11 +27,14 @@ export type Agent = {
   category: AgentCategory;
 };
 
-export const categoryMeta: Record<AgentCategory, { label: string; short: string }> = {
-  communication: { label: "沟通与效率引擎", short: "沟通与效率" },
-  development: { label: "成长与发展引擎", short: "成长与发展" },
-  honor: { label: "荣誉与认可引擎", short: "荣誉与认可" },
-  care: { label: "关怀与福利引擎", short: "关怀与福利" },
+export const categoryMeta: Record<
+  AgentCategory,
+  { label: string; short: string; cardBadge: string }
+> = {
+  communication: { label: "沟通与效率引擎", short: "沟通与效率", cardBadge: "沟通引擎" },
+  development: { label: "成长与发展引擎", short: "成长与发展", cardBadge: "成长引擎" },
+  honor: { label: "荣誉与认可引擎", short: "荣誉与认可", cardBadge: "荣誉引擎" },
+  care: { label: "关怀与福利引擎", short: "关怀与福利", cardBadge: "关怀引擎" },
 };
 
 export const agents: Agent[] = [
@@ -69,6 +72,15 @@ export const agents: Agent[] = [
     example: "推荐一门管理类课程",
     icon: TrendingUp,
     colorVar: "--cat-5",
+    category: "development",
+  },
+  {
+    id: "dev-interest-group",
+    name: "兴趣小组",
+    description: "发起、加入兴趣社群",
+    example: "推荐一个跑步小组",
+    icon: Users,
+    colorVar: "--cat-1",
     category: "development",
   },
   {

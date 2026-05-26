@@ -6,11 +6,19 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   base: mode === "production" ? "/humanistic-care/" : "/",
   server: {
-    host: "::",
-    port: 8080,
+    // host: true 在部分 macOS 上会触发 uv_interface_addresses 错误，导致 dev 起不来
+    host: "127.0.0.1",
+    port: 5174,
+    strictPort: false,
+    open: true,
     hmr: {
       overlay: false,
     },
+  },
+  preview: {
+    host: "127.0.0.1",
+    port: 5174,
+    strictPort: false,
   },
   plugins: [react()],
   resolve: {
