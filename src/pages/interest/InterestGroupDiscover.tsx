@@ -1,30 +1,53 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, RefreshCw, Search, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import GroupDiscoverRow from "@/components/interest/GroupDiscoverRow";
+import GroupCard from "@/components/interest/GroupCard";
+import InterestSection from "@/components/interest/InterestSection";
+import SectionHeader from "@/components/interest/SectionHeader";
 import { Input } from "@/components/ui/input";
 import {
   CURRENT_EMPLOYEE_ID,
   joinGroup,
-  isMember,
 } from "@/data/interestGroups";
+import { filterDiscoverGroups } from "@/lib/interestDiscover";
 import {
-  discoverTabs,
-  filterDiscoverGroups,
-  type DiscoverTab,
-} from "@/lib/interestDiscover";
-import { cn } from "@/lib/utils";
+  getRecommendSummary,
+  recommendGroups,
+} from "@/lib/interestRecommend";
 import { toast } from "sonner";
+
+const RECOMMEND_BATCH_SIZE = 10;
 
 const InterestGroupDiscover = () => {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<DiscoverTab>("推荐");
   const [query, setQuery] = useState("");
   const [tick, setTick] = useState(0);
+  const [recommendOffset, setRecommendOffset] = useState(0);
+  const searching = query.trim().length > 0;
 
-  const groups = useMemo(
-    () => filterDiscoverGroups(CURRENT_EMPLOYEE_ID, tab, query),
-    [tab, query, tick],
+  const recommended = useMemo(
+    () =>
+      searching
+        ? []
+        : recommendGroups(
+            CURRENT_EMPLOYEE_ID,
+            RECOMMEND_BATCH_SIZE,
+            recommendOffset,
+          ),
+    [searching, tick, recommendOffset],
+  );
+
+  const searchResults = useMemo(
+    () =>
+      searching
+        ? filterDiscoverGroups(CURRENT_EMPLOYEE_ID, "推荐", query)
+        : [],
+    [searching, query, tick],
+  );
+
+  const recommendSummary = useMemo(
+    () => getRecommendSummary(CURRENT_EMPLOYEE_ID, recommended.length),
+    [recommended.length],
   );
 
   const handleJoin = (groupId: string, name: string) => {
@@ -37,18 +60,23 @@ const InterestGroupDiscover = () => {
   };
 
   return (
-    <div className="mx-auto flex h-screen max-w-md flex-col bg-background">
-      <header className="shrink-0 bg-background px-3 pb-2 pt-2">
+    <div className="mx-auto flex h-screen max-w-md flex-col bg-gradient-to-b from-primary/[0.07] via-background to-background">
+      <header className="shrink-0 border-b border-primary/10 bg-background/90 px-3 pb-2 pt-2 backdrop-blur-lg">
         <div className="flex items-center gap-2">
           <button
             type="button"
             aria-label="返回"
             onClick={() => navigate(-1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full active:scale-95"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="flex-1 text-center text-base font-semibold">兴趣小组</h1>
+          <div className="min-w-0 flex-1 text-center">
+            <h1 className="text-base font-semibold">加入小组</h1>
+            <p className="text-[10px] text-muted-foreground">
+              AI 智能推荐 · 按兴趣匹配
+            </p>
+          </div>
           <div className="w-9" />
         </div>
 
@@ -57,47 +85,68 @@ const InterestGroupDiscover = () => {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="请输入"
-            className="h-10 rounded-lg border-transparent bg-secondary pl-9 text-sm shadow-none"
+            placeholder="搜索小组名称或标签"
+            className="h-10 rounded-xl border border-primary/10 bg-card pl-9 text-sm shadow-none"
           />
-        </div>
-
-        <div className="mt-3 flex gap-4 overflow-x-auto border-b border-border/60 scrollbar-hide">
-          {discoverTabs.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={cn(
-                "shrink-0 pb-2 text-sm font-medium transition-colors",
-                tab === t
-                  ? "border-b-2 border-primary text-foreground"
-                  : "text-muted-foreground",
-              )}
-            >
-              {t}
-            </button>
-          ))}
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-3 scrollbar-hide">
-        {groups.length === 0 ? (
+      <main className="flex-1 overflow-y-auto px-3 py-2 scrollbar-hide">
+        {searching ? (
+          searchResults.length === 0 ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              未找到相关小组
+            </p>
+          ) : (
+            <div className="space-y-1.5 pb-4">
+              <p className="px-0.5 text-xs font-medium text-muted-foreground">
+                搜索结果 · {searchResults.length} 个
+              </p>
+              {searchResults.map((g) => (
+                <GroupCard
+                  key={g.id}
+                  compact
+                  group={g}
+                  onOpen={() => navigate(`/agents/interest-groups/${g.id}`)}
+                  onJoin={() => handleJoin(g.id, g.name)}
+                />
+              ))}
+            </div>
+          )
+        ) : recommended.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
-            {query.trim() ? "未找到相关小组" : "该分类下暂无小组"}
+            暂无推荐小组
           </p>
         ) : (
-          <div className="pb-4">
-            {groups.map((g) => (
-              <GroupDiscoverRow
-                key={g.id}
-                group={g}
-                joined={isMember(g.id, CURRENT_EMPLOYEE_ID)}
-                onOpen={() => navigate(`/agents/interest-groups/${g.id}`)}
-                onJoin={() => handleJoin(g.id, g.name)}
-              />
-            ))}
-          </div>
+          <InterestSection variant="ai" className="mb-4">
+            <SectionHeader
+              title={
+                <span className="inline-flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  AI 为你推荐
+                </span>
+              }
+              subtitle={recommendSummary}
+              secondaryAction={{
+                label: "换一批",
+                icon: <RefreshCw className="h-3 w-3" />,
+                onClick: () => setRecommendOffset((n) => n + 1),
+              }}
+            />
+            <ul className="space-y-1.5">
+              {recommended.map(({ group, reasons }) => (
+                <li key={group.id}>
+                  <GroupCard
+                    compact
+                    group={group}
+                    reasons={reasons}
+                    onOpen={() => navigate(`/agents/interest-groups/${group.id}`)}
+                    onJoin={() => handleJoin(group.id, group.name)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </InterestSection>
         )}
       </main>
     </div>

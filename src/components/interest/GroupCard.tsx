@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 type Props = {
   group: InterestGroupFull;
   reasons?: string[];
-  matchPercent?: number;
   onOpen: () => void;
   onJoin?: () => void;
   compact?: boolean;
@@ -19,7 +18,6 @@ type Props = {
 const GroupCard = ({
   group,
   reasons,
-  matchPercent,
   onOpen,
   onJoin,
   compact,
@@ -68,17 +66,10 @@ const GroupCard = ({
                   ` · ${tags.map((t) => `#${t.name}`).join(" ")}`}
               </p>
               {reasons?.[0] && (
-                <div className="mt-1 flex items-start gap-1 rounded-md border border-primary/20 bg-primary/5 px-1.5 py-1">
-                  <Sparkles className="mt-px h-2.5 w-2.5 shrink-0 text-primary" />
-                  <p className="line-clamp-2 flex-1 text-[10px] leading-snug text-primary">
-                    {reasons[0]}
-                  </p>
-                  {matchPercent != null && (
-                    <span className="shrink-0 text-[9px] font-medium text-primary/80">
-                      {matchPercent}%
-                    </span>
-                  )}
-                </div>
+                <p className="mt-0.5 flex items-start gap-1 text-[10px] leading-snug text-primary">
+                  <Sparkles className="mt-px h-2.5 w-2.5 shrink-0" />
+                  <span className="line-clamp-2">{reasons[0]}</span>
+                </p>
               )}
             </div>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -152,18 +143,11 @@ const GroupCard = ({
                 </span>
               ))}
             </div>
-            {reasons && reasons.length > 0 && (
-              <div className="mt-1 flex items-start gap-1 rounded-md border border-primary/20 bg-primary/5 px-1.5 py-1">
-                <Sparkles className="mt-px h-2.5 w-2.5 shrink-0 text-primary" />
-                <p className="line-clamp-2 flex-1 text-[10px] leading-snug text-primary">
-                  {reasons[0]}
-                </p>
-                {matchPercent != null && (
-                  <span className="shrink-0 text-[9px] font-medium text-primary/80">
-                    {matchPercent}%
-                  </span>
-                )}
-              </div>
+            {reasons?.[0] && (
+              <p className="mt-1 flex items-start gap-1 text-[10px] leading-snug text-primary">
+                <Sparkles className="mt-px h-2.5 w-2.5 shrink-0" />
+                <span className="line-clamp-2">{reasons[0]}</span>
+              </p>
             )}
           </div>
         </div>

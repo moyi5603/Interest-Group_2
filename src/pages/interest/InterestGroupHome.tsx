@@ -3,6 +3,7 @@ import {
   CalendarCheck,
   CalendarDays,
   Plus,
+  RefreshCw,
   Sparkles,
   Tag,
   UserPlus,
@@ -227,6 +228,7 @@ const InterestGroupHome = () => {
             }
             secondaryAction={{
               label: "换一批",
+              icon: <RefreshCw className="h-3 w-3" />,
               onClick: () => setRecommendOffset((n) => n + 1),
             }}
             action={{
@@ -234,23 +236,18 @@ const InterestGroupHome = () => {
               onClick: () => navigate(DISCOVER_PATH),
             }}
           />
-          <p className="mb-1.5 flex items-start gap-1.5 rounded-lg border border-primary/15 bg-primary/5 px-2 py-1.5 text-[10px] leading-relaxed text-foreground/90">
-            <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
-            <span>{recommendSummary}</span>
-          </p>
           {recommended.length === 0 ? (
             <p className="pb-1 text-[11px] text-muted-foreground">
               暂无推荐，可先完善兴趣标签
             </p>
           ) : (
             <ul className="space-y-1.5">
-              {recommended.map(({ group, reasons, matchPercent }) => (
+              {recommended.map(({ group, reasons }) => (
                 <li key={group.id}>
                   <GroupCard
                     compact
                     group={group}
                     reasons={reasons}
-                    matchPercent={matchPercent}
                     onOpen={() => navigate(`/agents/interest-groups/${group.id}`)}
                     onJoin={() => {
                       if (!joinGroup(group.id, CURRENT_EMPLOYEE_ID)) {

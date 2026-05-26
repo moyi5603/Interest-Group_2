@@ -33,8 +33,6 @@ const newSessionKey = () =>
 
 const defaultSeriesSessions = (): SeriesSessionDraft[] => [
   { key: newSessionKey(), ...emptySchedule() },
-  { key: newSessionKey(), ...emptySchedule() },
-  { key: newSessionKey(), ...emptySchedule() },
 ];
 
 const ActivityCreate = () => {
@@ -93,7 +91,7 @@ const ActivityCreate = () => {
 
   const removeSession = (key: string) => {
     setSeriesSessions((list) =>
-      list.length <= 2 ? list : list.filter((s) => s.key !== key),
+      list.length <= 1 ? list : list.filter((s) => s.key !== key),
     );
   };
 
@@ -150,8 +148,8 @@ const ActivityCreate = () => {
       addActivity(base);
       addOccurrences(expandRecurringOccurrences(base, 4));
     } else if (kind === "series") {
-      if (seriesSessions.length < 2) {
-        toast.error("系列活动至少需要 2 个场次");
+      if (seriesSessions.length < 1) {
+        toast.error("请至少添加 1 个场次");
         return;
       }
       const missingSchedule = seriesSessions.some(

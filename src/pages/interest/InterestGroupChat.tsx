@@ -85,13 +85,12 @@ const InterestGroupChat = () => {
             </div>
             {m.reply?.scoredGroups && (
               <ul className="w-full space-y-2">
-                {m.reply.scoredGroups.map(({ group, reasons, matchPercent }) => (
+                {m.reply.scoredGroups.map(({ group, reasons }) => (
                   <li key={group.id}>
                     <GroupCard
                       compact
                       group={group}
                       reasons={reasons}
-                      matchPercent={matchPercent}
                       onOpen={() =>
                         navigate(`/agents/interest-groups/${group.id}`)
                       }

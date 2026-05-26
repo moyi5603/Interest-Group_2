@@ -6,13 +6,8 @@ import { recommendGroups } from "./interestRecommend";
 
 export type DiscoverTab = "推荐" | "运动" | "文艺" | "生活" | "科技";
 
-export const discoverTabs: DiscoverTab[] = [
-  "推荐",
-  "运动",
-  "文艺",
-  "生活",
-  "科技",
-];
+/** 发现页 Tab；其他分类暂隐藏，仅展示推荐 */
+export const discoverTabs: DiscoverTab[] = ["推荐"];
 
 export const filterDiscoverGroups = (
   viewerId: string,
@@ -34,7 +29,7 @@ export const filterDiscoverGroups = (
   };
 
   if (tab === "推荐" && !q) {
-    return recommendGroups(viewerId, 50).map((s) => s.group);
+    return recommendGroups(viewerId, 10).map((s) => s.group);
   }
 
   let list = getVisibleGroups(interestGroups, viewerId);

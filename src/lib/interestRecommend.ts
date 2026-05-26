@@ -16,7 +16,6 @@ export type ScoredGroup = {
   group: InterestGroupFull;
   score: number;
   reasons: string[];
-  matchPercent?: number;
 };
 
 const countUpcomingActivitiesForGroup = (groupId: string) => {
@@ -34,9 +33,6 @@ const countUpcomingActivitiesForGroup = (groupId: string) => {
     return new Date(occ.startAt).getTime() >= now;
   }).length;
 };
-
-const toMatchPercent = (score: number) =>
-  Math.min(98, Math.max(72, 60 + score * 4));
 
 const appendSocialReasons = (
   group: InterestGroupFull,
@@ -60,7 +56,6 @@ const sliceWithOffset = <T,>(items: T[], limit: number, offset: number) => {
 
 const finalizeScored = (
   rows: { group: InterestGroupFull; score: number; reasons: string[] }[],
-  hasProfileTags: boolean,
 ): ScoredGroup[] =>
   rows.map(({ group, score, reasons }) => {
     const enriched = [...reasons];
@@ -69,24 +64,21 @@ const finalizeScored = (
       group,
       score,
       reasons: enriched,
-      matchPercent: hasProfileTags && score > 0 ? toMatchPercent(score) : undefined,
     };
   });
 
 export const getRecommendSummary = (viewerId: string, count: number) => {
   const tagIds = getProfileTagIds();
-  const tags = getTagsByIds(tagIds);
 
   if (!tagIds.length) {
     if (count === 0) return "完善兴趣标签后可获得更精准推荐";
     return `你还没填够兴趣标签，先按热门官方组推荐 ${count} 个；完善后会更准`;
   }
 
-  const names = tags.map((t) => t.name).join("、");
   if (count === 0) {
-    return `已根据你的兴趣（${names}）筛选，暂无更多匹配小组`;
+    return "已根据你的兴趣筛选，暂无更多匹配小组";
   }
-  return `根据你的兴趣（${names}），为你挑选了 ${count} 个还没加入的小组`;
+  return `根据你的兴趣，为你挑选了 ${count} 个还没加入的小组`;
 };
 
 export const recommendGroups = (
@@ -134,14 +126,10 @@ export const recommendGroups = (
         score: 0,
         reasons: ["热门官方小组"],
       }));
-    return sliceWithOffset(
-      finalizeScored(fallback, false),
-      limit,
-      offset,
-    );
+    return sliceWithOffset(finalizeScored(fallback), limit, offset);
   }
 
-  return sliceWithOffset(finalizeScored(scored, true), limit, offset);
+  return sliceWithOffset(finalizeScored(scored), limit, offset);
 };
 
 export type OccurrenceWithActivity = {

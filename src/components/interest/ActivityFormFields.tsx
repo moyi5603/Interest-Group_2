@@ -4,9 +4,6 @@ import ActivityCoverUpload from "@/components/interest/ActivityCoverUpload";
 import {
   ACTIVITY_KIND_LABEL,
   ACTIVITY_KIND_OPTIONS,
-  SERIES_DESC_PLACEHOLDER,
-  SERIES_LOCATION_PLACEHOLDER,
-  SERIES_TITLE_PLACEHOLDER,
 } from "@/components/interest/activityFormConstants";
 import {
   MobileDateTimeRangeField,
@@ -167,9 +164,7 @@ const ActivityFormFields = (props: Props) => {
           <input
             value={props.title}
             onChange={(e) => props.onTitleChange(e.target.value)}
-            placeholder={
-              kind === "series" ? SERIES_TITLE_PLACEHOLDER : "填写活动标题"
-            }
+            placeholder="填写活动标题"
             className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
           />
         </label>
@@ -183,10 +178,8 @@ const ActivityFormFields = (props: Props) => {
           <textarea
             value={props.description}
             onChange={(e) => props.onDescriptionChange(e.target.value)}
-            placeholder={
-              kind === "series" ? SERIES_DESC_PLACEHOLDER : "介绍一下活动内容"
-            }
-            rows={kind === "series" ? 6 : 4}
+            placeholder="介绍一下活动内容"
+            rows={4}
             className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
           />
         </label>
@@ -200,9 +193,7 @@ const ActivityFormFields = (props: Props) => {
           <input
             value={props.location}
             onChange={(e) => props.onLocationChange(e.target.value)}
-            placeholder={
-              kind === "series" ? SERIES_LOCATION_PLACEHOLDER : "填写活动地点"
-            }
+            placeholder="填写活动地点"
             className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
           />
         </label>
@@ -257,7 +248,7 @@ const ActivityFormFields = (props: Props) => {
                         </span>
                       )}
                   </span>
-                  {!isView && props.seriesSessions.length > 2 && (
+                  {!isView && props.seriesSessions.length > 1 && (
                     <button
                       type="button"
                       aria-label="删除场次"

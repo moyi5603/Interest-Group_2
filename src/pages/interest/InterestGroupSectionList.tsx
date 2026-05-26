@@ -77,13 +77,12 @@ const InterestGroupSectionList = () => {
         const scored = recommendGroups(CURRENT_EMPLOYEE_ID, 20);
         return (
           <ul className="space-y-1.5">
-            {scored.map(({ group, reasons, matchPercent }) => (
+            {scored.map(({ group, reasons }) => (
               <li key={group.id}>
                 <GroupCard
                   compact
                   group={group}
                   reasons={reasons}
-                  matchPercent={matchPercent}
                   onOpen={() => navigate(`/agents/interest-groups/${group.id}`)}
                   onJoin={() => {
                     if (!joinGroup(group.id, CURRENT_EMPLOYEE_ID)) {

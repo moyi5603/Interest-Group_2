@@ -52,12 +52,9 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
   );
   const [oneOffSchedule, setOneOffSchedule] = useState(initial.oneOffSchedule);
   const [seriesSessions, setSeriesSessions] = useState<SeriesSessionDraft[]>(
-    initial.seriesSessions.length >= 2
+    initial.seriesSessions.length > 0
       ? initial.seriesSessions
-      : [
-          { key: newSessionKey(), ...emptySchedule() },
-          { key: newSessionKey(), ...emptySchedule() },
-        ],
+      : [{ key: newSessionKey(), ...emptySchedule() }],
   );
   const [recurrence, setRecurrence] = useState(initial.recurrence);
   const [weeklyDay, setWeeklyDay] = useState(initial.weeklyDay);
@@ -85,7 +82,7 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
 
   const removeSession = (key: string) => {
     setSeriesSessions((list) =>
-      list.length <= 2 ? list : list.filter((s) => s.key !== key),
+      list.length <= 1 ? list : list.filter((s) => s.key !== key),
     );
   };
 
@@ -120,8 +117,8 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
       patch.startAt = startAt;
       patch.endAt = endAt;
     } else if (activity.activityKind === "series") {
-      if (seriesSessions.length < 2) {
-        toast.error("系列活动至少需要 2 个场次");
+      if (seriesSessions.length < 1) {
+        toast.error("请至少保留 1 个场次");
         return;
       }
       const missingSchedule = seriesSessions.some(
