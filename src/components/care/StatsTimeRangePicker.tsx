@@ -120,25 +120,23 @@ export const StatsTimeRangePicker = ({ value, onChange, trigger }: Props) => {
           )}
         </button>
         {draft.preset === "custom" && (
-          <div className="mt-4 space-y-3 rounded-xl border border-border bg-secondary/40 p-3">
-            <div className="space-y-2">
-              <MobileDateField
-                label="开始日期"
-                value={draft.start ?? ""}
-                max={draft.end}
-                onChange={(start) =>
-                  setDraft((d) => ({ ...d, preset: "custom", start }))
-                }
-              />
-              <MobileDateField
-                label="结束日期"
-                value={draft.end ?? ""}
-                min={draft.start}
-                onChange={(end) =>
-                  setDraft((d) => ({ ...d, preset: "custom", end }))
-                }
-              />
-            </div>
+          <div className="mt-4 space-y-2">
+            <MobileDateField
+              label="开始日期"
+              value={draft.start ?? ""}
+              max={draft.end}
+              onChange={(start) =>
+                setDraft((d) => ({ ...d, preset: "custom", start }))
+              }
+            />
+            <MobileDateField
+              label="结束日期"
+              value={draft.end ?? ""}
+              min={draft.start}
+              onChange={(end) =>
+                setDraft((d) => ({ ...d, preset: "custom", end }))
+              }
+            />
             <button
               type="button"
               onClick={(e) => {

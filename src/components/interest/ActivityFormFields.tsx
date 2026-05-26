@@ -223,7 +223,6 @@ const ActivityFormFields = (props: Props) => {
             label="活动时间"
             value={props.oneOffSchedule}
             onChange={props.onOneOffScheduleChange}
-            className="bg-card"
           />
         ))}
 

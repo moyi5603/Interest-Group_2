@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { CalendarDays, ChevronRight, Clock3 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -251,65 +251,9 @@ const WheelHighlight = () => (
   />
 );
 
-type PickerTriggerProps = {
-  label: string;
-  display: string;
-  placeholder: string;
-  filled: boolean;
-  onClick: () => void;
-  icon?: "date" | "time";
-  compact?: boolean;
-  className?: string;
-};
-
-const PickerTrigger = ({
-  label,
-  display,
-  placeholder,
-  filled,
-  onClick,
-  icon = "date",
-  compact,
-  className,
-}: PickerTriggerProps) => {
-  const Icon = icon === "date" ? CalendarDays : Clock3;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex w-full min-w-0 items-center justify-between rounded-lg border border-border bg-card text-left active:bg-secondary/60",
-        compact ? "px-2 py-1.5" : "px-3 py-2.5",
-        className,
-      )}
-    >
-      <span className="flex min-w-0 flex-1 items-center gap-1.5">
-        {!compact && (
-          <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-        )}
-        <span className="min-w-0">
-          <span
-            className={cn(
-              "block text-muted-foreground",
-              compact ? "text-[10px]" : "text-[11px]",
-            )}
-          >
-            {label}
-          </span>
-          <span
-            className={cn(
-              "block truncate text-sm font-medium tabular-nums",
-              filled ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
-            {filled ? display : placeholder}
-          </span>
-        </span>
-      </span>
-      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-    </button>
-  );
-};
+/** 与表单输入框一致的白色卡片容器 */
+const PICKER_LIST_CLASS =
+  "divide-y divide-border/60 overflow-hidden rounded-xl border border-border bg-card";
 
 type CompactPickerRowProps = {
   label: string;
@@ -319,7 +263,7 @@ type CompactPickerRowProps = {
   onClick: () => void;
 };
 
-/** 系列场次：左标签 + 右值 + 箭头，类似系统设置列表 */
+/** 左标签 + 右值 + 箭头，与页面表单白底风格一致 */
 const CompactPickerRow = ({
   label,
   value,
@@ -330,13 +274,13 @@ const CompactPickerRow = ({
   <button
     type="button"
     onClick={onClick}
-    className="flex w-full items-center gap-2 px-2.5 py-2 text-left active:bg-secondary/50"
+    className="flex w-full items-center gap-2 bg-card px-3 py-2.5 text-left active:bg-secondary/40"
   >
-    <span className="w-9 shrink-0 text-xs text-muted-foreground">{label}</span>
+    <span className="w-14 shrink-0 text-xs text-muted-foreground">{label}</span>
     <span
       className={cn(
-        "min-w-0 flex-1 truncate text-sm font-medium tabular-nums",
-        filled ? "text-foreground" : "text-muted-foreground",
+        "min-w-0 flex-1 truncate text-sm tabular-nums",
+        filled ? "font-medium text-foreground" : "text-muted-foreground",
       )}
     >
       {filled ? value : placeholder}
@@ -821,13 +765,15 @@ export const MobileDateField = ({
 
   return (
     <div className={className}>
-      <PickerTrigger
-        label={label}
-        display={formatMobileDate(value)}
-        placeholder="请选择日期"
-        filled={!!value}
-        onClick={() => setOpen(true)}
-      />
+      <div className={PICKER_LIST_CLASS}>
+        <CompactPickerRow
+          label={label}
+          value={formatMobileDate(value)}
+          placeholder="请选择日期"
+          filled={!!value}
+          onClick={() => setOpen(true)}
+        />
+      </div>
       <DatePickerSheet
         open={open}
         title={label}
@@ -858,18 +804,22 @@ export const MobileTimeRangeField = ({
 }: MobileTimeRangeFieldProps) => {
   const [open, setOpen] = useState(false);
   const filled = !!startTime && !!endTime;
+  const display = filled
+    ? `${formatMobileTime(startTime)} – ${formatMobileTime(endTime)}`
+    : "";
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-1.5", className)}>
       <span className="text-xs font-medium text-foreground">{label}</span>
-      <PickerTrigger
-        label="活动时段"
-        display={`${formatMobileTime(startTime)} – ${formatMobileTime(endTime)}`}
-        placeholder="请选择开始与结束时间"
-        filled={filled}
-        icon="time"
-        onClick={() => setOpen(true)}
-      />
+      <div className={PICKER_LIST_CLASS}>
+        <CompactPickerRow
+          label="时段"
+          value={display}
+          placeholder="选择开始与结束"
+          filled={filled}
+          onClick={() => setOpen(true)}
+        />
+      </div>
       <TimeRangePickerSheet
         open={open}
         title={label}
@@ -908,136 +858,57 @@ export const MobileDateTimeRangeField = ({
   compact,
 }: MobileDateTimeRangeFieldProps) => {
   const [dateOpen, setDateOpen] = useState(false);
-  const [startOpen, setStartOpen] = useState(false);
-  const [endOpen, setEndOpen] = useState(false);
   const [rangeOpen, setRangeOpen] = useState(false);
 
   const patch = (partial: Partial<MobileDateTimeRangeValue>) =>
     onChange({ ...value, ...partial });
 
-  const dateLabel = compact ? "日期" : "活动日期";
-  const startLabel = compact ? "开始" : "开始时间";
-  const endLabel = compact ? "结束" : "结束时间";
   const timeRangeFilled = !!value.startTime && !!value.endTime;
   const timeRangeDisplay = timeRangeFilled
     ? `${formatMobileTime(value.startTime)} – ${formatMobileTime(value.endTime)}`
     : "";
+  const dateDisplay = compact
+    ? formatShortDate(value.date)
+    : formatMobileDate(value.date);
 
-  if (compact) {
-    return (
-      <div className={className}>
-        <div className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/60 bg-background">
-          <CompactPickerRow
-            label={dateLabel}
-            value={formatShortDate(value.date)}
-            placeholder="选择日期"
-            filled={!!value.date}
-            onClick={() => setDateOpen(true)}
-          />
-          <CompactPickerRow
-            label="时段"
-            value={timeRangeDisplay}
-            placeholder="选择开始与结束"
-            filled={timeRangeFilled}
-            onClick={() => setRangeOpen(true)}
-          />
-        </div>
-        <DatePickerSheet
-          open={dateOpen}
-          title={`${label} · 日期`}
-          value={value.date}
-          min={minDate}
-          max={maxDate}
-          onOpenChange={setDateOpen}
-          onConfirm={(date) => patch({ date })}
+  return (
+    <div className={cn(compact ? undefined : "space-y-1.5", className)}>
+      {!compact && (
+        <span className="text-xs font-medium text-foreground">{label}</span>
+      )}
+      <div className={PICKER_LIST_CLASS}>
+        <CompactPickerRow
+          label="日期"
+          value={dateDisplay}
+          placeholder="选择日期"
+          filled={!!value.date}
+          onClick={() => setDateOpen(true)}
         />
-        <TimeRangePickerSheet
-          open={rangeOpen}
-          title={`${label} · 时段`}
-          startTime={value.startTime}
-          endTime={value.endTime}
-          onOpenChange={setRangeOpen}
-          onConfirm={(startTime, endTime) => patch({ startTime, endTime })}
+        <CompactPickerRow
+          label="时段"
+          value={timeRangeDisplay}
+          placeholder="选择开始与结束"
+          filled={timeRangeFilled}
+          onClick={() => setRangeOpen(true)}
         />
       </div>
-    );
-  }
-
-  const sheets = (
-    <>
       <DatePickerSheet
         open={dateOpen}
-        title={compact ? `${label} · 日期` : label}
+        title={`${label} · 日期`}
         value={value.date}
         min={minDate}
         max={maxDate}
         onOpenChange={setDateOpen}
         onConfirm={(date) => patch({ date })}
       />
-      <TimePickerSheet
-        open={startOpen}
-        title={`${label} · 开始时间`}
-        value={value.startTime}
-        onOpenChange={setStartOpen}
-        onConfirm={(startTime) => {
-          const s = parseTime(startTime);
-          const e = parseTime(value.endTime);
-          if (s && e && !isEndAfterStart(s.h, s.m, e.h, e.m)) {
-            const clamped = clampEndTime(s.h, s.m, e.h, e.m);
-            patch({
-              startTime,
-              endTime: toTime(clamped.h, clamped.m),
-            });
-          } else {
-            patch({ startTime });
-          }
-        }}
+      <TimeRangePickerSheet
+        open={rangeOpen}
+        title={`${label} · 时段`}
+        startTime={value.startTime}
+        endTime={value.endTime}
+        onOpenChange={setRangeOpen}
+        onConfirm={(startTime, endTime) => patch({ startTime, endTime })}
       />
-      <TimePickerSheet
-        open={endOpen}
-        title={`${label} · 结束时间`}
-        value={value.endTime}
-        onOpenChange={setEndOpen}
-        notBefore={parseTime(value.startTime) ?? undefined}
-        onConfirm={(endTime) => patch({ endTime })}
-      />
-    </>
-  );
-
-  return (
-    <div className={cn("space-y-2", className)}>
-      <span className="text-xs font-medium text-foreground">{label}</span>
-
-      <PickerTrigger
-        label={dateLabel}
-        display={formatMobileDate(value.date)}
-        placeholder="选择日期"
-        filled={!!value.date}
-        onClick={() => setDateOpen(true)}
-      />
-
-      <div className="grid grid-cols-2 gap-2">
-        <PickerTrigger
-          label={startLabel}
-          display={formatMobileTime(value.startTime)}
-          placeholder="开始"
-          filled={!!value.startTime}
-          icon="time"
-          compact
-          onClick={() => setStartOpen(true)}
-        />
-        <PickerTrigger
-          label={endLabel}
-          display={formatMobileTime(value.endTime)}
-          placeholder="结束"
-          filled={!!value.endTime}
-          icon="time"
-          compact
-          onClick={() => setEndOpen(true)}
-        />
-      </div>
-
-      {sheets}
     </div>
   );
 };

@@ -1,0 +1,8 @@
+---
+description: 本项目会话自动检查并遵循 Agent Skills
+alwaysApply: true
+---
+
+# 自动使用 Skills
+
+在回复或改代码前，先检查 Cursor 提供的 agent skills 列表；有适用项则用 Read 读取其 `SKILL.md` 并遵循，优先 `using-superpowers` 与任务相关的流程类 skill。
