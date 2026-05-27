@@ -4,7 +4,11 @@ import {
   type MobileDateTimeRangeValue,
 } from "@/components/ui/mobile-date-field";
 import type { SeriesSessionDraft } from "@/components/interest/ActivityFormFields";
-import type { ActivityOccurrence, GroupActivity } from "@/data/interestTypes";
+import type {
+  ActivityOccurrence,
+  GroupActivity,
+  SeriesEnrollmentMode,
+} from "@/data/interestTypes";
 import { parseRecurringFormState } from "@/lib/interestOccurrences";
 
 const toDatetimeLocal = (iso?: string) => {
@@ -64,6 +68,8 @@ export const activityToFormValues = (
       activity.activityKind === "series"
         ? occurrencesToSeriesSessions(occurrences)
         : [],
+    seriesEnrollmentMode:
+      (activity.seriesEnrollmentMode ?? "per_occurrence") as SeriesEnrollmentMode,
     ...recurring,
   };
 };

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { ArrowLeft, MessageSquare, Phone, Heart, ChevronLeft, ChevronRight, CreditCard, GraduationCap, MoreHorizontal, Users, ChevronRight as ChevronRightSmall, Coins, Award, Shield } from "lucide-react";
 import GroupAvatar from "@/components/interest/GroupAvatar";
 import { getEmployee, getYearsOfService } from "@/data/colleagueData";
@@ -9,6 +10,7 @@ import { resolveGroupCover } from "@/data/interestImages";
 const EmployeeDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const location = useLocation();
 
   const stateIds: string[] | undefined = (location.state as any)?.employeeIds;
@@ -115,7 +117,7 @@ const EmployeeDetail = () => {
           <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent" />
 
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-sm transition-base active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />

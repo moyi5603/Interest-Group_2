@@ -1,24 +1,41 @@
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useNavigateBack } from "@/hooks/useNavigateBack";
+import { useNavigate, useParams } from "react-router-dom";
 import ActivityCoverUpload from "@/components/interest/ActivityCoverUpload";
 import InterestTagPicker from "@/components/interest/InterestTagPicker";
-import { DEFAULT_GROUP_COVER } from "@/data/interestImages";
+import { resolveGroupCover } from "@/data/interestImages";
 import { getTagsByIds } from "@/data/interestTags";
 import {
   CURRENT_EMPLOYEE_ID,
-  createSpontaneousGroup,
+  getGroupById,
+  isGroupOwner,
+  updateGroup,
 } from "@/data/interestGroups";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { toast } from "sonner";
 
-const GroupCreate = () => {
+const GroupEdit = () => {
+  const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const goBack = useNavigateBack();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [tagIds, setTagIds] = useState<string[]>([]);
-  const [coverUrl, setCoverUrl] = useState<string | undefined>();
+  const group = getGroupById(groupId || "");
+  const canEdit =
+    group &&
+    group.status === "active" &&
+    isGroupOwner(group.id, CURRENT_EMPLOYEE_ID);
+
+  const [name, setName] = useState(group?.name ?? "");
+  const [description, setDescription] = useState(group?.description ?? "");
+  const [tagIds, setTagIds] = useState<string[]>(group?.tagIds ?? []);
+  const [coverUrl, setCoverUrl] = useState<string | undefined>(group?.coverUrl);
+
+  if (!group || !canEdit) {
+    return (
+      <div className="mx-auto flex h-screen max-w-md items-center justify-center">
+        <p className="text-sm text-muted-foreground">无法编辑该小组</p>
+      </div>
+    );
+  }
 
   const toggleTag = (id: string) => {
     setTagIds((prev) =>
@@ -35,17 +52,17 @@ const GroupCreate = () => {
       toast.error("请至少选择一个标签");
       return;
     }
-    const group = createSpontaneousGroup(
-      {
-        name: name.trim(),
-        description: description.trim() || "欢迎加入我们的兴趣小组！",
-        visibility: "public",
-        tagIds,
-        coverUrl: coverUrl ?? DEFAULT_GROUP_COVER,
-      },
-      CURRENT_EMPLOYEE_ID,
-    );
-    toast.success("小组已创建");
+    const updated = updateGroup(group.id, CURRENT_EMPLOYEE_ID, {
+      name: name.trim(),
+      description: description.trim() || "欢迎加入我们的兴趣小组！",
+      tagIds,
+      coverUrl: coverUrl ?? resolveGroupCover(group),
+    });
+    if (!updated) {
+      toast.error("保存失败，请稍后重试");
+      return;
+    }
+    toast.success("已保存");
     navigate(`/agents/interest-groups/${group.id}`);
   };
 
@@ -59,15 +76,15 @@ const GroupCreate = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-semibold">创建小组</h1>
+        <h1 className="text-base font-semibold">编辑小组</h1>
       </header>
 
       <main className="flex-1 space-y-4 overflow-y-auto px-3 pb-24 scrollbar-hide">
         <ActivityCoverUpload
-          value={coverUrl}
+          value={coverUrl ?? resolveGroupCover(group)}
           onChange={setCoverUrl}
           label="小组封面"
-          hint="建议横图，与小组详情页顶部展示一致；不上传则使用默认封面"
+          hint="建议横图，与小组详情页顶部展示一致"
         />
 
         <label className="block space-y-1">
@@ -127,11 +144,11 @@ const GroupCreate = () => {
           onClick={submit}
           className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground"
         >
-          创建并上线
+          保存
         </button>
       </div>
     </div>
   );
 };
 
-export default GroupCreate;
+export default GroupEdit;

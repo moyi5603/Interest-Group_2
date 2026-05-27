@@ -1,5 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
+import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import {
   ArrowLeft,
   Users,
@@ -241,11 +243,24 @@ const capabilityMap: Record<string, CapabilityConfig> = {
 
 const CapabilityDetail = () => {
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const { key } = useParams<{ key: string }>();
   const config = capabilityMap[key || ""] || capabilityMap.employee;
   const Icon = config.icon;
   const isAgentMode = !!config.examples;
-  const [activeTab, setActiveTab] = useState(0);
+  const exampleCategories = useMemo(
+    () => config.examples?.map((g) => g.category) ?? [],
+    [config.examples],
+  );
+  const [activeCategory, setActiveCategory] = useUrlEnumParam(
+    "tab",
+    exampleCategories[0] ?? "",
+    exampleCategories,
+  );
+  const activeTab = Math.max(
+    0,
+    exampleCategories.indexOf(activeCategory),
+  );
   const activeGroup = isAgentMode ? config.examples![activeTab] : null;
 
   // 部门查询模式
@@ -268,7 +283,7 @@ const CapabilityDetail = () => {
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center gap-2 bg-background/85 px-3 py-3 backdrop-blur-lg">
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-foreground transition-base active:scale-95"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -315,7 +330,7 @@ const CapabilityDetail = () => {
                   return (
                     <button
                       key={group.category}
-                      onClick={() => setActiveTab(idx)}
+                      onClick={() => setActiveCategory(group.category)}
                       className="flex items-center justify-center gap-1 rounded-full px-2 py-1.5 text-xs font-medium transition-base active:scale-95"
                       style={
                         active

@@ -4,9 +4,9 @@ import {
   getJoinedGroups,
 } from "@/data/interestGroups";
 import {
-  getUpcomingOccurrences,
+  getRecentActivities,
   recommendGroups,
-  type OccurrenceWithActivity,
+  type RecentActivityItem,
   type ScoredGroup,
 } from "./interestRecommend";
 
@@ -22,7 +22,7 @@ export type AgentReply = {
   text: string;
   groups?: InterestGroupFull[];
   scoredGroups?: ScoredGroup[];
-  occurrences?: OccurrenceWithActivity[];
+  recentActivities?: RecentActivityItem[];
 };
 
 export const parseIntent = (input: string): AgentIntent => {
@@ -46,16 +46,16 @@ export const buildReply = (
         text:
           scored.length > 0
             ? "根据你的兴趣，AI 为你挑选了这些小组："
-            : "暂无更多推荐，可以先完善兴趣标签或浏览官方小组。",
+            : "暂无更多推荐，可以先完善兴趣标签或浏览推荐小组。",
         scoredGroups: scored,
       };
     }
     case "list_activity": {
-      const occ = getUpcomingOccurrences(viewerId, 3);
+      const recent = getRecentActivities(viewerId).slice(0, 3);
       return {
         intent,
         text: "近期可参与的活动如下：",
-        occurrences: occ,
+        recentActivities: recent,
       };
     }
     case "my_groups": {
@@ -73,7 +73,7 @@ export const buildReply = (
       return {
         intent,
         text:
-          "发起活动：进入已加入的小组 → 小组详情 → 发布活动。创建小组：在兴趣小组首页点击「创建小组」，填写信息后即可上线（请在7日内完成工会报备）。",
+          "发起活动：仅小组创建者可在小组详情点击「发布活动」。创建小组：在兴趣小组首页点击「创建小组」，填写信息后即可上线（请在7日内完成工会报备）。",
       };
     default:
       return {

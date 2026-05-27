@@ -9,8 +9,18 @@ import { ACTIVITY_COVERS, DEFAULT_GROUP_COVER, GROUP_COVERS } from "./interestIm
 import {
   buildSeriesOccurrences,
   expandRecurringOccurrences,
+  getActivityPhase,
   nextWeeklyOccurrence,
+  oneOffEnrollmentBlockedReason,
 } from "@/lib/interestOccurrences";
+import { isOccurrenceInEnrollmentPickerWindow } from "@/lib/occurrenceEnrollmentPicker";
+import {
+  getEnrollableSeriesOccurrences,
+  getFirstSeriesOccurrence,
+  getSeriesEnrollmentMode,
+  isSeriesWholeEnrollmentOpen,
+  sortOccurrencesByStart,
+} from "@/lib/seriesEnrollment";
 
 export const CURRENT_EMPLOYEE_ID = "u1";
 
@@ -78,6 +88,89 @@ const badmintonSeriesEnds = {
   playoff: atLocal(2026, 7, 20, 22, 0),
   final: atLocal(2026, 8, 1, 17, 0),
 } as const;
+
+/** 他人发布 · 系列整场报名（mock，五场） */
+const hikingWholeSeriesSessions = [
+  { startAt: addDays(now, 7), durationHours: 2 },
+  { startAt: addDays(now, 14), durationHours: 2 },
+  { startAt: addDays(now, 21), durationHours: 7 },
+  { startAt: addDays(now, 28), durationHours: 6 },
+  { startAt: addDays(now, 35), durationHours: 2.5 },
+] as const;
+
+/** 已结束活动 mock：我组织的（单次 / 每周 / 系列） */
+const endedOrgOneOff = {
+  start: atLocal(2026, 4, 19, 9, 0),
+  end: atLocal(2026, 4, 19, 12, 0),
+} as const;
+
+const endedOrgWeeklySessions = [
+  atLocal(2026, 4, 5, 14, 0),
+  atLocal(2026, 4, 12, 14, 0),
+  atLocal(2026, 4, 26, 14, 0),
+  atLocal(2026, 5, 10, 14, 0),
+  atLocal(2026, 5, 17, 14, 0),
+] as const;
+
+const endedOrgSeriesSessions = [
+  {
+    start: atLocal(2026, 3, 8, 19, 0),
+    end: atLocal(2026, 3, 8, 21, 0),
+  },
+  {
+    start: atLocal(2026, 4, 12, 19, 0),
+    end: atLocal(2026, 4, 12, 21, 0),
+  },
+  {
+    start: atLocal(2026, 5, 17, 19, 0),
+    end: atLocal(2026, 5, 17, 21, 0),
+  },
+] as const;
+
+/** 已结束活动 mock：我参与的（单次 / 每周 / 系列） */
+const endedPtOneOff = {
+  start: atLocal(2026, 5, 8, 18, 0),
+  end: atLocal(2026, 5, 8, 19, 30),
+} as const;
+
+const endedPtWeeklySessions = [
+  atLocal(2026, 4, 2, 19, 0),
+  atLocal(2026, 4, 9, 19, 0),
+  atLocal(2026, 4, 23, 19, 0),
+  atLocal(2026, 5, 7, 19, 0),
+  atLocal(2026, 5, 21, 19, 0),
+] as const;
+
+const endedPtSeriesSessions = [
+  {
+    start: atLocal(2026, 3, 15, 19, 0),
+    end: atLocal(2026, 3, 15, 21, 0),
+  },
+  {
+    start: atLocal(2026, 4, 19, 19, 0),
+    end: atLocal(2026, 4, 19, 21, 0),
+  },
+  {
+    start: atLocal(2026, 5, 24, 19, 0),
+    end: atLocal(2026, 5, 24, 21, 0),
+  },
+] as const;
+
+const pickDisplayOccurrence = (
+  occs: ActivityOccurrence[],
+): ActivityOccurrence | undefined => {
+  const scheduled = occs.find((o) => o.status === "scheduled");
+  if (scheduled) return scheduled;
+  const completed = occs
+    .filter((o) => o.status === "completed")
+    .sort(
+      (a, b) => new Date(b.endAt).getTime() - new Date(a.endAt).getTime(),
+    );
+  if (completed[0]) return completed[0];
+  return [...occs].sort(
+    (a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime(),
+  )[0];
+};
 
 export let interestGroups: InterestGroupFull[] = [
   {
@@ -379,8 +472,11 @@ export let activities: GroupActivity[] = [
     description: "三月共读书目《思考，快与慢》，分三场线下讨论。",
     coverUrl: ACTIVITY_COVERS["act-4"],
     activityKind: "series",
+    seriesEnrollmentMode: "per_occurrence",
     location: "图书馆讨论室",
     capacity: 15,
+    startAt: addDays(now, 7),
+    endAt: addHours(addDays(now, 7), 2),
     status: "published",
     likeCount: 28,
     commentCount: 6,
@@ -419,8 +515,10 @@ export let activities: GroupActivity[] = [
       "初赛采用分组循环，晋级赛与决赛现场抽签对阵。友谊第一、比赛第二，欢迎来切磋球技、结识球友。",
     coverUrl: ACTIVITY_COVERS["act-6"],
     activityKind: "series",
+    seriesEnrollmentMode: "once_before_first",
     location: "公司附近某某羽毛球馆",
     capacity: 50,
+    enrollDeadline: badmintonSeriesSlots.preliminary,
     startAt: badmintonSeriesSlots.preliminary,
     endAt: badmintonSeriesEnds.preliminary,
     status: "published",
@@ -428,9 +526,189 @@ export let activities: GroupActivity[] = [
     commentCount: 19,
     favoriteCount: 42,
   },
+  {
+    id: "act-e-org-1",
+    groupId: "ig5",
+    organizerId: "u1",
+    title: "奥森春日人像外拍",
+    description: "户外人像实战，含构图与用光讲解，已圆满结束。",
+    coverUrl: ACTIVITY_COVERS["act-2"],
+    activityKind: "one_off",
+    location: "奥林匹克森林公园南园",
+    capacity: 12,
+    startAt: endedOrgOneOff.start,
+    endAt: endedOrgOneOff.end,
+    enrollDeadline: atLocal(2026, 4, 17, 18, 0),
+    status: "published",
+    likeCount: 18,
+    commentCount: 4,
+    favoriteCount: 7,
+  },
+  {
+    id: "act-e-org-2",
+    groupId: "ig5",
+    organizerId: "u1",
+    title: "周六扫街固定局",
+    description: "每周六下午固定外拍扫街，本季场次已全部完成。",
+    coverUrl: ACTIVITY_COVERS["act-5"],
+    activityKind: "recurring",
+    location: "798 艺术区北门集合",
+    capacity: 15,
+    startAt: endedOrgWeeklySessions[4],
+    endAt: addHours(endedOrgWeeklySessions[4], 3),
+    rrule: "FREQ=WEEKLY;BYDAY=SA",
+    status: "published",
+    likeCount: 24,
+    commentCount: 6,
+    favoriteCount: 11,
+  },
+  {
+    id: "act-e-org-3",
+    groupId: "ig5",
+    organizerId: "u1",
+    title: "三月主题展映系列",
+    description: "摄影社春季三场主题展映与点评，系列已全部结束。",
+    coverUrl: ACTIVITY_COVERS["act-4"],
+    activityKind: "series",
+    location: "摄影社活动室",
+    capacity: 20,
+    startAt: endedOrgSeriesSessions[0].start,
+    endAt: endedOrgSeriesSessions[0].end,
+    status: "published",
+    likeCount: 31,
+    commentCount: 8,
+    favoriteCount: 14,
+  },
+  {
+    id: "act-e-pt-1",
+    groupId: "ig6",
+    organizerId: "u2",
+    title: "减脂营结营体测",
+    description: "季度减脂营结营体测与经验分享。",
+    coverUrl: ACTIVITY_COVERS["act-6"],
+    activityKind: "one_off",
+    location: "公司附近健身房",
+    capacity: 30,
+    startAt: endedPtOneOff.start,
+    endAt: endedPtOneOff.end,
+    enrollDeadline: atLocal(2026, 5, 6, 12, 0),
+    status: "published",
+    likeCount: 22,
+    commentCount: 3,
+    favoriteCount: 6,
+  },
+  {
+    id: "act-e-pt-2",
+    groupId: "ig6",
+    organizerId: "u2",
+    title: "周三力量团课",
+    description: "每周三晚间力量训练团课，春季班已结课。",
+    coverUrl: ACTIVITY_COVERS["act-5"],
+    activityKind: "recurring",
+    location: "公司附近健身房",
+    capacity: 20,
+    startAt: endedPtWeeklySessions[4],
+    endAt: addHours(endedPtWeeklySessions[4], 1.5),
+    rrule: "FREQ=WEEKLY;BYDAY=WE",
+    status: "published",
+    likeCount: 38,
+    commentCount: 7,
+    favoriteCount: 12,
+  },
+  {
+    id: "act-e-pt-3",
+    groupId: "ig7",
+    organizerId: "u2",
+    title: "春季双打积分赛",
+    description: "羽毛球俱乐部春季双打积分赛，三场淘汰赛已全部打完。",
+    coverUrl: ACTIVITY_COVERS["act-6"],
+    activityKind: "series",
+    location: "公司附近某某羽毛球馆",
+    capacity: 32,
+    startAt: endedPtSeriesSessions[0].start,
+    endAt: endedPtSeriesSessions[0].end,
+    status: "published",
+    likeCount: 45,
+    commentCount: 12,
+    favoriteCount: 19,
+  },
+  {
+    id: "act-7",
+    groupId: "ig8",
+    organizerId: "u4",
+    title: "京郊徒步挑战赛",
+    description:
+      "周末徒步社春季系列赛，共五场递进：\n" +
+      "· 第1场 行前说明与装备检查\n" +
+      "· 第2场 适应徒步（公司周边）\n" +
+      "· 第3场 京郊一日徒步（东线）\n" +
+      "· 第4场 京郊一日徒步（西线）\n" +
+      "· 第5场 结营分享与颁奖\n\n" +
+      "本活动为整场报名，报名一次参加全部场次；首场开始前可报名。",
+    coverUrl: ACTIVITY_COVERS["act-5"],
+    activityKind: "series",
+    seriesEnrollmentMode: "once_before_first",
+    location: "昌平十三陵特区停车场集合",
+    capacity: 40,
+    enrollDeadline: addDays(now, 5),
+    startAt: hikingWholeSeriesSessions[0].startAt,
+    endAt: addHours(
+      hikingWholeSeriesSessions[0].startAt,
+      hikingWholeSeriesSessions[0].durationHours,
+    ),
+    status: "published",
+    likeCount: 41,
+    commentCount: 9,
+    favoriteCount: 16,
+  },
+  {
+    id: "act-t1",
+    groupId: "ig4",
+    organizerId: "u3",
+    title: "五月读书分享（已终止）",
+    description: "创建人因参与人数不足已终止后续场次。",
+    coverUrl: ACTIVITY_COVERS["act-4"],
+    activityKind: "series",
+    seriesEnrollmentMode: "per_occurrence",
+    location: "图书馆讨论室",
+    capacity: 15,
+    startAt: addDays(now, 14),
+    endAt: addHours(addDays(now, 14), 2),
+    status: "cancelled",
+    likeCount: 5,
+    commentCount: 1,
+    favoriteCount: 2,
+  },
 ];
 
 export let occurrences: ActivityOccurrence[] = [
+  {
+    id: "occ-2-1",
+    activityId: "act-2",
+    startAt: addDays(now, 10),
+    endAt: addHours(addDays(now, 10), 2),
+    capacity: 20,
+    enrollCount: 0,
+    status: "scheduled",
+  },
+  {
+    id: "occ-e-org-1-1",
+    activityId: "act-e-org-1",
+    startAt: endedOrgOneOff.start,
+    endAt: endedOrgOneOff.end,
+    capacity: 12,
+    enrollCount: 0,
+    status: "completed",
+  },
+  {
+    id: "occ-e-pt-1-1",
+    activityId: "act-e-pt-1",
+    startAt: endedPtOneOff.start,
+    endAt: endedPtOneOff.end,
+    capacity: 30,
+    enrollCount: 0,
+    status: "completed",
+  },
   {
     id: "occ-r1",
     activityId: "act-1",
@@ -530,6 +808,69 @@ export let occurrences: ActivityOccurrence[] = [
     enrollCount: 0,
     status: "scheduled",
   },
+  ...endedOrgWeeklySessions.map((startAt, i) => ({
+    id: `occ-e-org-2-${i + 1}`,
+    activityId: "act-e-org-2",
+    startAt,
+    endAt: addHours(startAt, 3),
+    capacity: 15,
+    enrollCount: 8 + i,
+    status: "completed" as const,
+  })),
+  ...endedOrgSeriesSessions.map((session, i) => ({
+    id: `occ-e-org-3-${i + 1}`,
+    activityId: "act-e-org-3",
+    startAt: session.start,
+    endAt: session.end,
+    capacity: 20,
+    enrollCount: 12 + i * 2,
+    status: "completed" as const,
+  })),
+  ...endedPtWeeklySessions.map((startAt, i) => ({
+    id: `occ-e-pt-2-${i + 1}`,
+    activityId: "act-e-pt-2",
+    startAt,
+    endAt: addHours(startAt, 1.5),
+    capacity: 20,
+    enrollCount: 14 + i,
+    status: "completed" as const,
+  })),
+  ...endedPtSeriesSessions.map((session, i) => ({
+    id: `occ-e-pt-3-${i + 1}`,
+    activityId: "act-e-pt-3",
+    startAt: session.start,
+    endAt: session.end,
+    capacity: 32,
+    enrollCount: 20 + i * 3,
+    status: "completed" as const,
+  })),
+  ...hikingWholeSeriesSessions.map((session, i) => ({
+    id: `occ-h${i + 1}`,
+    activityId: "act-7",
+    startAt: session.startAt,
+    endAt: addHours(session.startAt, session.durationHours),
+    capacity: 40,
+    enrollCount: i === 0 ? 18 : 0,
+    status: "scheduled" as const,
+  })),
+  {
+    id: "occ-t1-1",
+    activityId: "act-t1",
+    startAt: addDays(now, 14),
+    endAt: addHours(addDays(now, 14), 2),
+    capacity: 15,
+    enrollCount: 0,
+    status: "cancelled",
+  },
+  {
+    id: "occ-t1-2",
+    activityId: "act-t1",
+    startAt: addDays(now, 28),
+    endAt: addHours(addDays(now, 28), 2),
+    capacity: 15,
+    enrollCount: 0,
+    status: "cancelled",
+  },
 ];
 
 export let enrollments: ActivityEnrollment[] = [
@@ -544,8 +885,39 @@ export let enrollments: ActivityEnrollment[] = [
   {
     id: "enr-2",
     activityId: "act-2",
+    occurrenceId: "occ-2-1",
     employeeId: "u1",
     enrolledAt: addDays(now, -3),
+    status: "enrolled",
+  },
+  {
+    id: "enr-1-u2",
+    activityId: "act-1",
+    occurrenceId: "occ-r1",
+    employeeId: "u2",
+    enrolledAt: addDays(now, -2),
+    status: "enrolled",
+  },
+  {
+    id: "enr-4-u2",
+    activityId: "act-4",
+    occurrenceId: "occ-s2",
+    employeeId: "u2",
+    enrolledAt: addDays(now, -4),
+    status: "enrolled",
+  },
+  {
+    id: "enr-6-u2",
+    activityId: "act-6",
+    employeeId: "u2",
+    enrolledAt: addDays(now, -5),
+    status: "enrolled",
+  },
+  {
+    id: "enr-6-u3",
+    activityId: "act-6",
+    employeeId: "u3",
+    enrolledAt: addDays(now, -4),
     status: "enrolled",
   },
   {
@@ -564,13 +936,175 @@ export let enrollments: ActivityEnrollment[] = [
     enrolledAt: addDays(now, -5),
     status: "enrolled",
   },
+  {
+    id: "enr-e-pt-1",
+    activityId: "act-e-pt-1",
+    occurrenceId: "occ-e-pt-1-1",
+    employeeId: "u1",
+    enrolledAt: atLocal(2026, 5, 1, 10, 0),
+    status: "enrolled",
+  },
+  {
+    id: "enr-e-org-1",
+    activityId: "act-e-org-1",
+    occurrenceId: "occ-e-org-1-1",
+    employeeId: "u1",
+    enrolledAt: atLocal(2026, 4, 15, 10, 0),
+    status: "enrolled",
+  },
+  {
+    id: "enr-e-pt-2",
+    activityId: "act-e-pt-2",
+    occurrenceId: "occ-e-pt-2-5",
+    employeeId: "u1",
+    enrolledAt: atLocal(2026, 5, 14, 9, 0),
+    status: "enrolled",
+  },
+  {
+    id: "enr-e-pt-3",
+    activityId: "act-e-pt-3",
+    occurrenceId: "occ-e-pt-3-2",
+    employeeId: "u1",
+    enrolledAt: atLocal(2026, 4, 10, 11, 0),
+    status: "enrolled",
+  },
+  {
+    id: "enr-org-6",
+    activityId: "act-6",
+    employeeId: "u1",
+    enrolledAt: addDays(now, -2),
+    status: "enrolled",
+  },
+  {
+    id: "enr-org-2",
+    activityId: "act-e-org-2",
+    occurrenceId: "occ-e-org-2-5",
+    employeeId: "u1",
+    enrolledAt: atLocal(2026, 5, 10, 10, 0),
+    status: "enrolled",
+  },
+  {
+    id: "enr-org-3",
+    activityId: "act-e-org-3",
+    occurrenceId: "occ-e-org-3-3",
+    employeeId: "u1",
+    enrolledAt: atLocal(2026, 5, 1, 10, 0),
+    status: "enrolled",
+  },
+  {
+    id: "enr-h-1",
+    activityId: "act-7",
+    employeeId: "u2",
+    enrolledAt: addDays(now, -4),
+    status: "enrolled",
+  },
+  {
+    id: "enr-h-2",
+    activityId: "act-7",
+    employeeId: "u3",
+    enrolledAt: addDays(now, -3),
+    status: "enrolled",
+  },
+  {
+    id: "enr-h-3",
+    activityId: "act-7",
+    employeeId: "u5",
+    enrolledAt: addDays(now, -2),
+    status: "enrolled",
+  },
+  {
+    id: "enr-t1-1",
+    activityId: "act-t1",
+    occurrenceId: "occ-t1-1",
+    employeeId: "u1",
+    enrolledAt: addDays(now, -12),
+    status: "cancelled",
+  },
+  {
+    id: "enr-t1-2",
+    activityId: "act-t1",
+    occurrenceId: "occ-t1-2",
+    employeeId: "u1",
+    enrolledAt: addDays(now, -10),
+    status: "cancelled",
+  },
 ];
+
+/** 根据报名记录同步各场次 enrollCount（mock 初始化与数据一致性） */
+const syncOccurrenceEnrollCounts = () => {
+  const perOcc = new Map<string, number>();
+  const wholeSeriesByActivity = new Map<string, number>();
+
+  for (const e of enrollments) {
+    if (e.status !== "enrolled") continue;
+    const activity = activities.find((a) => a.id === e.activityId);
+    if (!activity) continue;
+
+    if (e.occurrenceId) {
+      perOcc.set(e.occurrenceId, (perOcc.get(e.occurrenceId) ?? 0) + 1);
+      continue;
+    }
+
+    if (
+      activity.activityKind === "series" &&
+      getSeriesEnrollmentMode(activity) === "once_before_first"
+    ) {
+      wholeSeriesByActivity.set(
+        activity.id,
+        (wholeSeriesByActivity.get(activity.id) ?? 0) + 1,
+      );
+    }
+  }
+
+  const allOccs = occurrences;
+  occurrences = allOccs.map((o) => {
+    let enrollCount = perOcc.get(o.id) ?? 0;
+    const activity = activities.find((a) => a.id === o.activityId);
+    if (!activity) return o;
+
+    const wholeTotal = wholeSeriesByActivity.get(activity.id);
+    if (
+      wholeTotal != null &&
+      getSeriesEnrollmentMode(activity) === "once_before_first"
+    ) {
+      const scheduled = sortOccurrencesByStart(
+        allOccs.filter(
+          (x) => x.activityId === activity.id && x.status === "scheduled",
+        ),
+      );
+      const anchor =
+        getFirstSeriesOccurrence(scheduled) ??
+        getFirstSeriesOccurrence(
+          allOccs.filter((x) => x.activityId === activity.id),
+        );
+      if (anchor?.id === o.id) {
+        enrollCount = wholeTotal;
+      }
+    }
+
+    return { ...o, enrollCount };
+  });
+};
+
+syncOccurrenceEnrollCounts();
 
 export type EnrolledActivityItem = {
   enrollment: ActivityEnrollment;
   activity: GroupActivity;
   group: InterestGroupFull;
   occurrence?: ActivityOccurrence;
+};
+
+/** 「我参与的场次」列表项：每条对应一个具体场次 */
+export type EnrolledOccurrenceItem = {
+  enrollment: ActivityEnrollment;
+  activity: GroupActivity;
+  group: InterestGroupFull;
+  occurrence: ActivityOccurrence;
+  /** 系列活动场次序号（0-based） */
+  occurrenceIndex?: number;
+  /** 活动被创建人终止，或该场次已取消 */
+  terminated: boolean;
 };
 
 export type OrganizedActivityItem = {
@@ -596,12 +1130,32 @@ export const isMember = (groupId: string, employeeId: string) =>
     (m) => m.groupId === groupId && m.employeeId === employeeId,
   );
 
+/** MVP：仅小组创建人（ownerId / membership.role=owner）可发布活动 */
+export const isGroupOwner = (groupId: string, employeeId: string): boolean => {
+  const group = interestGroups.find((g) => g.id === groupId);
+  if (group?.ownerId === employeeId) return true;
+  return groupMemberships.some(
+    (m) =>
+      m.groupId === groupId && m.employeeId === employeeId && m.role === "owner",
+  );
+};
+
 export const getJoinedGroups = (employeeId: string) => {
   const ids = groupMemberships
     .filter((m) => m.employeeId === employeeId)
     .map((m) => m.groupId);
-  return interestGroups.filter((g) => ids.includes(g.id));
+  return interestGroups.filter(
+    (g) => ids.includes(g.id) && g.status === "active",
+  );
 };
+
+/** 我创建（担任 owner）的小组 */
+export const getMyCreatedGroups = (employeeId: string) =>
+  getJoinedGroups(employeeId).filter((g) => isGroupOwner(g.id, employeeId));
+
+/** 我加入但非创建人的小组 */
+export const getMyJoinedGroups = (employeeId: string) =>
+  getJoinedGroups(employeeId).filter((g) => !isGroupOwner(g.id, employeeId));
 
 export const joinGroup = (groupId: string, employeeId: string): boolean => {
   if (isMember(groupId, employeeId)) return true;
@@ -659,21 +1213,234 @@ export const markGroupReported = (groupId: string) => {
   );
 };
 
-export const enrollActivity = (
+export const countPublishedActivitiesInGroup = (groupId: string) =>
+  activities.filter(
+    (a) => a.groupId === groupId && a.status === "published",
+  ).length;
+
+/**
+ * 终止已发布活动（单次 / 周期 / 系列）：下架、取消未举办场次、作废报名。
+ * 解散小组时联动调用；与创建人「终止活动」效果一致。
+ */
+export const terminatePublishedActivity = (activityId: string): boolean => {
+  const activity = getActivityById(activityId);
+  if (!activity || activity.status !== "published") return false;
+
+  const active = enrollments.filter(
+    (e) => e.activityId === activityId && e.status === "enrolled",
+  );
+  const cancelledIds = new Set(active.map((e) => e.id));
+  enrollments = enrollments.map((e) =>
+    cancelledIds.has(e.id) ? { ...e, status: "cancelled" as const } : e,
+  );
+
+  occurrences = occurrences.map((o) => {
+    if (o.activityId !== activityId) return o;
+    if (o.status === "scheduled") {
+      return { ...o, status: "cancelled" as const, enrollCount: 0 };
+    }
+    return o;
+  });
+
+  activities = activities.map((a) =>
+    a.id === activityId ? { ...a, status: "cancelled" as const } : a,
+  );
+  return true;
+};
+
+export const updateGroup = (
+  groupId: string,
+  ownerId: string,
+  patch: Pick<
+    InterestGroupFull,
+    "name" | "description" | "tagIds" | "coverUrl"
+  >,
+): InterestGroupFull | undefined => {
+  const group = getGroupById(groupId);
+  if (!group || !isGroupOwner(groupId, ownerId)) return undefined;
+  if (group.status !== "active") return undefined;
+
+  const updated: InterestGroupFull = { ...group, ...patch };
+  interestGroups = interestGroups.map((g) =>
+    g.id === groupId ? updated : g,
+  );
+  return updated;
+};
+
+export type DisbandGroupResult = {
+  group: InterestGroupFull;
+  /** 因解散而终止的活动数量 */
+  terminatedActivityCount: number;
+};
+
+/** 创建人解散小组：下架小组并联动终止组内所有进行中的活动 */
+export const disbandGroup = (
+  groupId: string,
+  ownerId: string,
+): DisbandGroupResult | undefined => {
+  const group = getGroupById(groupId);
+  if (!group || !isGroupOwner(groupId, ownerId)) return undefined;
+  if (group.status !== "active") return undefined;
+
+  const toTerminate = activities.filter(
+    (a) => a.groupId === groupId && a.status === "published",
+  );
+  let terminatedActivityCount = 0;
+  for (const activity of toTerminate) {
+    if (terminatePublishedActivity(activity.id)) {
+      terminatedActivityCount += 1;
+    }
+  }
+
+  const updated: InterestGroupFull = { ...group, status: "archived" };
+  interestGroups = interestGroups.map((g) =>
+    g.id === groupId ? updated : g,
+  );
+  return { group: updated, terminatedActivityCount };
+};
+
+export const countActivityEnrollments = (activityId: string) =>
+  enrollments.filter(
+    (e) => e.activityId === activityId && e.status === "enrolled",
+  ).length;
+
+export const ensureOccurrenceRecord = (occ: ActivityOccurrence) => {
+  const existing = getOccurrenceById(occ.id);
+  if (existing) return existing;
+  occurrences = [...occurrences, occ];
+  return occ;
+};
+
+export const getEnrollmentsForActivity = (
   activityId: string,
   employeeId: string,
-  occurrenceId?: string,
-) => {
-  const existing = enrollments.find(
+) =>
+  enrollments.filter(
     (e) =>
       e.activityId === activityId &&
       e.employeeId === employeeId &&
       e.status === "enrolled",
   );
-  if (existing) return existing;
+
+export const isEnrolledInOccurrence = (
+  activityId: string,
+  employeeId: string,
+  occurrenceId: string,
+) =>
+  enrollments.some(
+    (e) =>
+      e.activityId === activityId &&
+      e.employeeId === employeeId &&
+      e.occurrenceId === occurrenceId &&
+      e.status === "enrolled",
+  );
+
+export const enrollActivity = (
+  activityId: string,
+  employeeId: string,
+  occurrenceId?: string,
+  occurrenceSnapshot?: ActivityOccurrence,
+) => {
+  const activity = getActivityById(activityId);
+  if (!activity || activity.status !== "published") return undefined;
+
+  const occs = getOccurrencesByActivity(activityId);
+
+  if (activity.activityKind === "series") {
+    const mode = getSeriesEnrollmentMode(activity);
+    if (mode === "once_before_first") {
+      if (!isSeriesWholeEnrollmentOpen(activity, occs)) return undefined;
+      const enrolledCount = countActivityEnrollments(activityId);
+      if (
+        activity.capacity != null &&
+        enrolledCount >= activity.capacity
+      ) {
+        return undefined;
+      }
+      occurrenceId = undefined;
+    } else if (occurrenceId) {
+      if (isEnrolledInOccurrence(activityId, employeeId, occurrenceId)) {
+        return enrollments.find(
+          (e) =>
+            e.activityId === activityId &&
+            e.employeeId === employeeId &&
+            e.occurrenceId === occurrenceId &&
+            e.status === "enrolled",
+        );
+      }
+      const enrollable = getEnrollableSeriesOccurrences(activity, occs);
+      if (!enrollable.some((o) => o.id === occurrenceId)) return undefined;
+      const occ = getOccurrenceById(occurrenceId);
+      if (
+        occ &&
+        occ.capacity != null &&
+        occ.enrollCount >= occ.capacity
+      ) {
+        return undefined;
+      }
+    } else {
+      return undefined;
+    }
+  } else if (occurrenceId) {
+    const occForWindow =
+      getOccurrenceById(occurrenceId) ?? occurrenceSnapshot;
+    if (
+      occForWindow &&
+      (activity.activityKind === "recurring" ||
+        (activity.activityKind === "series" &&
+          getSeriesEnrollmentMode(activity) === "per_occurrence")) &&
+      !isOccurrenceInEnrollmentPickerWindow(
+        activity,
+        occs,
+        occForWindow,
+      )
+    ) {
+      return undefined;
+    }
+    if (isEnrolledInOccurrence(activityId, employeeId, occurrenceId)) {
+      return enrollments.find(
+        (e) =>
+          e.activityId === activityId &&
+          e.employeeId === employeeId &&
+          e.occurrenceId === occurrenceId &&
+          e.status === "enrolled",
+      );
+    }
+    if (occurrenceSnapshot) {
+      ensureOccurrenceRecord(occurrenceSnapshot);
+    }
+    const occ = getOccurrenceById(occurrenceId);
+    if (
+      occ &&
+      occ.capacity != null &&
+      occ.enrollCount >= occ.capacity
+    ) {
+      return undefined;
+    }
+  } else {
+    if (activity.activityKind === "one_off") {
+      const blocked = oneOffEnrollmentBlockedReason(activity);
+      if (blocked) return undefined;
+      const enrolledCount = countActivityEnrollments(activityId);
+      if (
+        activity.capacity != null &&
+        enrolledCount >= activity.capacity
+      ) {
+        return undefined;
+      }
+    }
+    const existing = enrollments.find(
+      (e) =>
+        e.activityId === activityId &&
+        e.employeeId === employeeId &&
+        e.status === "enrolled" &&
+        !e.occurrenceId,
+    );
+    if (existing) return existing;
+  }
 
   const enrollment: ActivityEnrollment = {
-    id: `enr-${Date.now()}`,
+    id: `enr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     activityId,
     occurrenceId,
     employeeId,
@@ -686,8 +1453,38 @@ export const enrollActivity = (
     occurrences = occurrences.map((o) =>
       o.id === occurrenceId ? { ...o, enrollCount: o.enrollCount + 1 } : o,
     );
+  } else if (
+    activity.activityKind === "series" &&
+    getSeriesEnrollmentMode(activity) === "once_before_first"
+  ) {
+    const first = getFirstSeriesOccurrence(
+      occs.filter((o) => o.status === "scheduled"),
+    );
+    if (first) {
+      occurrences = occurrences.map((o) =>
+        o.id === first.id ? { ...o, enrollCount: o.enrollCount + 1 } : o,
+      );
+    }
   }
   return enrollment;
+};
+
+export const enrollOccurrences = (
+  activityId: string,
+  employeeId: string,
+  items: { occurrenceId: string; snapshot?: ActivityOccurrence }[],
+) => {
+  const created: ActivityEnrollment[] = [];
+  for (const { occurrenceId, snapshot } of items) {
+    const row = enrollActivity(
+      activityId,
+      employeeId,
+      occurrenceId,
+      snapshot,
+    );
+    if (row) created.push(row);
+  }
+  return created;
 };
 
 export const isEnrolled = (activityId: string, employeeId: string) =>
@@ -699,32 +1496,70 @@ export const isEnrolled = (activityId: string, employeeId: string) =>
   );
 
 export const getEnrollment = (activityId: string, employeeId: string) =>
-  enrollments.find(
-    (e) =>
-      e.activityId === activityId &&
-      e.employeeId === employeeId &&
-      e.status === "enrolled",
-  );
+  getEnrollmentsForActivity(activityId, employeeId)[0];
 
 export const cancelEnrollment = (
   activityId: string,
   employeeId: string,
+  occurrenceId?: string,
 ): boolean => {
-  const enrollment = getEnrollment(activityId, employeeId);
-  if (!enrollment) return false;
+  const targets = getEnrollmentsForActivity(activityId, employeeId).filter(
+    (e) => !occurrenceId || e.occurrenceId === occurrenceId,
+  );
+  if (targets.length === 0) return false;
 
+  const ids = new Set(targets.map((e) => e.id));
   enrollments = enrollments.map((e) =>
-    e.id === enrollment.id ? { ...e, status: "cancelled" as const } : e,
+    ids.has(e.id) ? { ...e, status: "cancelled" as const } : e,
   );
 
-  if (enrollment.occurrenceId) {
-    occurrences = occurrences.map((o) =>
-      o.id === enrollment.occurrenceId
-        ? { ...o, enrollCount: Math.max(0, o.enrollCount - 1) }
-        : o,
-    );
+  for (const enrollment of targets) {
+    if (enrollment.occurrenceId) {
+      occurrences = occurrences.map((o) =>
+        o.id === enrollment.occurrenceId
+          ? { ...o, enrollCount: Math.max(0, o.enrollCount - 1) }
+          : o,
+      );
+    }
   }
   return true;
+};
+
+export const cancelAllEnrollments = (
+  activityId: string,
+  employeeId: string,
+) => cancelEnrollment(activityId, employeeId);
+
+/** 周期 / 系列活动是否仍可被创建人终止 */
+export const canTerminateActivity = (activityId: string): boolean => {
+  const activity = getActivityById(activityId);
+  if (!activity || activity.status !== "published") return false;
+  return (
+    activity.activityKind === "recurring" ||
+    activity.activityKind === "series"
+  );
+};
+
+/**
+ * 创建人终止周期 / 系列活动：活动下架、未举办场次取消、全员报名作废。
+ */
+export const terminateActivity = (
+  activityId: string,
+  organizerId: string,
+): GroupActivity | undefined => {
+  const activity = getActivityById(activityId);
+  if (!activity || activity.organizerId !== organizerId) return undefined;
+  if (
+    activity.activityKind !== "recurring" &&
+    activity.activityKind !== "series"
+  ) {
+    return undefined;
+  }
+  if (activity.status !== "published") return undefined;
+  if (!canTerminateActivity(activityId)) return undefined;
+
+  if (!terminatePublishedActivity(activityId)) return undefined;
+  return getActivityById(activityId);
 };
 
 export const isActivityOrganizer = (
@@ -765,19 +1600,134 @@ export const getMyEnrolledActivities = (
     );
 };
 
+const isOrganizerTerminatedParticipation = (
+  enrollment: ActivityEnrollment,
+  activity: GroupActivity,
+) =>
+  activity.status === "cancelled" &&
+  (enrollment.status === "cancelled" || enrollment.status === "enrolled");
+
+/**
+ * 按场次维度展开报名记录（「我参与的场次」）。
+ * - 按场次报名：一条 enrollment → 一条
+ * - 系列整场报名：一条 enrollment → 各场次各一条
+ * - 单次活动无 occurrenceId：用活动时间合成一条
+ * - 活动被终止：展示已取消场次（仅创建人终止，不含用户自行取消报名）
+ */
+export const getMyEnrolledOccurrences = (
+  employeeId: string,
+  options?: { excludeOrganized?: boolean },
+): EnrolledOccurrenceItem[] => {
+  const rows: EnrolledOccurrenceItem[] = [];
+
+  for (const enrollment of enrollments.filter(
+    (e) => e.employeeId === employeeId,
+  )) {
+    const activity = getActivityById(enrollment.activityId);
+    if (!activity) continue;
+    if (
+      options?.excludeOrganized &&
+      activity.organizerId === employeeId
+    ) {
+      continue;
+    }
+
+    const organizerTerminated = isOrganizerTerminatedParticipation(
+      enrollment,
+      activity,
+    );
+    if (enrollment.status !== "enrolled" && !organizerTerminated) continue;
+
+    const group = getGroupById(activity.groupId);
+    if (!group) continue;
+
+    const allOccs = getOccurrencesByActivity(activity.id).sort(
+      (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    );
+    const activeOccs = allOccs.filter((o) => o.status !== "cancelled");
+    const occs = organizerTerminated ? allOccs : activeOccs;
+
+    const push = (
+      occurrence: ActivityOccurrence,
+      occurrenceIndex?: number,
+    ) => {
+      const terminated =
+        activity.status === "cancelled" || occurrence.status === "cancelled";
+      rows.push({
+        enrollment,
+        activity,
+        group,
+        occurrence,
+        occurrenceIndex,
+        terminated,
+      });
+    };
+
+    if (enrollment.occurrenceId) {
+      const occurrence = getOccurrenceById(enrollment.occurrenceId);
+      if (occurrence) {
+        const idx = allOccs.findIndex((o) => o.id === occurrence.id);
+        push(occurrence, idx >= 0 ? idx : undefined);
+      }
+      continue;
+    }
+
+    if (
+      activity.activityKind === "series" &&
+      getSeriesEnrollmentMode(activity) === "once_before_first"
+    ) {
+      const list = organizerTerminated
+        ? allOccs
+        : activeOccs;
+      list.forEach((occ, i) => {
+        const idx = allOccs.findIndex((o) => o.id === occ.id);
+        push(occ, idx >= 0 ? idx : i);
+      });
+      continue;
+    }
+
+    if (
+      activity.activityKind === "one_off" &&
+      activity.startAt &&
+      activity.endAt
+    ) {
+      const phase = getActivityPhase(activity.startAt, activity.endAt);
+      push({
+        id: `virtual-${enrollment.id}`,
+        activityId: activity.id,
+        startAt: activity.startAt,
+        endAt: activity.endAt,
+        enrollCount: 0,
+        status: organizerTerminated
+          ? "cancelled"
+          : phase === "已结束"
+            ? "completed"
+            : "scheduled",
+      });
+    }
+  }
+
+  return rows.sort(
+    (a, b) =>
+      new Date(b.occurrence.startAt).getTime() -
+      new Date(a.occurrence.startAt).getTime(),
+  );
+};
+
 export const getMyOrganizedActivities = (
   employeeId: string,
 ): OrganizedActivityItem[] => {
   return activities
     .filter(
-      (a) => a.organizerId === employeeId && a.status === "published",
+      (a) =>
+        a.organizerId === employeeId &&
+        (a.status === "published" || a.status === "cancelled"),
     )
     .map((activity) => {
       const group = getGroupById(activity.groupId);
       if (!group) return null;
       const occs = getOccurrencesByActivity(activity.id);
-      const occurrence =
-        occs.find((o) => o.status === "scheduled") ?? occs[0];
+      const occurrence = pickDisplayOccurrence(occs);
       return { activity, group, occurrence };
     })
     .filter((item): item is OrganizedActivityItem => item !== null)
@@ -794,6 +1744,33 @@ export const addActivity = (activity: GroupActivity) => {
   activities = [...activities, activity];
 };
 
+/** 发布活动后，创建人默认计入报名（不占额逻辑与正式环境一致由服务端处理） */
+export const enrollOrganizerAsParticipant = (activity: GroupActivity) => {
+  if (isEnrolled(activity.id, activity.organizerId)) return;
+
+  const occs = getOccurrencesByActivity(activity.id).filter(
+    (o) => o.status === "scheduled",
+  );
+
+  if (activity.activityKind === "one_off") {
+    enrollActivity(activity.id, activity.organizerId);
+    return;
+  }
+
+  if (
+    activity.activityKind === "series" &&
+    getSeriesEnrollmentMode(activity) === "once_before_first"
+  ) {
+    enrollActivity(activity.id, activity.organizerId);
+    return;
+  }
+
+  const first = sortOccurrencesByStart(occs)[0];
+  if (first) {
+    enrollActivity(activity.id, activity.organizerId, first.id);
+  }
+};
+
 export const updateActivity = (
   activityId: string,
   patch: Partial<
@@ -808,6 +1785,7 @@ export const updateActivity = (
       | "endAt"
       | "enrollDeadline"
       | "rrule"
+      | "seriesEnrollmentMode"
     >
   >,
 ): GroupActivity | undefined => {

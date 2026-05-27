@@ -183,6 +183,23 @@ export const buildSeriesOccurrences = (
       status: "scheduled" as const,
     }));
 
+/** 单次活动报名是否被截止/结束等阻断（不含名额已满） */
+export const oneOffEnrollmentBlockedReason = (
+  activity: GroupActivity,
+): string | undefined => {
+  if (activity.activityKind !== "one_off") return undefined;
+  const phase = getActivityPhase(activity.startAt, activity.endAt);
+  if (phase === "已结束") return "活动已结束";
+  const now = Date.now();
+  if (
+    activity.enrollDeadline &&
+    now > new Date(activity.enrollDeadline).getTime()
+  ) {
+    return "已过报名截止时间";
+  }
+  return undefined;
+};
+
 export const getActivityPhase = (
   startAt?: string,
   endAt?: string,
@@ -206,6 +223,46 @@ export const formatOccurrenceLabel = (
 ) => {
   const range = formatTimeRange(occ.startAt, occ.endAt);
   return index != null ? `第${index + 1}场 · ${range}` : range;
+};
+
+/** 「我参与的场次」卡片时间行：始终展示该场次具体时间 */
+export const getEnrolledOccurrenceScheduleLabel = (
+  activity: GroupActivity,
+  occurrence: ActivityOccurrence,
+  occurrenceIndex?: number,
+): string => {
+  if (activity.activityKind === "series" && occurrenceIndex != null) {
+    return formatOccurrenceLabel(occurrence, occurrenceIndex);
+  }
+  return formatTimeRange(occurrence.startAt, occurrence.endAt);
+};
+
+/** 活动卡片时间文案（含已结束的周期/系列） */
+export const getActivityScheduleLabel = (
+  activity: GroupActivity,
+  occurrence?: ActivityOccurrence,
+  allOccurrences?: ActivityOccurrence[],
+): string | undefined => {
+  if (activity.activityKind === "recurring") {
+    return (
+      formatRecurringSchedule(
+        activity.rrule,
+        activity.startAt ?? occurrence?.startAt,
+        activity.endAt ?? occurrence?.endAt,
+      ) ?? undefined
+    );
+  }
+  if (activity.activityKind === "series" && occurrence) {
+    const occs = allOccurrences ?? [];
+    const idx = occs.findIndex((o) => o.id === occurrence.id);
+    if (idx >= 0) {
+      return `系列 · 第 ${idx + 1} 场 · ${formatActivityTime(occurrence.startAt)}`;
+    }
+    return formatTimeRange(occurrence.startAt, occurrence.endAt);
+  }
+  const start = occurrence?.startAt ?? activity.startAt;
+  const end = occurrence?.endAt ?? activity.endAt;
+  return start ? formatTimeRange(start, end) : undefined;
 };
 
 export const formatRecurringSchedule = (

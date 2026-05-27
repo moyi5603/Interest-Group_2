@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { ArrowLeft, Award, Star, Coins, Users } from "lucide-react";
 import GroupAvatar from "@/components/interest/GroupAvatar";
 import { getEmployee, getYearsOfService } from "@/data/colleagueData";
@@ -17,6 +18,7 @@ const getTenureTier = (years: number) => {
 const EmployeeProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const emp = getEmployee(id || "");
 
   if (!emp) {
@@ -35,7 +37,7 @@ const EmployeeProfile = () => {
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center gap-2 bg-background/85 px-3 py-3 backdrop-blur-lg">
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-foreground transition-base active:scale-95"
         >
           <ArrowLeft className="h-5 w-5" />

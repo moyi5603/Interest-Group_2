@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import ActivityCard from "@/components/interest/ActivityCard";
 import GroupCard from "@/components/interest/GroupCard";
 import ChatInputBar from "@/components/agent/ChatInputBar";
@@ -12,6 +13,7 @@ type Msg = { role: "user" | "assistant"; text: string; reply?: AgentReply };
 
 const InterestGroupChat = () => {
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const [params] = useSearchParams();
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -45,7 +47,7 @@ const InterestGroupChat = () => {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -114,17 +116,18 @@ const InterestGroupChat = () => {
                 ))}
               </ul>
             )}
-            {m.reply?.occurrences && (
+            {m.reply?.recentActivities && (
               <ul className="w-full space-y-2">
-                {m.reply.occurrences.map(({ activity, occurrence }) => (
-                  <li key={occurrence.id}>
+                {m.reply.recentActivities.map((item) => (
+                  <li key={item.activity.id}>
                     <ActivityCard
                       compact
-                      activity={activity}
-                      occurrence={occurrence}
+                      activity={item.activity}
+                      occurrence={item.statusOccurrence}
+                      scheduleLabel={item.timeLabel}
                       onOpen={() =>
                         navigate(
-                          `/agents/interest-groups/activities/${activity.id}`,
+                          `/agents/interest-groups/activities/${item.activity.id}`,
                         )
                       }
                     />

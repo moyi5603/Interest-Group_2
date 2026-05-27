@@ -10,7 +10,7 @@ export const ACTIVITY_KIND_OPTIONS: {
   {
     key: "series",
     label: "系列",
-    hint: "分多场次举办，按时间顺序排列",
+    hint: "分多场次举办",
   },
 ];
 

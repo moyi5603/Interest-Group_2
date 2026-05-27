@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, RefreshCw, Search, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import GroupCard from "@/components/interest/GroupCard";
 import InterestSection from "@/components/interest/InterestSection";
 import SectionHeader from "@/components/interest/SectionHeader";
@@ -20,6 +21,7 @@ const RECOMMEND_BATCH_SIZE = 10;
 
 const InterestGroupDiscover = () => {
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const [query, setQuery] = useState("");
   const [tick, setTick] = useState(0);
   const [recommendOffset, setRecommendOffset] = useState(0);
@@ -66,7 +68,7 @@ const InterestGroupDiscover = () => {
           <button
             type="button"
             aria-label="返回"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />

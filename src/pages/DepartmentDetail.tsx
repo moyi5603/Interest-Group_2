@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
+import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import { ArrowLeft, Building2, Users, ChevronRight, FolderOpen, Flag, Briefcase, Target, UserCheck } from "lucide-react";
 import { getDept, getDeptEmployees, deptsFull, getEmployee } from "@/data/colleagueData";
 
 type TabKey = "overview" | "duty";
 
+const tabKeys: TabKey[] = ["overview", "duty"];
+
 const DepartmentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const dept = getDept(id || "");
-  const [tab, setTab] = useState<TabKey>("overview");
+  const [tab, setTab] = useUrlEnumParam<TabKey>("tab", "overview", tabKeys);
   const [showAllEmp, setShowAllEmp] = useState(false);
 
   if (!dept) {
@@ -36,7 +41,7 @@ const DepartmentDetail = () => {
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center gap-2 bg-background/85 px-3 py-3 backdrop-blur-lg">
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-foreground transition-base active:scale-95"
         >
           <ArrowLeft className="h-5 w-5" />

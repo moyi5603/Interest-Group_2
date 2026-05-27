@@ -1,6 +1,6 @@
 import { resolveActivityCover } from "@/data/interestImages";
 import ActivityCover from "@/components/interest/ActivityCover";
-import { Heart, MapPin, MessageCircle, Pencil, Star } from "lucide-react";
+import { MapPin, Pencil } from "lucide-react";
 import type { GroupActivity } from "@/data/interestTypes";
 import type { ActivityOccurrence } from "@/data/interestTypes";
 import {
@@ -19,8 +19,12 @@ type Props = {
   compact?: boolean;
   /** 组织者可编辑时，在卡片上显示编辑图标 */
   editable?: boolean;
-  /** 卡片顶部辅助信息，如报名时间、所属小组 */
+  /** 卡片顶部辅助信息（如「我发起」） */
   meta?: string;
+  /** 覆盖标题，默认 activity.title */
+  title?: string;
+  /** 覆盖时间行展示（周期/系列活动用活动级文案，不展示各场次日期） */
+  scheduleLabel?: string;
 };
 
 const ActivityCard = ({
@@ -33,16 +37,21 @@ const ActivityCard = ({
   compact = false,
   editable = false,
   meta,
+  title,
+  scheduleLabel,
 }: Props) => {
+  const displayTitle = title ?? activity.title;
   const start = occurrence?.startAt ?? activity.startAt;
   const end = occurrence?.endAt ?? activity.endAt;
-  const phase = getActivityPhase(start, end);
+  const terminated = activity.status === "cancelled";
+  const phase = terminated ? "已终止" : getActivityPhase(start, end);
 
   const phaseClass = cn(
     "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
     phase === "进行中" && "bg-emerald-500/15 text-emerald-700",
     phase === "未开始" && "bg-blue-500/15 text-blue-700",
     phase === "已结束" && "bg-muted text-muted-foreground",
+    phase === "已终止" && "bg-destructive/10 text-destructive",
   );
 
   const cover = resolveActivityCover(activity);
@@ -64,40 +73,30 @@ const ActivityCard = ({
             coverUrl={cover}
             className={cn(
               "h-14 w-14 shrink-0 rounded-lg",
-              phase === "已结束" && "opacity-50",
+              (phase === "已结束" || terminated) && "opacity-50",
             )}
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <h3 className="line-clamp-1 flex-1 text-xs font-semibold text-foreground">
-                {activity.title}
+                {displayTitle}
               </h3>
               <span className={phaseClass}>{phase}</span>
             </div>
-            <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
-              {start && formatTimeRange(start, end)}
-              {activity.location && (
-                <>
-                  {" · "}
-                  <span className="inline-flex items-center gap-0.5">
-                    <MapPin className="inline h-2.5 w-2.5" />
-                    {activity.location}
-                  </span>
-                </>
-              )}
-            </p>
-            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-              <span className="inline-flex items-center gap-0.5">
-                <Heart className="h-2.5 w-2.5" />
-                {activity.likeCount ?? 0}
-              </span>
-              <span className="inline-flex items-center gap-0.5">
-                <MessageCircle className="h-2.5 w-2.5" />
-                {activity.commentCount ?? 0}
-              </span>
-            </div>
+            {(scheduleLabel || start) && (
+              <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
+                {scheduleLabel ??
+                  (start ? formatTimeRange(start, end) : null)}
+              </p>
+            )}
+            {activity.location && (
+              <p className="mt-0.5 flex items-center gap-0.5 line-clamp-1 text-[10px] text-muted-foreground">
+                <MapPin className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate">{activity.location}</span>
+              </p>
+            )}
           </div>
-          {editable && phase !== "已结束" && (
+          {editable && phase !== "已结束" && !terminated && (
             <span
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
               aria-hidden
@@ -110,14 +109,14 @@ const ActivityCard = ({
           <div className="border-t border-border/60 px-2 py-1.5">
             <button
               type="button"
-              disabled={enrolled || phase === "已结束"}
+              disabled={enrolled || phase === "已结束" || terminated}
               onClick={(e) => {
                 e.stopPropagation();
                 onEnroll?.();
               }}
               className={cn(
                 "w-full rounded-full py-1.5 text-[11px] font-medium",
-                enrolled || phase === "已结束"
+                enrolled || phase === "已结束" || terminated
                   ? "bg-secondary text-muted-foreground"
                   : "bg-primary text-primary-foreground",
               )}
@@ -134,16 +133,16 @@ const ActivityCard = ({
     <article className="overflow-hidden rounded-xl bg-card shadow-soft transition-base active:scale-[0.99]">
       <button type="button" onClick={onOpen} className="w-full text-left">
         <ActivityCover coverUrl={cover} className="relative h-24">
-          {phase === "已结束" && (
+          {(phase === "已结束" || terminated) && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 text-xs font-medium text-white">
-              已结束
+              {terminated ? "已终止" : "已结束"}
             </div>
           )}
         </ActivityCover>
         <div className="space-y-1 p-2.5">
           <div className="flex items-start justify-between gap-2">
             <h3 className="line-clamp-2 flex-1 text-sm font-semibold text-foreground">
-              {activity.title}
+              {displayTitle}
             </h3>
             <span className={phaseClass}>{phase}</span>
           </div>
@@ -158,39 +157,25 @@ const ActivityCard = ({
               <span className="truncate">{activity.location}</span>
             </p>
           )}
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-            <span className="inline-flex items-center gap-0.5">
-              <Heart className="h-3 w-3" />
-              {activity.likeCount ?? 0}
-            </span>
-            <span className="inline-flex items-center gap-0.5">
-              <Star className="h-3 w-3" />
-              {activity.favoriteCount ?? 0}
-            </span>
-            <span className="inline-flex items-center gap-0.5">
-              <MessageCircle className="h-3 w-3" />
-              {activity.commentCount ?? 0}
-            </span>
-          </div>
         </div>
       </button>
       {showEnroll && (
         <div className="border-t border-border px-2.5 py-1.5">
           <button
             type="button"
-            disabled={enrolled || phase === "已结束"}
+            disabled={enrolled || phase === "已结束" || terminated}
             onClick={(e) => {
               e.stopPropagation();
               onEnroll?.();
             }}
             className={cn(
               "w-full rounded-full py-1.5 text-xs font-medium",
-              enrolled || phase === "已结束"
+              enrolled || phase === "已结束" || terminated
                 ? "bg-secondary text-muted-foreground"
                 : "bg-primary text-primary-foreground active:scale-[0.98]",
             )}
           >
-            {enrolled ? "已报名" : "立即报名"}
+            {enrolled ? "已报名" : terminated ? "已终止" : "立即报名"}
           </button>
         </div>
       )}

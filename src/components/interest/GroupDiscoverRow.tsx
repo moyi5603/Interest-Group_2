@@ -42,11 +42,6 @@ const GroupDiscoverRow = ({ group, onOpen, onJoin, joined }: Props) => {
               <Users className="h-3 w-3" />
               {group.memberCount}
             </span>
-            {group.type === "official" && (
-              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
-                官方
-              </span>
-            )}
             {categoryLabel && (
               <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
                 {categoryLabel}

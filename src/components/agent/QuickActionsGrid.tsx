@@ -18,7 +18,6 @@ type Item = {
   icon: LucideIcon;
   colorVar: string;
   to?: string;
-  state?: { tab: "development" };
 };
 
 const items: Item[] = [
@@ -29,8 +28,7 @@ const items: Item[] = [
     label: "谋发展",
     icon: TrendingUp,
     colorVar: "var(--cat-5)",
-    to: "/agents",
-    state: { tab: "development" as const },
+    to: "/agents?tab=development",
   },
   { label: "悦文化", icon: Flame, colorVar: "var(--cat-4)", to: "/agents/interest-groups" },
   { label: "享福利", icon: Gift, colorVar: "var(--cat-7)" },
@@ -48,7 +46,7 @@ const QuickActionsGrid = () => {
           return (
             <button
               key={item.label}
-              onClick={() => item.to && navigate(item.to, { state: item.state })}
+              onClick={() => item.to && navigate(item.to)}
               className="group flex flex-col items-center gap-1.5 transition-bounce active:scale-90"
             >
               <div

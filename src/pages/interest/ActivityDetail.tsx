@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ActivityOrganizerEdit from "@/components/interest/ActivityOrganizerEdit";
 import ActivityFormFields from "@/components/interest/ActivityFormFields";
-import { ArrowLeft, Heart, MessageCircle, Star } from "lucide-react";
+import OccurrenceMultiPicker from "@/components/interest/OccurrenceMultiPicker";
+import ActivityOrganizerFooter from "@/components/interest/ActivityOrganizerFooter";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   AlertDialog,
@@ -13,13 +15,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { getEmployee } from "@/data/colleagueData";
 import {
   CURRENT_EMPLOYEE_ID,
-  cancelEnrollment,
+  cancelAllEnrollments,
+  countActivityEnrollments,
   enrollActivity,
+  enrollOccurrences,
   getActivityById,
-  getEnrollment,
+  getEnrollmentsForActivity,
   getGroupById,
   getOccurrencesByActivity,
   isActivityOrganizer,
@@ -29,16 +40,32 @@ import { activityToFormValues } from "@/lib/activityFormState";
 import {
   formatOccurrenceLabel,
   getActivityPhase,
+  oneOffEnrollmentBlockedReason,
 } from "@/lib/interestOccurrences";
+import {
+  buildPickerRows,
+  getActivityDisplayPhaseForEnrollments,
+  getEnrollmentPickerBeyondCount,
+  hasSelectablePickerRows,
+  listOccurrencesForEnrollmentPicker,
+  usesMultiOccurrenceEnrollment,
+} from "@/lib/occurrenceEnrollmentPicker";
+import {
+  getSeriesEnrollmentMode,
+  isSeriesWholeEnrollmentOpen,
+  seriesEnrollmentBlockedReason,
+} from "@/lib/seriesEnrollment";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { toast } from "sonner";
 
 const ActivityDetail = () => {
   const { activityId } = useParams<{ activityId: string }>();
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const [searchParams, setSearchParams] = useSearchParams();
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [pickOccId, setPickOccId] = useState<string | undefined>();
+  const [pickOccIds, setPickOccIds] = useState<Set<string>>(() => new Set());
   const [tick, setTick] = useState(0);
   const [activityOverride, setActivityOverride] = useState<
     GroupActivity | undefined
@@ -48,11 +75,54 @@ const ActivityDetail = () => {
     activityOverride ?? getActivityById(activityId || "");
   const group = activity ? getGroupById(activity.groupId) : undefined;
   const occs = activity ? getOccurrencesByActivity(activity.id) : [];
-  const enrollment =
-    activity && tick >= 0
-      ? getEnrollment(activity.id, CURRENT_EMPLOYEE_ID)
-      : undefined;
-  const enrolled = !!enrollment;
+  const myEnrollments = useMemo(
+    () =>
+      activity && tick >= 0
+        ? getEnrollmentsForActivity(activity.id, CURRENT_EMPLOYEE_ID)
+        : [],
+    [activity, tick],
+  );
+  const hasEnrollment = myEnrollments.length > 0;
+
+  const enrolledOccurrenceIds = useMemo(
+    () =>
+      new Set(
+        myEnrollments
+          .map((e) => e.occurrenceId)
+          .filter((id): id is string => !!id),
+      ),
+    [myEnrollments],
+  );
+
+  const seriesWholeMode =
+    !!activity &&
+    activity.activityKind === "series" &&
+    getSeriesEnrollmentMode(activity) === "once_before_first";
+  const multiOccMode = activity ? usesMultiOccurrenceEnrollment(activity) : false;
+
+  const pickerOccurrences = useMemo(
+    () =>
+      activity && multiOccMode
+        ? listOccurrencesForEnrollmentPicker(activity, occs)
+        : occs,
+    [activity, occs, multiOccMode],
+  );
+
+  const pickerBeyondCount = useMemo(
+    () =>
+      activity && multiOccMode
+        ? getEnrollmentPickerBeyondCount(activity, occs)
+        : 0,
+    [activity, occs, multiOccMode],
+  );
+
+  const pickerRows = useMemo(
+    () =>
+      activity && multiOccMode
+        ? buildPickerRows(activity, pickerOccurrences, enrolledOccurrenceIds)
+        : [],
+    [activity, pickerOccurrences, enrolledOccurrenceIds, multiOccMode],
+  );
 
   if (!activity || !group) {
     return (
@@ -62,66 +132,141 @@ const ActivityDetail = () => {
     );
   }
 
-  const enrolledOcc = enrollment?.occurrenceId
-    ? occs.find((o) => o.id === enrollment.occurrenceId)
-    : undefined;
+  const enrolledOccs = myEnrollments
+    .map((e) =>
+      e.occurrenceId
+        ? pickerOccurrences.find((o) => o.id === e.occurrenceId) ??
+          occs.find((o) => o.id === e.occurrenceId)
+        : undefined,
+    )
+    .filter((o): o is NonNullable<typeof o> => !!o);
+
   const nextOcc = occs.find((o) => o.status === "scheduled");
-  const enrollableOccs = occs.filter((o) => o.status === "scheduled");
-  const displayOcc = enrolledOcc ?? nextOcc;
-  const phase = getActivityPhase(
-    displayOcc?.startAt ?? activity.startAt,
-    displayOcc?.endAt ?? activity.endAt,
-  );
+  const displayOcc = enrolledOccs[0] ?? nextOcc;
+  const phase = multiOccMode
+    ? getActivityDisplayPhaseForEnrollments(
+        activity,
+        pickerOccurrences,
+        enrolledOccurrenceIds,
+      )
+    : displayOcc
+      ? getActivityDisplayPhaseForEnrollments(
+          activity,
+          [displayOcc],
+          enrolledOccurrenceIds,
+        )
+      : getActivityPhase(activity.startAt, activity.endAt);
+
   const isOrganizer = isActivityOrganizer(
     activity.id,
     CURRENT_EMPLOYEE_ID,
   );
+  const participates = hasEnrollment || isOrganizer;
+  const isTerminated = activity.status === "cancelled";
   const wantsEdit = searchParams.get("edit") === "1";
   const isEditing =
-    wantsEdit && isOrganizer && phase !== "已结束";
+    wantsEdit && isOrganizer && phase !== "已结束" && !isTerminated;
   const organizer = getEmployee(activity.organizerId);
   const formValues = activityToFormValues(activity, occs);
-  const full =
-    nextOcc &&
-    nextOcc.capacity != null &&
-    nextOcc.enrollCount >= nextOcc.capacity &&
-    !enrolled;
+  const enrollBlockedReason = isTerminated
+    ? "活动已终止"
+    : activity.activityKind === "series"
+      ? seriesEnrollmentBlockedReason(activity, occs)
+      : oneOffEnrollmentBlockedReason(activity);
+  const atCapacity =
+    activity.capacity != null &&
+    countActivityEnrollments(activity.id) >= activity.capacity &&
+    !hasEnrollment;
+  const full = atCapacity;
+  const canPickMore =
+    multiOccMode && hasSelectablePickerRows(pickerRows) && !enrollBlockedReason;
+  const canEnroll =
+    !enrollBlockedReason &&
+    !full &&
+    (seriesWholeMode
+      ? !hasEnrollment && isSeriesWholeEnrollmentOpen(activity, occs)
+      : multiOccMode
+        ? canPickMore
+        : !hasEnrollment &&
+          getActivityPhase(activity.startAt, activity.endAt) === "未开始");
 
   const refresh = () => setTick((n) => n + 1);
 
+  const openEnrollDialog = () => {
+    setPickOccIds(new Set());
+    setEnrollOpen(true);
+  };
+
+  const togglePick = (occurrenceId: string, checked: boolean) => {
+    setPickOccIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(occurrenceId);
+      else next.delete(occurrenceId);
+      return next;
+    });
+  };
+
   const doEnroll = () => {
-    const targetId =
-      activity.activityKind === "series"
-        ? pickOccId ?? nextOcc?.id
-        : nextOcc?.id;
-    const targetOcc = targetId
-      ? occs.find((o) => o.id === targetId)
-      : undefined;
-    if (
-      targetOcc &&
-      targetOcc.capacity != null &&
-      targetOcc.enrollCount >= targetOcc.capacity
-    ) {
-      toast.error("该场次名额已满");
+    if (enrollBlockedReason) {
+      toast.error(enrollBlockedReason);
       return;
     }
-    if (full && !targetOcc) {
-      toast.error("名额已满");
+
+    if (seriesWholeMode) {
+      const result = enrollActivity(activity.id, CURRENT_EMPLOYEE_ID);
+      if (!result) {
+        toast.error("报名失败，请稍后重试");
+        return;
+      }
+      refresh();
+      setEnrollOpen(false);
+      toast.success("报名成功");
       return;
     }
-    if (activity.activityKind === "series" && enrollableOccs.length > 1 && !targetId) {
-      toast.error("请选择要报名的场次");
+
+    if (multiOccMode) {
+      if (pickOccIds.size === 0) {
+        toast.error("请至少选择一个场次");
+        return;
+      }
+      const items = [...pickOccIds].map((occurrenceId) => {
+        const row = pickerRows.find((r) => r.occurrence.id === occurrenceId);
+        return {
+          occurrenceId,
+          snapshot: row?.occurrence,
+        };
+      });
+      const created = enrollOccurrences(
+        activity.id,
+        CURRENT_EMPLOYEE_ID,
+        items,
+      );
+      if (created.length === 0) {
+        toast.error("所选场次无法报名，请重试");
+        return;
+      }
+      refresh();
+      setEnrollOpen(false);
+      setPickOccIds(new Set());
+      toast.success(
+        created.length > 1
+          ? `已成功报名 ${created.length} 个场次`
+          : "报名成功",
+      );
       return;
     }
-    enrollActivity(activity.id, CURRENT_EMPLOYEE_ID, targetId);
+
+    const result = enrollActivity(activity.id, CURRENT_EMPLOYEE_ID);
+    if (!result) {
+      toast.error("报名失败，请稍后重试");
+      return;
+    }
     refresh();
-    setEnrollOpen(false);
-    setPickOccId(undefined);
     toast.success("报名成功");
   };
 
   const doCancel = () => {
-    if (!cancelEnrollment(activity.id, CURRENT_EMPLOYEE_ID)) {
+    if (!cancelAllEnrollments(activity.id, CURRENT_EMPLOYEE_ID)) {
       toast.error("取消失败");
       return;
     }
@@ -130,18 +275,50 @@ const ActivityDetail = () => {
     toast.success("已取消报名");
   };
 
-  const canCancel = enrolled && phase !== "已结束";
-
   const exitEditMode = () => {
     const next = new URLSearchParams(searchParams);
     next.delete("edit");
     setSearchParams(next, { replace: true });
   };
 
+  const handleBack = () => {
+    if (isEditing) {
+      exitEditMode();
+      return;
+    }
+    goBack();
+  };
+
+  const handleTerminated = (updated: GroupActivity) => {
+    setActivityOverride(updated);
+    exitEditMode();
+    refresh();
+  };
+
+  const canCancel =
+    hasEnrollment &&
+    !isOrganizer &&
+    (seriesWholeMode
+      ? isSeriesWholeEnrollmentOpen(activity, occs)
+      : phase !== "已结束");
+
   const handleSaved = (updated: GroupActivity) => {
     setActivityOverride(updated);
     exitEditMode();
     setTick((n) => n + 1);
+  };
+
+  const enrollButtonLabel = () => {
+    if (hasEnrollment) {
+      if (seriesWholeMode) return "已报名系列活动";
+      if (canPickMore) return `继续报名（已报 ${myEnrollments.length} 场）`;
+      return `已报名 ${myEnrollments.length} 场`;
+    }
+    if (isTerminated) return "活动已终止";
+    if (enrollBlockedReason) return "报名已截止";
+    if (full) return "名额已满";
+    if (phase === "已结束") return "已结束";
+    return "立即报名";
   };
 
   if (isEditing) {
@@ -150,7 +327,7 @@ const ActivityDetail = () => {
         <header className="sticky top-0 z-30 flex items-center gap-2 bg-background/85 px-3 py-3 backdrop-blur-lg">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -172,7 +349,7 @@ const ActivityDetail = () => {
       <header className="sticky top-0 z-30 flex items-center gap-2 bg-background/85 px-3 py-3 backdrop-blur-lg">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary active:scale-95"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -180,7 +357,13 @@ const ActivityDetail = () => {
         <h1 className="truncate text-base font-semibold">{activity.title}</h1>
       </header>
 
-      <main className="flex-1 space-y-3 overflow-y-auto px-3 pb-28 scrollbar-hide">
+      <main className="flex-1 space-y-3 overflow-y-auto px-3 pb-32 scrollbar-hide">
+        {isTerminated && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            本活动已由创建人终止，不再接受报名，未举办的场次已取消。
+          </div>
+        )}
+
         <ActivityFormFields
           mode="view"
           activity={activity}
@@ -193,6 +376,7 @@ const ActivityDetail = () => {
           coverUrl={formValues.coverUrl}
           oneOffSchedule={formValues.oneOffSchedule}
           seriesSessions={formValues.seriesSessions}
+          seriesEnrollmentMode={formValues.seriesEnrollmentMode}
           recurrence={formValues.recurrence}
           weeklyDay={formValues.weeklyDay}
           monthDay={formValues.monthDay}
@@ -200,7 +384,7 @@ const ActivityDetail = () => {
           recurringEndTime={formValues.recurringEndTime}
         />
 
-        {(organizer || enrolledOcc) && (
+        {(organizer || participates) && (
           <section className="space-y-2 rounded-2xl bg-card p-4 shadow-soft text-sm">
             {organizer && (
               <p>
@@ -208,76 +392,144 @@ const ActivityDetail = () => {
                 {organizer.name} · {organizer.deptName}
               </p>
             )}
-            {enrolledOcc && (
-              <p>
-                <span className="text-muted-foreground">已报场次：</span>
-                {formatOccurrenceLabel(
-                  enrolledOcc,
-                  activity.activityKind === "series"
-                    ? occs.findIndex((o) => o.id === enrolledOcc.id)
-                    : undefined,
-                )}
+            {isOrganizer && !myEnrollments.length && (
+              <p className="text-xs text-muted-foreground">
+                你已作为组织者参与本活动
               </p>
+            )}
+            {participates && seriesWholeMode && (
+              <p>
+                <span className="text-muted-foreground">报名范围：</span>
+                系列活动全部场次
+              </p>
+            )}
+            {enrolledOccs.length > 0 && (
+              <div>
+                <p className="text-muted-foreground">
+                  已报场次（{enrolledOccs.length}）：
+                </p>
+                <ul className="mt-1 space-y-0.5 text-foreground">
+                  {enrolledOccs.map((occ) => {
+                    const idx =
+                      activity.activityKind === "series"
+                        ? pickerOccurrences.findIndex((o) => o.id === occ.id)
+                        : undefined;
+                    return (
+                      <li key={occ.id} className="text-xs">
+                        {formatOccurrenceLabel(occ, idx >= 0 ? idx : undefined)}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             )}
           </section>
         )}
+
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 mx-auto max-w-md border-t border-border bg-background/95 px-3 py-3 backdrop-blur">
-        <div className="mb-2 flex justify-center gap-4 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Heart className="h-3.5 w-3.5" />
-            {activity.likeCount ?? 0}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Star className="h-3.5 w-3.5" />
-            {activity.favoriteCount ?? 0}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <MessageCircle className="h-3.5 w-3.5" />
-            {activity.commentCount ?? 0}
-          </span>
-        </div>
-        {canCancel ? (
+        {isTerminated ? (
+          <p className="py-3 text-center text-sm text-muted-foreground">
+            活动已终止
+          </p>
+        ) : isOrganizer ? (
+          <ActivityOrganizerFooter
+            activity={activity}
+            organizerId={CURRENT_EMPLOYEE_ID}
+            canEdit={phase !== "已结束"}
+            onEdit={() => {
+              const next = new URLSearchParams(searchParams);
+              next.set("edit", "1");
+              setSearchParams(next);
+            }}
+            onTerminated={handleTerminated}
+          />
+        ) : canCancel ? (
           <button
             type="button"
             onClick={() => setCancelOpen(true)}
             className="w-full rounded-full border border-destructive/40 py-3 text-sm font-medium text-destructive active:scale-[0.99]"
           >
             取消报名
+            {myEnrollments.length > 1
+              ? `（${myEnrollments.length} 场）`
+              : ""}
           </button>
         ) : (
           <button
             type="button"
-            disabled={enrolled || phase === "已结束" || full}
+            disabled={!canEnroll && !hasEnrollment}
             onClick={() => {
               if (activity.activityKind === "one_off") {
                 doEnroll();
               } else {
-                if (activity.activityKind === "series" && enrollableOccs.length > 0) {
-                  setPickOccId(enrollableOccs[0]?.id);
-                }
-                setEnrollOpen(true);
+                openEnrollDialog();
               }
             }}
             className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground"
           >
-            {enrolled
-              ? "已报名"
-              : full
-                ? "名额已满"
-                : phase === "已结束"
-                  ? "已结束"
-                  : "立即报名"}
+            {enrollButtonLabel()}
           </button>
         )}
       </footer>
 
+      {multiOccMode && (
+        <Sheet
+          open={enrollOpen}
+          onOpenChange={(open) => {
+            setEnrollOpen(open);
+            if (!open) setPickOccIds(new Set());
+          }}
+        >
+          <SheetContent
+            side="bottom"
+            className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl px-0 pb-0 pt-3 [&>button]:hidden"
+          >
+            <div className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-border" />
+            <SheetHeader className="shrink-0 space-y-1 px-4 text-left">
+              <SheetTitle className="text-base">选择场次</SheetTitle>
+              <SheetDescription className="line-clamp-2 text-xs">
+                {activity.title}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-3 min-h-0 flex-1 overflow-hidden px-4">
+              <OccurrenceMultiPicker
+                activity={activity}
+                rows={pickerRows}
+                selectedIds={pickOccIds}
+                beyondCount={pickerBeyondCount}
+                onToggle={togglePick}
+              />
+            </div>
+            <div className="mt-3 flex shrink-0 gap-2 border-t border-border px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setEnrollOpen(false)}
+                className="flex-1 rounded-full border border-border py-3 text-sm font-medium text-foreground active:scale-[0.99]"
+              >
+                返回
+              </button>
+              <button
+                type="button"
+                disabled={pickOccIds.size === 0}
+                onClick={doEnroll}
+                className="flex-1 rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground active:scale-[0.99]"
+              >
+                {pickOccIds.size > 0
+                  ? `确认报名 · ${pickOccIds.size} 场`
+                  : "请选择场次"}
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
       <AlertDialog
-        open={enrollOpen}
+        open={enrollOpen && !multiOccMode}
         onOpenChange={(open) => {
           setEnrollOpen(open);
-          if (!open) setPickOccId(undefined);
+          if (!open) setPickOccIds(new Set());
         }}
       >
         <AlertDialogContent>
@@ -286,48 +538,14 @@ const ActivityDetail = () => {
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>确认报名参加「{activity.title}」？</p>
-                {activity.activityKind === "series" &&
-                  enrollableOccs.length > 1 && (
-                    <ul className="max-h-40 space-y-1.5 overflow-y-auto">
-                      {enrollableOccs.map((o) => {
-                        const idx = occs.findIndex((x) => x.id === o.id);
-                        return (
-                        <li key={o.id}>
-                          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-2.5 py-2">
-                            <input
-                              type="radio"
-                              name="occ-pick"
-                              checked={pickOccId === o.id}
-                              onChange={() => setPickOccId(o.id)}
-                              className="accent-primary"
-                            />
-                            <span className="text-xs text-foreground">
-                              {formatOccurrenceLabel(
-                                o,
-                                activity.activityKind === "series"
-                                  ? idx
-                                  : undefined,
-                              )}
-                            </span>
-                          </label>
-                        </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                {activity.activityKind === "series" &&
-                  enrollableOccs.length === 1 &&
-                  enrollableOccs[0] && (
-                    <p>
-                      场次：
-                      {formatOccurrenceLabel(
-                        enrollableOccs[0],
-                        activity.activityKind === "series" ? 0 : undefined,
-                      )}
-                    </p>
-                  )}
-                {activity.activityKind === "recurring" && nextOcc && (
-                  <p>场次：{formatOccurrenceLabel(nextOcc)}</p>
+                {seriesWholeMode && (
+                  <p className="text-xs">
+                    本活动为
+                    <strong className="font-medium text-foreground">
+                      整场报名
+                    </strong>
+                    ，报名后参加全部场次；首场开始后不再接受新报名。
+                  </p>
                 )}
               </div>
             </AlertDialogDescription>
@@ -343,15 +561,27 @@ const ActivityDetail = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>取消报名</AlertDialogTitle>
-            <AlertDialogDescription>
-              确认取消「{activity.title}」的报名？
-              {enrolledOcc &&
-                ` 场次：${formatOccurrenceLabel(
-                  enrolledOcc,
-                  activity.activityKind === "series"
-                    ? occs.findIndex((o) => o.id === enrolledOcc.id)
-                    : undefined,
-                )}`}
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>确认取消「{activity.title}」的报名？</p>
+                {enrolledOccs.length > 0 && (
+                  <ul className="space-y-0.5 text-xs text-foreground">
+                    {enrolledOccs.map((occ) => (
+                      <li key={occ.id}>
+                        ·{" "}
+                        {formatOccurrenceLabel(
+                          occ,
+                          activity.activityKind === "series"
+                            ? pickerOccurrences.findIndex(
+                                (o) => o.id === occ.id,
+                              )
+                            : undefined,
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

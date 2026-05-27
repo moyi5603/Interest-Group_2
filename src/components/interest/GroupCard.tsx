@@ -5,7 +5,6 @@ import { ChevronRight, Sparkles, Users } from "lucide-react";
 import { getTagsByIds } from "@/data/interestTags";
 import type { InterestGroupFull } from "@/data/interestTypes";
 import { isMember, CURRENT_EMPLOYEE_ID, isGroupFull } from "@/data/interestGroups";
-import { cn } from "@/lib/utils";
 
 type Props = {
   group: InterestGroupFull;
@@ -44,21 +43,9 @@ const GroupCard = ({
               className="h-9 w-9 text-sm"
             />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <h3 className="truncate text-xs font-semibold text-foreground">
-                  {group.name}
-                </h3>
-                <span
-                  className={cn(
-                    "shrink-0 rounded px-1 py-px text-[9px] font-medium",
-                    group.type === "official"
-                      ? "bg-primary/10 text-primary"
-                      : "bg-secondary text-muted-foreground",
-                  )}
-                >
-                  {group.type === "official" ? "官方" : "自发"}
-                </span>
-              </div>
+              <h3 className="truncate text-xs font-semibold text-foreground">
+                {group.name}
+              </h3>
               <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
                 <Users className="mr-0.5 inline h-2.5 w-2.5" />
                 {memberLabel}
@@ -111,21 +98,9 @@ const GroupCard = ({
             className="-mt-8 h-12 w-12 border-2 border-card text-base shadow-soft"
           />
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <h3 className="truncate text-sm font-semibold text-foreground">
-                {group.name}
-              </h3>
-              <span
-                className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                  group.type === "official"
-                    ? "bg-primary/10 text-primary"
-                    : "bg-secondary text-muted-foreground",
-                )}
-              >
-                {group.type === "official" ? "官方" : "自发"}
-              </span>
-            </div>
+            <h3 className="truncate text-sm font-semibold text-foreground">
+              {group.name}
+            </h3>
             <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
               {group.description}
             </p>

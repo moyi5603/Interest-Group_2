@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, Users, Building2, Briefcase, Lightbulb, FolderKanban, Sparkles, ArrowUp, Bot, Settings, ChevronRight, Mic, Plus, Image as ImageIcon, RefreshCw, MessageSquare, Phone, User, Shield, Wrench, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import BottomTabBar from "@/components/agent/BottomTabBar";
 import { smartSearch, employeesFull, type EmployeeFull, type DeptFull, type SmartSearchResult } from "@/data/colleagueData";
 
@@ -42,6 +43,7 @@ const nextId = () => `msg-${++msgCounter}`;
 
 const ColleagueAgent = () => {
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -96,7 +98,7 @@ const ColleagueAgent = () => {
         <header className="sticky top-0 z-30 flex items-center justify-between bg-background/85 px-4 pb-2 pt-3 backdrop-blur-lg">
           <button
             aria-label="返回"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground transition-base active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />

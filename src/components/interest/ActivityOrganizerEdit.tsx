@@ -3,7 +3,11 @@ import ActivityFormFields, {
   type SeriesSessionDraft,
 } from "@/components/interest/ActivityFormFields";
 import { combineDateAndTime, type MobileDateTimeRangeValue } from "@/components/ui/mobile-date-field";
-import type { GroupActivity, InterestGroupFull } from "@/data/interestTypes";
+import type {
+  GroupActivity,
+  InterestGroupFull,
+  SeriesEnrollmentMode,
+} from "@/data/interestTypes";
 import {
   getOccurrencesByActivity,
   updateActivity,
@@ -63,6 +67,8 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
   const [recurringEndTime, setRecurringEndTime] = useState(
     initial.recurringEndTime,
   );
+  const [seriesEnrollmentMode, setSeriesEnrollmentMode] =
+    useState<SeriesEnrollmentMode>(initial.seriesEnrollmentMode);
 
   const updateSession = (
     key: string,
@@ -144,10 +150,19 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
       );
       patch.startAt = sorted[0].startAt;
       patch.endAt = sorted[sorted.length - 1].endAt;
+      patch.seriesEnrollmentMode = seriesEnrollmentMode;
       updateSeriesOccurrences(activity.id, sorted, cap);
     } else if (activity.activityKind === "recurring") {
+      if (recurrence === "weekly" && weeklyDay == null) {
+        toast.error("请选择每周几");
+        return;
+      }
+      if (recurrence === "monthly" && monthDay == null) {
+        toast.error("请选择每月几号");
+        return;
+      }
       if (!recurringTime || !recurringEndTime) {
-        toast.error("请选择开始与结束时间");
+        toast.error("请选择活动时段");
         return;
       }
       if (!isSameDayEndAfterStart(recurringTime, recurringEndTime)) {
@@ -155,9 +170,16 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
         return;
       }
       const { hour, minute } = parseRecurringTime(recurringTime);
-      const weekdayOpt = WEEKDAY_OPTIONS.find((w) => w.value === weeklyDay)!;
+      const weekdayOpt =
+        recurrence === "weekly"
+          ? WEEKDAY_OPTIONS.find((w) => w.value === weeklyDay)
+          : undefined;
+      if (recurrence === "weekly" && !weekdayOpt) {
+        toast.error("请选择每周几");
+        return;
+      }
       const startAt = buildRecurringStartAt(recurrence, {
-        weekday: weeklyDay,
+        weekday: weeklyDay ?? 0,
         monthDay,
         hour,
         minute,
@@ -167,7 +189,7 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
       patch.rrule =
         recurrence === "monthly"
           ? buildMonthlyRrule(monthDay)
-          : buildWeeklyRrule(weekdayOpt.rrule);
+          : buildWeeklyRrule(weekdayOpt!.rrule);
     }
 
     const updated = updateActivity(activity.id, patch);
@@ -197,6 +219,7 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
           coverUrl={coverUrl}
           oneOffSchedule={oneOffSchedule}
           seriesSessions={seriesSessions}
+          seriesEnrollmentMode={seriesEnrollmentMode}
           recurrence={recurrence}
           weeklyDay={weeklyDay}
           monthDay={monthDay}
@@ -212,6 +235,7 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
           onSeriesSessionChange={updateSession}
           onAddSeriesSession={addSession}
           onRemoveSeriesSession={removeSession}
+          onSeriesEnrollmentModeChange={setSeriesEnrollmentMode}
           onRecurrenceChange={setRecurrence}
           onWeeklyDayChange={setWeeklyDay}
           onMonthDayChange={setMonthDay}
@@ -220,6 +244,7 @@ const ActivityOrganizerEdit = ({ activity, onSaved }: Props) => {
             setRecurringEndTime(end);
           }}
         />
+
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 mx-auto max-w-md border-t border-border bg-background/95 px-3 py-3 backdrop-blur">

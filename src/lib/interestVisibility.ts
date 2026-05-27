@@ -1,12 +1,14 @@
 import { getEmployee } from "@/data/colleagueData";
 import type { InterestGroupFull } from "@/data/interestTypes";
-import { isMember } from "@/data/interestGroups";
+import { isGroupOwner, isMember } from "@/data/interestGroups";
 
 export const canViewGroup = (
   group: InterestGroupFull,
   viewerId: string,
 ): boolean => {
-  if (group.status !== "active") return false;
+  if (group.status === "archived") {
+    return isGroupOwner(group.id, viewerId);
+  }
   const emp = getEmployee(viewerId);
   if (!emp) return false;
 

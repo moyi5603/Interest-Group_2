@@ -3,6 +3,9 @@ export type GroupType = "official" | "spontaneous";
 export type GroupVisibility = "public" | "dept_only" | "invite_only";
 export type ReportStatus = "pending_report" | "reported" | "flagged";
 export type ActivityKind = "one_off" | "recurring" | "series";
+
+/** 系列活动报名方式：整场一次报名 vs 每场单独报名 */
+export type SeriesEnrollmentMode = "once_before_first" | "per_occurrence";
 export type OccurrenceStatus = "scheduled" | "cancelled" | "completed";
 
 export type InterestTag = {
@@ -45,6 +48,8 @@ export type GroupActivity = {
   description: string;
   coverUrl?: string;
   activityKind: ActivityKind;
+  /** 仅 series：整场报名（首场前截止）或按场次报名 */
+  seriesEnrollmentMode?: SeriesEnrollmentMode;
   location?: string;
   capacity?: number;
   enrollDeadline?: string;

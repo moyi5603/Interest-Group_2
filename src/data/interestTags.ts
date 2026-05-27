@@ -53,7 +53,7 @@ export const getTagsByIds = (ids: string[]) =>
   ids.map((id) => tagById.get(id)).filter((t): t is InterestTag => !!t);
 
 export const findTagByName = (name: string) => {
-  const trimmed = name.trim();
+  const trimmed = name.trim().replace(/\s+/g, "");
   if (!trimmed) return undefined;
   return getAllTags().find((t) => t.name === trimmed);
 };

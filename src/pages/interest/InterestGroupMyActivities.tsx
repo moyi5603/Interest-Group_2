@@ -1,29 +1,53 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
+import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import ActivityCard from "@/components/interest/ActivityCard";
 import {
   CURRENT_EMPLOYEE_ID,
-  getMyEnrolledActivities,
+  getMyEnrolledOccurrences,
   getMyOrganizedActivities,
+  getOccurrencesByActivity,
 } from "@/data/interestGroups";
-import { getActivityPhase } from "@/lib/interestOccurrences";
+import {
+  getActivityPhase,
+  getActivityScheduleLabel,
+  getEnrolledOccurrenceScheduleLabel,
+} from "@/lib/interestOccurrences";
 import { cn } from "@/lib/utils";
 
 type RoleTab = "organized" | "participated";
-type FilterTab = "全部" | "未开始" | "进行中" | "已结束";
+type FilterTab = "全部" | "未开始" | "进行中" | "已结束" | "已终止";
 
 const roleTabs: { key: RoleTab; label: string }[] = [
   { key: "organized", label: "我组织的" },
-  { key: "participated", label: "我参与的" },
+  { key: "participated", label: "我参与的场次" },
 ];
 
-const phaseTabs: FilterTab[] = ["全部", "未开始", "进行中", "已结束"];
+const phaseTabs: FilterTab[] = [
+  "全部",
+  "未开始",
+  "进行中",
+  "已结束",
+  "已终止",
+];
+
+const roleTabValues = ["organized", "participated"] as const satisfies readonly RoleTab[];
 
 const InterestGroupMyActivities = () => {
   const navigate = useNavigate();
-  const [roleTab, setRoleTab] = useState<RoleTab>("organized");
-  const [phaseTab, setPhaseTab] = useState<FilterTab>("全部");
+  const goBack = useNavigateBack();
+  const [roleTab, setRoleTab] = useUrlEnumParam<RoleTab>(
+    "role",
+    "organized",
+    roleTabValues,
+  );
+  const [phaseTab, setPhaseTab] = useUrlEnumParam<FilterTab>(
+    "phase",
+    "全部",
+    phaseTabs,
+  );
   const [tick, setTick] = useState(0);
 
   const organizedAll = useMemo(
@@ -33,23 +57,22 @@ const InterestGroupMyActivities = () => {
 
   const participatedAll = useMemo(
     () =>
-      getMyEnrolledActivities(CURRENT_EMPLOYEE_ID, {
+      getMyEnrolledOccurrences(CURRENT_EMPLOYEE_ID, {
         excludeOrganized: true,
       }),
     [tick],
   );
 
-  const filterByPhase = <
-    T extends {
-      activity: { startAt?: string; endAt?: string };
-      occurrence?: { startAt: string; endAt: string };
-    },
-  >(
-    list: T[],
+  const filterOrganizedByPhase = (
+    list: typeof organizedAll,
     tab: FilterTab,
-  ): T[] => {
+  ) => {
     if (tab === "全部") return list;
+    if (tab === "已终止") {
+      return list.filter(({ activity }) => activity.status === "cancelled");
+    }
     return list.filter(({ activity, occurrence }) => {
+      if (activity.status === "cancelled") return false;
       const start = occurrence?.startAt ?? activity.startAt;
       const end = occurrence?.endAt ?? activity.endAt;
       const phase = getActivityPhase(start, end);
@@ -60,34 +83,53 @@ const InterestGroupMyActivities = () => {
     });
   };
 
+  const filterParticipatedByPhase = (
+    list: typeof participatedAll,
+    tab: FilterTab,
+  ) => {
+    if (tab === "全部") return list;
+    if (tab === "已终止") {
+      return list.filter((item) => item.terminated);
+    }
+    return list.filter(({ occurrence, terminated }) => {
+      if (terminated) return false;
+      const phase = getActivityPhase(
+        occurrence.startAt,
+        occurrence.endAt,
+      );
+      if (tab === "未开始") return phase === "未开始";
+      if (tab === "进行中") return phase === "进行中";
+      if (tab === "已结束") return phase === "已结束";
+      return true;
+    });
+  };
+
   const organizedItems = useMemo(
-    () => filterByPhase(organizedAll, phaseTab),
+    () => filterOrganizedByPhase(organizedAll, phaseTab),
     [organizedAll, phaseTab],
   );
 
   const participatedItems = useMemo(
-    () => filterByPhase(participatedAll, phaseTab),
+    () => filterParticipatedByPhase(participatedAll, phaseTab),
     [participatedAll, phaseTab],
   );
 
-  const openOrganizedActivity = (id: string, editable: boolean) => {
-    const path = `/agents/interest-groups/activities/${id}`;
-    navigate(editable ? `${path}?edit=1` : path);
-  };
-
-  const formatEnrolledAt = (iso: string) => {
-    const d = new Date(iso);
-    return `${d.getMonth() + 1}/${d.getDate()} 报名`;
+  const openOrganizedActivity = (id: string) => {
+    navigate(`/agents/interest-groups/activities/${id}`);
   };
 
   const emptyMessage =
     roleTab === "organized"
       ? phaseTab === "全部"
         ? "还没有组织任何活动"
-        : "该状态下暂无活动"
+        : phaseTab === "已终止"
+          ? "暂无已终止的活动"
+          : "该状态下暂无活动"
       : phaseTab === "全部"
-        ? "还没有报名任何活动"
-        : "该状态下暂无活动";
+        ? "还没有报名任何场次"
+        : phaseTab === "已终止"
+          ? "暂无已终止的场次"
+          : "该状态下暂无场次";
 
   const list =
     roleTab === "organized" ? organizedItems : participatedItems;
@@ -99,7 +141,7 @@ const InterestGroupMyActivities = () => {
           <button
             type="button"
             aria-label="返回"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex h-9 w-9 items-center justify-center rounded-full active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -155,10 +197,11 @@ const InterestGroupMyActivities = () => {
         ) : roleTab === "organized" ? (
           <ul className="space-y-2">
             {organizedItems.map(({ activity, occurrence, group }) => {
-              const start = occurrence?.startAt ?? activity.startAt;
-              const end = occurrence?.endAt ?? activity.endAt;
-              const phase = getActivityPhase(start, end);
-              const canEdit = phase !== "已结束";
+              const scheduleLabel = getActivityScheduleLabel(
+                activity,
+                occurrence,
+                getOccurrencesByActivity(activity.id),
+              );
 
               return (
                 <li key={activity.id}>
@@ -166,11 +209,10 @@ const InterestGroupMyActivities = () => {
                     compact
                     activity={activity}
                     occurrence={occurrence}
-                    editable={canEdit}
-                    meta={`${group.name} · 我发起`}
-                    onOpen={() =>
-                      openOrganizedActivity(activity.id, canEdit)
-                    }
+                    title={`${group.name}：${activity.title}`}
+                    scheduleLabel={scheduleLabel}
+                    meta="我发起"
+                    onOpen={() => openOrganizedActivity(activity.id)}
                   />
                 </li>
               );
@@ -179,22 +221,37 @@ const InterestGroupMyActivities = () => {
         ) : (
           <ul className="space-y-2">
             {participatedItems.map(
-              ({ enrollment, activity, occurrence, group }) => (
-                <li key={enrollment.id}>
-                  <ActivityCard
-                    compact
-                    activity={activity}
-                    occurrence={occurrence}
-                    enrolled
-                    meta={`${formatEnrolledAt(enrollment.enrolledAt)} · ${group.name}`}
-                    onOpen={() =>
-                      navigate(
-                        `/agents/interest-groups/activities/${activity.id}`,
-                      )
-                    }
-                  />
-                </li>
-              ),
+              ({
+                activity,
+                occurrence,
+                group,
+                occurrenceIndex,
+                terminated,
+                enrollment,
+              }) => {
+                const scheduleLabel = getEnrolledOccurrenceScheduleLabel(
+                  activity,
+                  occurrence,
+                  occurrenceIndex,
+                );
+                return (
+                  <li key={`${enrollment.id}:${occurrence.id}`}>
+                    <ActivityCard
+                      compact
+                      activity={activity}
+                      occurrence={occurrence}
+                      title={`${group.name}：${activity.title}`}
+                      scheduleLabel={scheduleLabel}
+                      enrolled={!terminated}
+                      onOpen={() =>
+                        navigate(
+                          `/agents/interest-groups/activities/${activity.id}`,
+                        )
+                      }
+                    />
+                  </li>
+                );
+              },
             )}
           </ul>
         )}

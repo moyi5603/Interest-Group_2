@@ -2,7 +2,7 @@ import { getTagsByIds } from "@/data/interestTags";
 import type { InterestGroupFull } from "@/data/interestTypes";
 import { interestGroups } from "@/data/interestGroups";
 import { getVisibleGroups } from "./interestVisibility";
-import { recommendGroups } from "./interestRecommend";
+import { canRecommendGroupTo, recommendGroups } from "./interestRecommend";
 
 export type DiscoverTab = "推荐" | "运动" | "文艺" | "生活" | "科技";
 
@@ -32,7 +32,9 @@ export const filterDiscoverGroups = (
     return recommendGroups(viewerId, 10).map((s) => s.group);
   }
 
-  let list = getVisibleGroups(interestGroups, viewerId);
+  let list = getVisibleGroups(interestGroups, viewerId).filter((g) =>
+    canRecommendGroupTo(g, viewerId),
+  );
 
   if (tab !== "推荐") {
     list = list.filter((g) => {

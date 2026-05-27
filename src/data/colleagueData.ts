@@ -14,6 +14,8 @@ export type EmployeeFull = {
   badges: Badge[];
   points: number;
   interestGroups: InterestGroup[];
+  /** 员工管理 / 档案中的兴趣标签 ID，与 `/profile/interests` 保持同步 */
+  interestTagIds?: string[];
   bio: string;
   projects: string[];
   avatarColor: string; // hsl color var
@@ -86,6 +88,7 @@ export const employeesFull: EmployeeFull[] = [
     badges: [badgePool[0], badgePool[2], badgePool[5]],
     points: 2860,
     interestGroups: [interestPool[0], interestPool[4]],
+    interestTagIds: ["tag-photo", "tag-tech"],
     bio: "8年前端开发经验，专注于大型 SPA 架构与性能优化",
     projects: ["EXP 智能体平台", "员工门户 3.0"],
     avatarColor: avatarColors[0],
@@ -337,6 +340,27 @@ employeesFull.forEach((e) => {
 });
 
 export const getEmployee = (id: string) => employeesFull.find((e) => e.id === id);
+
+export const getEmployeeInterestTagIds = (employeeId: string): string[] =>
+  getEmployee(employeeId)?.interestTagIds ?? [];
+
+export const setEmployeeInterestTagIds = (
+  employeeId: string,
+  tagIds: string[],
+) => {
+  const idx = employeesFull.findIndex((e) => e.id === employeeId);
+  if (idx < 0) return;
+  employeesFull[idx] = { ...employeesFull[idx], interestTagIds: [...tagIds] };
+  try {
+    const payload = tagIds.map((tagId) => ({ tagId, source: "manual" }));
+    localStorage.setItem(
+      `exp-interest-profile-${employeeId}`,
+      JSON.stringify(payload),
+    );
+  } catch {
+    /* ignore quota / private mode */
+  }
+};
 export const getDept = (id: string) => deptsFull.find((d) => d.id === id);
 export const getDeptEmployees = (deptId: string) => employeesFull.filter((e) => e.deptId === deptId);
 export const getYearsOfService = (joinDate: string) => {

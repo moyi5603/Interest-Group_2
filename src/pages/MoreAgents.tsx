@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, Search, Sparkles } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
+import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import { agents, categoryMeta, type AgentCategory } from "@/data/agents";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -15,12 +17,16 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "care", label: categoryMeta.care.short },
 ];
 
+const tabKeys = tabs.map((t) => t.key);
+
 const MoreAgents = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const initialTab =
-    (location.state as { tab?: TabKey } | null)?.tab ?? "communication";
-  const [active, setActive] = useState<TabKey>(initialTab);
+  const goBack = useNavigateBack();
+  const [active, setActive] = useUrlEnumParam<TabKey>(
+    "tab",
+    "communication",
+    tabKeys,
+  );
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -45,7 +51,7 @@ const MoreAgents = () => {
           <div className="flex items-center gap-2">
             <button
               aria-label="返回"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-base active:scale-95"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -95,8 +101,9 @@ const MoreAgents = () => {
               <ul className="space-y-2.5">
                 {filtered.map((agent) => {
                   const Icon = agent.icon;
+                  const isPlaceholder = agent.id === "care-humanity";
                   const handleClick = () => {
-                    if (agent.id === "care-humanity") navigate("/agents/humanity-care");
+                    if (isPlaceholder) return;
                     if (agent.id === "dev-interest-group")
                       navigate("/agents/interest-groups");
                   };
@@ -104,7 +111,11 @@ const MoreAgents = () => {
                     <li
                       key={agent.id}
                       onClick={handleClick}
-                      className="group flex cursor-pointer items-start gap-3 rounded-2xl bg-card p-3 shadow-soft transition-base active:scale-[0.99] active:shadow-glow"
+                      className={`group flex items-start gap-3 rounded-2xl bg-card p-3 shadow-soft transition-base ${
+                        isPlaceholder
+                          ? "opacity-90"
+                          : "cursor-pointer active:scale-[0.99] active:shadow-glow"
+                      }`}
                     >
                       <div
                         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-soft"

@@ -76,6 +76,9 @@ const parseTime = (time?: string) => {
 const toTime = (h: number, m: number) =>
   `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
+/** 滚轮初始位置，未确认前不写入表单 */
+const WHEEL_PLACEHOLDER = { h: 9, m: 0 };
+
 const timeToMinutes = (h: number, m: number) => h * 60 + m;
 
 const isEndAfterStart = (
@@ -289,11 +292,23 @@ const CompactPickerRow = ({
   </button>
 );
 
-const ConfirmButton = ({ onClick }: { onClick: () => void }) => (
+const ConfirmButton = ({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) => (
   <button
     type="button"
+    disabled={disabled}
     onClick={onClick}
-    className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground"
+    className={cn(
+      "w-full rounded-full py-3 text-sm font-medium",
+      disabled
+        ? "cursor-not-allowed bg-primary/40 text-primary-foreground/70"
+        : "bg-primary text-primary-foreground",
+    )}
   >
     确定
   </button>
@@ -564,6 +579,68 @@ const DatePickerSheet = ({
   );
 };
 
+const MONTH_DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+
+type MonthDayPickerSheetProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  value: number;
+  onConfirm: (day: number) => void;
+};
+
+const MonthDayPickerSheet = ({
+  open,
+  onOpenChange,
+  title,
+  value,
+  onConfirm,
+}: MonthDayPickerSheetProps) => {
+  const initial = value >= 1 && value <= 31 ? value : 1;
+  const [day, setDay] = useState(initial);
+
+  useEffect(() => {
+    if (!open) return;
+    setDay(value >= 1 && value <= 31 ? value : 1);
+  }, [open, value]);
+
+  const scrollKey = `${open}-${day}`;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="rounded-t-3xl px-2 pb-8 pt-2">
+        <SheetHeader className="px-2 pb-1 text-left">
+          <SheetTitle className="text-base">{title}</SheetTitle>
+        </SheetHeader>
+        <p className="mb-3 text-center text-sm font-medium tabular-nums text-foreground">
+          每月 {day} 号
+        </p>
+        <div className="px-8 pb-2">
+          <div className="relative flex touch-pan-y">
+            <WheelHighlight />
+            <WheelColumn
+              items={MONTH_DAYS}
+              value={day}
+              onChange={setDay}
+              format={(n) => String(n)}
+              suffix="号"
+              scrollKey={scrollKey}
+            />
+          </div>
+        </div>
+        <div className="px-2 pt-2">
+          <ConfirmButton
+            onClick={() => {
+              onConfirm(day);
+              onOpenChange(false);
+            }}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
 type TimePickerSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -582,18 +659,19 @@ const TimePickerSheet = ({
   onConfirm,
   notBefore,
 }: TimePickerSheetProps) => {
-  const parsed = parseTime(value) ?? { h: 19, m: 0 };
-  const [h, setH] = useState(parsed.h);
-  const [min, setMin] = useState(parsed.m);
+  const parsed = parseTime(value);
+  const [h, setH] = useState(parsed?.h ?? WHEEL_PLACEHOLDER.h);
+  const [min, setMin] = useState(parsed?.m ?? WHEEL_PLACEHOLDER.m);
 
   useEffect(() => {
     if (!open) return;
-    let p = parseTime(value) ?? { h: 19, m: 0 };
+    const p = parseTime(value);
+    let next = p ?? WHEEL_PLACEHOLDER;
     if (notBefore) {
-      p = clampEndTime(notBefore.h, notBefore.m, p.h, p.m);
+      next = clampEndTime(notBefore.h, notBefore.m, next.h, next.m);
     }
-    setH(p.h);
-    setMin(p.m);
+    setH(next.h);
+    setMin(next.m);
   }, [open, value, notBefore?.h, notBefore?.m]);
 
   const scrollKey = `${open}-${h}-${min}-${notBefore?.h}-${notBefore?.m}`;
@@ -646,26 +724,38 @@ const TimeRangePickerSheet = ({
   onConfirm,
 }: TimeRangePickerSheetProps) => {
   const [active, setActive] = useState<"start" | "end">("start");
-  const start = parseTime(startTime) ?? { h: 19, m: 0 };
-  const end = parseTime(endTime) ?? { h: 21, m: 0 };
-  const [startH, setStartH] = useState(start.h);
-  const [startM, setStartM] = useState(start.m);
-  const [endH, setEndH] = useState(end.h);
-  const [endM, setEndM] = useState(end.m);
+  const [startH, setStartH] = useState(WHEEL_PLACEHOLDER.h);
+  const [startM, setStartM] = useState(WHEEL_PLACEHOLDER.m);
+  const [endH, setEndH] = useState(WHEEL_PLACEHOLDER.h);
+  const [endM, setEndM] = useState(WHEEL_PLACEHOLDER.m);
+  /** 用户已查看/确认该侧时间（进入 Tab 即视为确认滚轮当前值） */
+  const [startReady, setStartReady] = useState(false);
+  const [endReady, setEndReady] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setActive("start");
-    const s = parseTime(startTime) ?? start;
-    const e = parseTime(endTime) ?? end;
-    setStartH(s.h);
-    setStartM(s.m);
-    const clamped = clampEndTime(s.h, s.m, e.h, e.m);
-    setEndH(clamped.h);
-    setEndM(clamped.m);
+    const s = parseTime(startTime);
+    const e = parseTime(endTime);
+    const startPos = s ?? WHEEL_PLACEHOLDER;
+    setStartH(startPos.h);
+    setStartM(startPos.m);
+    const endPos = e
+      ? clampEndTime(startPos.h, startPos.m, e.h, e.m)
+      : clampEndTime(
+          startPos.h,
+          startPos.m,
+          WHEEL_PLACEHOLDER.h,
+          WHEEL_PLACEHOLDER.m,
+        );
+    setEndH(endPos.h);
+    setEndM(endPos.m);
+    setStartReady(!!s || !startTime);
+    setEndReady(!!e);
   }, [open, startTime, endTime]);
 
   useEffect(() => {
+    if (!startReady) return;
     const clamped = clampEndTime(startH, startM, endH, endM);
     if (clamped.h !== endH || clamped.m !== endM) {
       setEndH(clamped.h);
@@ -673,14 +763,45 @@ const TimeRangePickerSheet = ({
     }
     // 仅在开始时间变化时校正结束时间
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startH, startM]);
+  }, [startH, startM, startReady]);
+
+  const selectTab = (key: "start" | "end") => {
+    setActive(key);
+    if (key === "start") {
+      setStartReady(true);
+      return;
+    }
+    setEndReady(true);
+    const clamped = clampEndTime(startH, startM, endH, endM);
+    setEndH(clamped.h);
+    setEndM(clamped.m);
+  };
 
   const isStart = active === "start";
   const h = isStart ? startH : endH;
   const minVal = isStart ? startM : endM;
-  const setH = isStart ? setStartH : setEndH;
-  const setMinVal = isStart ? setStartM : setEndM;
-  const scrollKey = `${open}-${active}-${h}-${minVal}`;
+  const scrollKey = `${open}-${active}-${h}-${minVal}-${startReady}-${endReady}`;
+
+  const handleSetH = (nextH: number) => {
+    if (isStart) setStartH(nextH);
+    else setEndH(nextH);
+  };
+  const handleSetMin = (nextM: number) => {
+    if (isStart) setStartM(nextM);
+    else setEndM(nextM);
+  };
+
+  const startDisplay = startReady
+    ? formatMobileTime(toTime(startH, startM))
+    : "--:--";
+  const endDisplay = endReady
+    ? formatMobileTime(toTime(endH, endM))
+    : "--:--";
+  const activeDisplay = isStart ? startDisplay : endDisplay;
+  const canConfirm =
+    startReady &&
+    endReady &&
+    isEndAfterStart(startH, startM, endH, endM);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -692,20 +813,14 @@ const TimeRangePickerSheet = ({
         <div className="mx-2 mb-3 flex rounded-xl bg-secondary/70 p-1">
           {(
             [
-              {
-                key: "start" as const,
-                label: `开始 ${formatMobileTime(toTime(startH, startM))}`,
-              },
-              {
-                key: "end" as const,
-                label: `结束 ${formatMobileTime(toTime(endH, endM))}`,
-              },
+              { key: "start" as const, label: `开始 ${startDisplay}` },
+              { key: "end" as const, label: `结束 ${endDisplay}` },
             ] as const
           ).map(({ key, label }) => (
             <button
               key={key}
               type="button"
-              onClick={() => setActive(key)}
+              onClick={() => selectTab(key)}
               className={cn(
                 "flex-1 rounded-lg py-2 text-xs font-medium",
                 active === key
@@ -718,21 +833,29 @@ const TimeRangePickerSheet = ({
           ))}
         </div>
 
-        <p className="mb-3 text-center text-2xl font-semibold tabular-nums">
-          {formatMobileTime(toTime(h, minVal))}
+        <p
+          className={cn(
+            "mb-3 text-center text-2xl font-semibold tabular-nums",
+            activeDisplay === "--:--" && "text-muted-foreground",
+          )}
+        >
+          {activeDisplay}
         </p>
 
         <TimeWheelPanel
           h={h}
           min={minVal}
-          setH={setH}
-          setMin={setMinVal}
+          setH={handleSetH}
+          setMin={handleSetMin}
           scrollKey={scrollKey}
-          notBefore={isStart ? undefined : { h: startH, m: startM }}
+          notBefore={
+            !isStart && startReady ? { h: startH, m: startM } : undefined
+          }
         />
 
         <div className="px-2 pt-2">
           <ConfirmButton
+            disabled={!canConfirm}
             onClick={() => {
               onConfirm(toTime(startH, startM), toTime(endH, endM));
               onOpenChange(false);
@@ -780,6 +903,46 @@ export const MobileDateField = ({
         value={value}
         min={min}
         max={max}
+        onOpenChange={setOpen}
+        onConfirm={onChange}
+      />
+    </div>
+  );
+};
+
+type MobileMonthDayFieldProps = {
+  label: string;
+  value: number | null;
+  onChange: (day: number) => void;
+  className?: string;
+};
+
+export const MobileMonthDayField = ({
+  label,
+  value,
+  onChange,
+  className,
+}: MobileMonthDayFieldProps) => {
+  const [open, setOpen] = useState(false);
+  const filled = value != null && value >= 1 && value <= 31;
+  const display = filled ? `每月 ${value} 号` : "";
+
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <span className="text-xs font-medium text-foreground">{label}</span>
+      <div className={PICKER_LIST_CLASS}>
+        <CompactPickerRow
+          label="日期"
+          value={display}
+          placeholder="选择每月几号"
+          filled={filled}
+          onClick={() => setOpen(true)}
+        />
+      </div>
+      <MonthDayPickerSheet
+        open={open}
+        title={label}
+        value={value ?? 1}
         onOpenChange={setOpen}
         onConfirm={onChange}
       />

@@ -4,6 +4,7 @@ type Action = {
   label: string;
   onClick: () => void;
   icon?: ReactNode;
+  trailingIcon?: ReactNode;
 };
 
 type Props = {
@@ -13,37 +14,26 @@ type Props = {
   secondaryAction?: Action;
 };
 
-const actionButtonClass = (primary?: boolean) =>
-  primary
-    ? "flex items-center gap-1 text-[11px] font-medium text-primary"
-    : "flex items-center gap-1 text-[11px] font-medium text-muted-foreground";
+const HeaderAction = ({ action }: { action: Action }) => (
+  <button
+    type="button"
+    onClick={action.onClick}
+    className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground transition-base active:scale-95 active:text-foreground"
+  >
+    {action.icon}
+    {action.label}
+    {action.trailingIcon}
+  </button>
+);
 
 const SectionHeader = ({ title, subtitle, action, secondaryAction }: Props) => (
   <div className={subtitle ? "mb-2" : "mb-1.5"}>
     <div className="flex items-center justify-between gap-2">
       <h2 className="text-xs font-semibold text-foreground">{title}</h2>
       {(secondaryAction || action) && (
-        <div className="flex shrink-0 items-center gap-2">
-          {secondaryAction && (
-            <button
-              type="button"
-              onClick={secondaryAction.onClick}
-              className={actionButtonClass()}
-            >
-              {secondaryAction.icon}
-              {secondaryAction.label}
-            </button>
-          )}
-          {action && (
-            <button
-              type="button"
-              onClick={action.onClick}
-              className={actionButtonClass(true)}
-            >
-              {action.icon}
-              {action.label}
-            </button>
-          )}
+        <div className="flex shrink-0 items-center gap-2.5">
+          {secondaryAction && <HeaderAction action={secondaryAction} />}
+          {action && <HeaderAction action={action} />}
         </div>
       )}
     </div>

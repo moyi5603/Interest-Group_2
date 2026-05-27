@@ -7,14 +7,24 @@ import {
 } from "@/components/interest/activityFormConstants";
 import {
   MobileDateTimeRangeField,
+  MobileMonthDayField,
   MobileTimeRangeField,
   formatMobileDate,
   formatMobileTime,
   type MobileDateTimeRangeValue,
 } from "@/components/ui/mobile-date-field";
 import { resolveActivityCover } from "@/data/interestImages";
-import type { ActivityKind, ActivityOccurrence, GroupActivity } from "@/data/interestTypes";
+import type {
+  ActivityKind,
+  ActivityOccurrence,
+  GroupActivity,
+  SeriesEnrollmentMode,
+} from "@/data/interestTypes";
 import { WEEKDAY_OPTIONS } from "@/lib/interestOccurrences";
+import {
+  SERIES_ENROLLMENT_MODE_LABEL,
+  SERIES_ENROLLMENT_MODE_OPTIONS,
+} from "@/lib/seriesEnrollment";
 import { cn } from "@/lib/utils";
 
 export type SeriesSessionDraft = MobileDateTimeRangeValue & {
@@ -30,9 +40,10 @@ type BaseProps = {
   coverUrl?: string;
   oneOffSchedule: MobileDateTimeRangeValue;
   seriesSessions: SeriesSessionDraft[];
+  seriesEnrollmentMode: SeriesEnrollmentMode;
   recurrence: "weekly" | "monthly";
-  weeklyDay: number;
-  monthDay: number;
+  weeklyDay: number | null;
+  monthDay: number | null;
   recurringTime: string;
   recurringEndTime: string;
 };
@@ -52,6 +63,7 @@ type EditProps = BaseProps & {
   ) => void;
   onAddSeriesSession: () => void;
   onRemoveSeriesSession: (key: string) => void;
+  onSeriesEnrollmentModeChange: (v: SeriesEnrollmentMode) => void;
   onRecurrenceChange: (v: "weekly" | "monthly") => void;
   onWeeklyDayChange: (v: number) => void;
   onMonthDayChange: (v: number) => void;
@@ -219,12 +231,53 @@ const ActivityFormFields = (props: Props) => {
 
       {kind === "series" && (
         <section className="space-y-2.5 rounded-xl border border-primary/15 bg-primary/5 p-3">
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-foreground">报名方式</span>
+            {isView ? (
+              <p className="rounded-lg border border-border/60 bg-card px-2.5 py-2 text-xs text-foreground">
+                {SERIES_ENROLLMENT_MODE_LABEL[props.seriesEnrollmentMode]}
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {SERIES_ENROLLMENT_MODE_OPTIONS.map((opt) => (
+                  <li key={opt.value}>
+                    <label
+                      className={cn(
+                        "flex cursor-pointer gap-2 rounded-lg border px-2.5 py-2 transition-colors",
+                        props.seriesEnrollmentMode === opt.value
+                          ? "border-primary bg-primary/5"
+                          : "border-border/60 bg-card",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="series-enrollment-mode"
+                        checked={props.seriesEnrollmentMode === opt.value}
+                        onChange={() =>
+                          props.onSeriesEnrollmentModeChange(opt.value)
+                        }
+                        className="mt-0.5 accent-primary"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="text-xs font-medium text-foreground">
+                          {opt.label}
+                        </span>
+                        <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                          {opt.description}
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div>
             <span className="text-xs font-medium text-foreground">系列场次</span>
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
               {isView
-                ? "按开始时间排列，人数上限对各场生效。"
-                : "为每场填写开始与结束时间，系统将按开始时间排序。人数上限对各场生效。"}
+                ? "人数上限对各场生效。"
+                : "为每场填写开始与结束时间。人数上限对各场生效。"}
             </p>
           </div>
           <ul className="space-y-1.5">
@@ -307,8 +360,12 @@ const ActivityFormFields = (props: Props) => {
                 label={props.recurrence === "weekly" ? "每周几" : "每月几号"}
                 value={
                   props.recurrence === "weekly"
-                    ? `周${WEEKDAY_OPTIONS.find((w) => w.value === props.weeklyDay)?.label ?? ""}`
-                    : `每月 ${props.monthDay} 号`
+                    ? props.weeklyDay != null
+                      ? `周${WEEKDAY_OPTIONS.find((w) => w.value === props.weeklyDay)?.label ?? ""}`
+                      : "—"
+                    : props.monthDay != null
+                      ? `每月 ${props.monthDay} 号`
+                      : "—"
                 }
               />
               <ReadOnlyField
@@ -350,7 +407,8 @@ const ActivityFormFields = (props: Props) => {
                         onClick={() => props.onWeeklyDayChange(w.value)}
                         className={cn(
                           "rounded-lg py-2 text-center text-xs font-medium",
-                          props.weeklyDay === w.value
+                          props.weeklyDay != null &&
+                            props.weeklyDay === w.value
                             ? "bg-primary text-primary-foreground"
                             : "bg-secondary text-muted-foreground",
                         )}
@@ -361,22 +419,11 @@ const ActivityFormFields = (props: Props) => {
                   </div>
                 </div>
               ) : (
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-medium">每月几号</span>
-                  <select
-                    value={props.monthDay}
-                    onChange={(e) =>
-                      props.onMonthDayChange(Number(e.target.value))
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-                  >
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={d}>
-                        每月 {d} 号
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <MobileMonthDayField
+                  label="每月几号"
+                  value={props.monthDay}
+                  onChange={props.onMonthDayChange}
+                />
               )}
 
               <MobileTimeRangeField
@@ -388,8 +435,12 @@ const ActivityFormFields = (props: Props) => {
 
               <p className="text-[11px] text-muted-foreground">
                 {props.recurrence === "weekly"
-                  ? `将按每周${WEEKDAY_OPTIONS.find((w) => w.value === props.weeklyDay)?.label} ${props.recurringTime || "--:--"} – ${props.recurringEndTime || "--:--"} 重复举办`
-                  : `将按每月 ${props.monthDay} 号 ${props.recurringTime || "--:--"} – ${props.recurringEndTime || "--:--"} 重复举办`}
+                  ? props.weeklyDay == null
+                    ? "请选择每周几与活动时段"
+                    : `将按每周${WEEKDAY_OPTIONS.find((w) => w.value === props.weeklyDay)?.label} ${props.recurringTime || "--:--"} – ${props.recurringEndTime || "--:--"} 重复举办`
+                  : props.monthDay == null
+                    ? "请选择每月几号与活动时段"
+                    : `将按每月 ${props.monthDay} 号 ${props.recurringTime || "--:--"} – ${props.recurringEndTime || "--:--"} 重复举办`}
               </p>
             </>
           )}

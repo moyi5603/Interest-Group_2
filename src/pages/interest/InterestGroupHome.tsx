@@ -8,9 +8,11 @@ import {
   Tag,
   UserPlus,
   Users,
+  ChevronRight,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import ActivityCard from "@/components/interest/ActivityCard";
 import GroupCard from "@/components/interest/GroupCard";
 import InterestAiHero from "@/components/interest/InterestAiHero";
@@ -27,7 +29,7 @@ import {
 import { getProfileTagIds } from "@/data/interestProfileStore";
 import {
   getRecommendSummary,
-  getUpcomingOccurrences,
+  getRecentActivities,
   recommendGroups,
 } from "@/lib/interestRecommend";
 import { toast } from "sonner";
@@ -36,22 +38,28 @@ const DISCOVER_PATH = "/agents/interest-groups/discover";
 
 const MY_ACTIVITIES_PATH = "/agents/interest-groups/my-activities";
 
+const MY_GROUPS_PATH = "/agents/interest-groups/list/my-groups";
+
+const RECENT_ACTIVITIES_PATH = "/agents/interest-groups/list/recent";
+
 const shortcuts = [
-  { label: "近期活动", icon: CalendarDays, to: "#recent-activities" },
+  { label: "近期活动", icon: CalendarDays, to: RECENT_ACTIVITIES_PATH },
   { label: "加入小组", icon: UserPlus, to: DISCOVER_PATH },
   { label: "我的活动", icon: CalendarCheck, to: MY_ACTIVITIES_PATH },
   { label: "我的兴趣", icon: Tag, to: "/profile/interests" },
   { label: "创建小组", icon: Plus, to: "/agents/interest-groups/new" },
-  { label: "我的小组", icon: Users, to: "#my-groups" },
+  { label: "我的小组", icon: Users, to: MY_GROUPS_PATH },
 ] as const;
 
 const viewMore = (navigate: ReturnType<typeof useNavigate>, section: InterestListSection) => ({
   label: "查看更多",
+  trailingIcon: <ChevronRight className="h-3 w-3" />,
   onClick: () => navigate(`/agents/interest-groups/list/${section}`),
 });
 
 const InterestGroupHome = () => {
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const tagCount = getProfileTagIds().length;
   const [recommendOffset, setRecommendOffset] = useState(0);
   const recommended = useMemo(
@@ -69,8 +77,17 @@ const InterestGroupHome = () => {
     return recommendSummary;
   }, [tagCount, recommendSummary]);
   const myGroups = useMemo(() => getJoinedGroups(CURRENT_EMPLOYEE_ID), []);
+  const myGroupsPreview = useMemo(() => {
+    if (myGroups.length <= 2) return myGroups;
+    const shuffled = [...myGroups];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, 2);
+  }, [myGroups]);
   const recentActivities = useMemo(
-    () => getUpcomingOccurrences(CURRENT_EMPLOYEE_ID, 2),
+    () => getRecentActivities(CURRENT_EMPLOYEE_ID).slice(0, 2),
     [],
   );
 
@@ -92,7 +109,7 @@ const InterestGroupHome = () => {
           <button
             type="button"
             aria-label="返回"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary transition-base active:scale-95"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -135,13 +152,7 @@ const InterestGroupHome = () => {
                 <button
                   key={s.label}
                   type="button"
-                  onClick={() => {
-                    if (s.to.startsWith("#")) {
-                      document
-                        .getElementById(s.to.slice(1))
-                        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                    } else navigate(s.to);
-                  }}
+                  onClick={() => navigate(s.to)}
                   className="flex flex-col items-center gap-0.5 rounded-xl p-1 transition-base active:scale-95"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary-glow/10 ring-1 ring-primary/10">
@@ -154,39 +165,37 @@ const InterestGroupHome = () => {
               );
             })}
           </div>
+        </InterestSection>
 
-          <div
-            id="recent-activities"
-            className="mt-2 border-t border-primary/10 pt-2"
-          >
-            <SectionHeader
-              title={
-                <span className="inline-flex items-center gap-1">
-                  <CalendarDays className="h-3 w-3 text-primary" />
-                  近期活动
-                </span>
-              }
-              action={viewMore(navigate, "recent")}
-            />
-            {recentActivities.length === 0 ? (
-              <p className="py-1 text-center text-[10px] text-muted-foreground">
-                暂无即将开始的活动
-              </p>
-            ) : (
-              <ul className="space-y-1.5">
-                {recentActivities.map(({ activity, occurrence }) => (
-                  <li key={occurrence.id}>
-                    <ActivityCard
-                      compact
-                      activity={activity}
-                      occurrence={occurrence}
-                      onOpen={() => openActivity(activity.id)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <InterestSection>
+          <SectionHeader
+            title={
+              <span className="inline-flex items-center gap-1">
+                <CalendarDays className="h-3 w-3 text-primary" />
+                近期活动
+              </span>
+            }
+            action={viewMore(navigate, "recent")}
+          />
+          {recentActivities.length === 0 ? (
+            <p className="py-1 text-center text-[10px] text-muted-foreground">
+              暂无即将开始的活动
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {recentActivities.map((item) => (
+                <li key={item.activity.id}>
+                  <ActivityCard
+                    compact
+                    activity={item.activity}
+                    occurrence={item.statusOccurrence}
+                    scheduleLabel={item.timeLabel}
+                    onOpen={() => openActivity(item.activity.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </InterestSection>
 
         <InterestSection id="my-groups">
@@ -205,7 +214,7 @@ const InterestGroupHome = () => {
             </p>
           ) : (
             <ul className="space-y-1.5">
-              {myGroups.slice(0, 3).map((g) => (
+              {myGroupsPreview.map((g) => (
                 <li key={g.id}>
                   <GroupCard
                     compact
@@ -233,6 +242,7 @@ const InterestGroupHome = () => {
             }}
             action={{
               label: "查看更多",
+              trailingIcon: <ChevronRight className="h-3 w-3" />,
               onClick: () => navigate(DISCOVER_PATH),
             }}
           />

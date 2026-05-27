@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useNavigateBack } from "@/hooks/useNavigateBack";
 import ActivityFormFields, {
   type SeriesSessionDraft,
 } from "@/components/interest/ActivityFormFields";
@@ -10,7 +11,10 @@ import {
   CURRENT_EMPLOYEE_ID,
   addActivity,
   addOccurrences,
+  enrollOrganizerAsParticipant,
+  getActivityById,
   getGroupById,
+  isGroupOwner,
 } from "@/data/interestGroups";
 import { emptySchedule } from "@/lib/activityFormState";
 import {
@@ -25,7 +29,11 @@ import {
   isSameDayEndAfterStart,
   parseRecurringTime,
 } from "@/lib/interestOccurrences";
-import type { ActivityKind, GroupActivity } from "@/data/interestTypes";
+import type {
+  ActivityKind,
+  GroupActivity,
+  SeriesEnrollmentMode,
+} from "@/data/interestTypes";
 import { toast } from "sonner";
 
 const newSessionKey = () =>
@@ -38,6 +46,7 @@ const defaultSeriesSessions = (): SeriesSessionDraft[] => [
 const ActivityCreate = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
+  const goBack = useNavigateBack();
   const group = getGroupById(groupId || "");
 
   const [kind, setKind] = useState<ActivityKind>("one_off");
@@ -48,19 +57,38 @@ const ActivityCreate = () => {
   const [oneOffSchedule, setOneOffSchedule] =
     useState<MobileDateTimeRangeValue>(emptySchedule());
   const [recurrence, setRecurrence] = useState<"weekly" | "monthly">("weekly");
-  const [weeklyDay, setWeeklyDay] = useState(3);
-  const [monthDay, setMonthDay] = useState(15);
-  const [recurringTime, setRecurringTime] = useState("19:00");
-  const [recurringEndTime, setRecurringEndTime] = useState("21:00");
+  const [weeklyDay, setWeeklyDay] = useState<number | null>(null);
+  const [monthDay, setMonthDay] = useState<number | null>(null);
+  const [recurringTime, setRecurringTime] = useState("");
+  const [recurringEndTime, setRecurringEndTime] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
   const [seriesSessions, setSeriesSessions] = useState<SeriesSessionDraft[]>(
     [],
   );
+  const [seriesEnrollmentMode, setSeriesEnrollmentMode] =
+    useState<SeriesEnrollmentMode>("per_occurrence");
 
   if (!group) {
     return (
       <div className="mx-auto flex h-screen max-w-md items-center justify-center">
         <p className="text-sm text-muted-foreground">小组不存在</p>
+      </div>
+    );
+  }
+
+  if (!isGroupOwner(group.id, CURRENT_EMPLOYEE_ID)) {
+    return (
+      <div className="mx-auto flex h-screen max-w-md flex-col items-center justify-center gap-3 px-6">
+        <p className="text-center text-sm text-muted-foreground">
+          仅小组创建者可发布活动
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate(`/agents/interest-groups/${group.id}`)}
+          className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
+          返回小组
+        </button>
       </div>
     );
   }
@@ -124,8 +152,16 @@ const ActivityCreate = () => {
     };
 
     if (kind === "recurring") {
+      if (recurrence === "weekly" && weeklyDay == null) {
+        toast.error("请选择每周几");
+        return;
+      }
+      if (recurrence === "monthly" && monthDay == null) {
+        toast.error("请选择每月几号");
+        return;
+      }
       if (!recurringTime || !recurringEndTime) {
-        toast.error("请选择开始与结束时间");
+        toast.error("请选择活动时段");
         return;
       }
       if (!isSameDayEndAfterStart(recurringTime, recurringEndTime)) {
@@ -133,20 +169,28 @@ const ActivityCreate = () => {
         return;
       }
       const { hour, minute } = parseRecurringTime(recurringTime);
-      const weekdayOpt = WEEKDAY_OPTIONS.find((w) => w.value === weeklyDay)!;
+      const weekdayOpt =
+        recurrence === "weekly"
+          ? WEEKDAY_OPTIONS.find((w) => w.value === weeklyDay)
+          : undefined;
+      if (recurrence === "weekly" && !weekdayOpt) {
+        toast.error("请选择每周几");
+        return;
+      }
       base.startAt = buildRecurringStartAt(recurrence, {
-        weekday: weeklyDay,
-        monthDay,
+        weekday: weeklyDay ?? 0,
+        monthDay: monthDay!,
         hour,
         minute,
       });
       base.endAt = buildRecurringEndAt(base.startAt, recurringEndTime);
       base.rrule =
         recurrence === "monthly"
-          ? buildMonthlyRrule(monthDay)
-          : buildWeeklyRrule(weekdayOpt.rrule);
+          ? buildMonthlyRrule(monthDay!)
+          : buildWeeklyRrule(weekdayOpt!.rrule);
       addActivity(base);
       addOccurrences(expandRecurringOccurrences(base, 4));
+      enrollOrganizerAsParticipant(getActivityById(id)!);
     } else if (kind === "series") {
       if (seriesSessions.length < 1) {
         toast.error("请至少添加 1 个场次");
@@ -178,8 +222,13 @@ const ActivityCreate = () => {
       );
       base.startAt = sorted[0].startAt;
       base.endAt = sorted[0].endAt;
-      addActivity({ ...base, activityKind: "series" });
+      addActivity({
+        ...base,
+        activityKind: "series",
+        seriesEnrollmentMode,
+      });
       addOccurrences(buildSeriesOccurrences(id, sessions, cap));
+      enrollOrganizerAsParticipant(getActivityById(id)!);
     } else {
       if (
         !oneOffSchedule.date ||
@@ -202,6 +251,7 @@ const ActivityCreate = () => {
       base.startAt = startIso;
       base.endAt = endIso;
       addActivity(base);
+      enrollOrganizerAsParticipant(getActivityById(id)!);
     }
 
     toast.success("活动已发布");
@@ -213,7 +263,7 @@ const ActivityCreate = () => {
       <header className="sticky top-0 z-30 flex items-center gap-2 bg-background/85 px-3 py-3 backdrop-blur-lg">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary active:scale-95"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -232,6 +282,7 @@ const ActivityCreate = () => {
           coverUrl={coverUrl}
           oneOffSchedule={oneOffSchedule}
           seriesSessions={seriesSessions}
+          seriesEnrollmentMode={seriesEnrollmentMode}
           recurrence={recurrence}
           weeklyDay={weeklyDay}
           monthDay={monthDay}
@@ -247,6 +298,7 @@ const ActivityCreate = () => {
           onSeriesSessionChange={updateSession}
           onAddSeriesSession={addSession}
           onRemoveSeriesSession={removeSession}
+          onSeriesEnrollmentModeChange={setSeriesEnrollmentMode}
           onRecurrenceChange={setRecurrence}
           onWeeklyDayChange={setWeeklyDay}
           onMonthDayChange={setMonthDay}
