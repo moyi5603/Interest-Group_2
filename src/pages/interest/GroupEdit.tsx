@@ -12,7 +12,7 @@ import {
   updateGroup,
 } from "@/data/interestGroups";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const GroupEdit = () => {
   const { groupId } = useParams<{ groupId: string }>();

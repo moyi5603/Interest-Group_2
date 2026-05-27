@@ -56,7 +56,7 @@ import {
   seriesEnrollmentBlockedReason,
 } from "@/lib/seriesEnrollment";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const ActivityDetail = () => {
   const { activityId } = useParams<{ activityId: string }>();
@@ -219,8 +219,7 @@ const ActivityDetail = () => {
         return;
       }
       refresh();
-      setEnrollOpen(false);
-      toast.success("报名成功");
+      toast.success("已报名系列活动");
       return;
     }
 
@@ -461,10 +460,10 @@ const ActivityDetail = () => {
             type="button"
             disabled={!canEnroll && !hasEnrollment}
             onClick={() => {
-              if (activity.activityKind === "one_off") {
-                doEnroll();
-              } else {
+              if (multiOccMode) {
                 openEnrollDialog();
+              } else {
+                doEnroll();
               }
             }}
             className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground"
@@ -524,38 +523,6 @@ const ActivityDetail = () => {
           </SheetContent>
         </Sheet>
       )}
-
-      <AlertDialog
-        open={enrollOpen && !multiOccMode}
-        onOpenChange={(open) => {
-          setEnrollOpen(open);
-          if (!open) setPickOccIds(new Set());
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认报名</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>确认报名参加「{activity.title}」？</p>
-                {seriesWholeMode && (
-                  <p className="text-xs">
-                    本活动为
-                    <strong className="font-medium text-foreground">
-                      整场报名
-                    </strong>
-                    ，报名后参加全部场次；首场开始后不再接受新报名。
-                  </p>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>返回</AlertDialogCancel>
-            <AlertDialogAction onClick={doEnroll}>确认报名</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <AlertDialogContent>

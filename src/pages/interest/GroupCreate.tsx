@@ -10,7 +10,7 @@ import {
   CURRENT_EMPLOYEE_ID,
   createSpontaneousGroup,
 } from "@/data/interestGroups";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const GroupCreate = () => {
   const navigate = useNavigate();

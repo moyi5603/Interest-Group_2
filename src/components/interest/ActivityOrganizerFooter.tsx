@@ -16,7 +16,7 @@ import {
 } from "@/data/interestGroups";
 import type { GroupActivity } from "@/data/interestTypes";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type Props = {
   activity: GroupActivity;

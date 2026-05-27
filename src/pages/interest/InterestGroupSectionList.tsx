@@ -19,7 +19,7 @@ import {
 } from "@/lib/interestRecommend";
 import type { InterestListSection } from "@/data/interestTypes";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const sectionMeta: Record<
   InterestListSection,

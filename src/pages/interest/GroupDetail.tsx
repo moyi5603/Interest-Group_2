@@ -22,7 +22,7 @@ import {
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import { canViewGroup } from "@/lib/interestVisibility";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const kindFilters: { key: "all" | ActivityKind; label: string }[] = [
   { key: "all", label: "全部" },

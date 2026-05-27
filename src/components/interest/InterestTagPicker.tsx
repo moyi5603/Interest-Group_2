@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ensureCustomTag, interestTagList } from "@/data/interestTags";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type Props = {
   selectedIds: string[];

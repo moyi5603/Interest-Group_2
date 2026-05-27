@@ -29,7 +29,7 @@ import {
   isSameDayEndAfterStart,
   parseRecurringTime,
 } from "@/lib/interestOccurrences";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const newSessionKey = () =>
   `s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;

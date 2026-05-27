@@ -32,7 +32,7 @@ import {
   getRecentActivities,
   recommendGroups,
 } from "@/lib/interestRecommend";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const DISCOVER_PATH = "/agents/interest-groups/discover";
 

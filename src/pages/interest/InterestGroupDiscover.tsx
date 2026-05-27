@@ -15,7 +15,7 @@ import {
   getRecommendSummary,
   recommendGroups,
 } from "@/lib/interestRecommend";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const RECOMMEND_BATCH_SIZE = 10;
 

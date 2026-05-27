@@ -12,7 +12,7 @@ import {
 import { disbandGroup } from "@/data/interestGroups";
 import type { InterestGroupFull } from "@/data/interestTypes";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 type Props = {
   group: InterestGroupFull;

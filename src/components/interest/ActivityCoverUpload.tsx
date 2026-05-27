@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import ActivityCover from "@/components/interest/ActivityCover";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const MAX_SIZE_MB = 5;
 
