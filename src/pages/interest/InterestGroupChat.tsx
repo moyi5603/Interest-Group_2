@@ -4,13 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import ChatInputBar from "@/components/agent/ChatInputBar";
 import InterestAgentReply from "@/components/interest/InterestAgentReply";
-import InterestTopicPanel from "@/components/interest/InterestTopicPanel";
 import { interestTypography as t } from "@/components/interest/interestTypography";
-import {
-  buildReply,
-  HOME_SUGGESTED_QUESTIONS,
-  parseIntent,
-} from "@/lib/interestAgent";
+import { buildReply, parseIntent } from "@/lib/interestAgent";
 import type { AgentReply } from "@/lib/interestAgent";
 import {
   CURRENT_EMPLOYEE_ID,
@@ -191,15 +186,6 @@ const InterestGroupChat = () => {
       </main>
 
       <footer className="shrink-0 border-t border-primary/10 bg-gradient-to-t from-primary/[0.06] to-background/98 shadow-tab backdrop-blur-lg">
-        <div className="px-3 py-2">
-          <InterestTopicPanel
-            compact
-            topics={[...HOME_SUGGESTED_QUESTIONS]}
-            hideRefresh
-            onSelect={send}
-            className="rounded-xl border border-primary/10 bg-card/80 px-2.5 py-2"
-          />
-        </div>
         <ChatInputBar placeholder="输入消息…" onSubmit={send} />
       </footer>
     </div>

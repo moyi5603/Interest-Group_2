@@ -15,7 +15,6 @@ import {
   type AgentReply,
 } from "@/lib/interestAgent";
 import { toast } from "@/components/ui/sonner";
-import { cn } from "@/lib/utils";
 
 type Props = {
   reply: AgentReply;
@@ -362,27 +361,6 @@ const InterestAgentReply = ({
         </button>
       )}
 
-      {reply.suggestions.length > 0 && (
-        <div className="w-full pt-1">
-          <p className="mb-1.5 px-0.5 text-xs text-muted-foreground">
-            💬 还可以这样问我：
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {reply.suggestions.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => onSuggest(s)}
-                className={cn(
-                  "rounded-full border border-border/70 bg-secondary/50 px-2.5 py-1 text-xs text-foreground active:scale-95",
-                )}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
