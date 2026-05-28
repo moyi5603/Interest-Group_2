@@ -5,6 +5,7 @@ import { ChevronRight, Sparkles, Users } from "lucide-react";
 import { getTagsByIds } from "@/data/interestTags";
 import type { InterestGroupFull } from "@/data/interestTypes";
 import { isMember, CURRENT_EMPLOYEE_ID, isGroupFull } from "@/data/interestGroups";
+import { cn } from "@/lib/utils";
 
 type Props = {
   group: InterestGroupFull;
@@ -12,6 +13,8 @@ type Props = {
   onOpen: () => void;
   onJoin?: () => void;
   compact?: boolean;
+  /** 紧凑卡片稍大字号（首页等） */
+  comfortable?: boolean;
 };
 
 const GroupCard = ({
@@ -20,6 +23,7 @@ const GroupCard = ({
   onOpen,
   onJoin,
   compact,
+  comfortable = true,
 }: Props) => {
   const tags = getTagsByIds(group.tagIds).slice(0, compact ? 2 : 4);
   const joined = isMember(group.id, CURRENT_EMPLOYEE_ID);
@@ -29,45 +33,79 @@ const GroupCard = ({
   const cover = resolveGroupCover(group);
 
   if (compact) {
+    const metaText = comfortable ? "text-xs" : "text-[10px]";
+    const titleText = comfortable ? "text-sm" : "text-xs";
+    const actionText = comfortable ? "text-xs" : "text-[10px]";
+    const iconSm = comfortable ? "h-3 w-3" : "h-2.5 w-2.5";
+
     return (
       <article className="rounded-xl border border-border/60 bg-card transition-base active:scale-[0.99]">
-        <div className="flex items-center gap-2 p-2">
+        <div
+          className={cn(
+            "flex items-center gap-2",
+            comfortable ? "p-2.5" : "p-2",
+          )}
+        >
           <button
             type="button"
             onClick={onOpen}
-            className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
           >
             <GroupAvatar
               coverUrl={cover}
               name={group.name}
-              className="h-9 w-9 text-sm"
+              className={comfortable ? "h-10 w-10 text-sm" : "h-9 w-9 text-sm"}
             />
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-xs font-semibold text-foreground">
+              <h3
+                className={cn(
+                  "truncate font-semibold text-foreground",
+                  titleText,
+                )}
+              >
                 {group.name}
               </h3>
-              <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
-                <Users className="mr-0.5 inline h-2.5 w-2.5" />
+              <p
+                className={cn(
+                  "mt-0.5 line-clamp-1 text-muted-foreground",
+                  metaText,
+                )}
+              >
+                <Users className={cn("mr-0.5 inline", iconSm)} />
                 {memberLabel}
                 {tags.length > 0 &&
                   ` · ${tags.map((t) => `#${t.name}`).join(" ")}`}
               </p>
               {reasons?.[0] && (
-                <p className="mt-0.5 flex items-start gap-1 text-[10px] leading-snug text-primary">
-                  <Sparkles className="mt-px h-2.5 w-2.5 shrink-0" />
+                <p
+                  className={cn(
+                    "mt-0.5 flex items-start gap-1 leading-snug text-primary",
+                    metaText,
+                  )}
+                >
+                  <Sparkles className={cn("mt-px shrink-0", iconSm)} />
                   <span className="line-clamp-2">{reasons[0]}</span>
                 </p>
               )}
             </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <ChevronRight
+              className={cn(
+                "shrink-0 text-muted-foreground",
+                comfortable ? "h-4 w-4" : "h-4 w-4",
+              )}
+            />
           </button>
           {onJoin &&
             (joined ? (
-              <span className="shrink-0 text-[10px] text-muted-foreground">
+              <span
+                className={cn("shrink-0 text-muted-foreground", actionText)}
+              >
                 已加入
               </span>
             ) : full ? (
-              <span className="shrink-0 text-[10px] text-muted-foreground">
+              <span
+                className={cn("shrink-0 text-muted-foreground", actionText)}
+              >
                 已满
               </span>
             ) : (
@@ -77,7 +115,12 @@ const GroupCard = ({
                   e.stopPropagation();
                   onJoin();
                 }}
-                className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-[10px] font-medium text-primary-foreground active:scale-95"
+                className={cn(
+                  "shrink-0 rounded-full bg-primary font-medium text-primary-foreground active:scale-95",
+                  comfortable
+                    ? "px-3 py-1.5 text-xs"
+                    : "px-2.5 py-1 text-[10px]",
+                )}
               >
                 加入
               </button>
@@ -98,15 +141,30 @@ const GroupCard = ({
             className="-mt-8 h-12 w-12 border-2 border-card text-base shadow-soft"
           />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-semibold text-foreground">
+            <h3
+              className={cn(
+                "truncate font-semibold text-foreground",
+                comfortable ? "text-base" : "text-sm",
+              )}
+            >
               {group.name}
             </h3>
-            <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+            <p
+              className={cn(
+                "mt-0.5 line-clamp-1 text-muted-foreground",
+                comfortable ? "text-xs" : "text-[11px]",
+              )}
+            >
               {group.description}
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+            <div
+              className={cn(
+                "mt-1 flex flex-wrap items-center gap-1.5 text-muted-foreground",
+                comfortable ? "text-xs" : "text-[10px]",
+              )}
+            >
               <span className="inline-flex items-center gap-0.5">
-                <Users className="h-3 w-3" />
+                <Users className={comfortable ? "h-3.5 w-3.5" : "h-3 w-3"} />
                 {memberLabel}
               </span>
               {tags.map((t) => (
@@ -119,8 +177,18 @@ const GroupCard = ({
               ))}
             </div>
             {reasons?.[0] && (
-              <p className="mt-1 flex items-start gap-1 text-[10px] leading-snug text-primary">
-                <Sparkles className="mt-px h-2.5 w-2.5 shrink-0" />
+              <p
+                className={cn(
+                  "mt-1 flex items-start gap-1 leading-snug text-primary",
+                  comfortable ? "text-xs" : "text-[10px]",
+                )}
+              >
+                <Sparkles
+                  className={cn(
+                    "mt-px shrink-0",
+                    comfortable ? "h-3 w-3" : "h-2.5 w-2.5",
+                  )}
+                />
                 <span className="line-clamp-2">{reasons[0]}</span>
               </p>
             )}
@@ -134,18 +202,31 @@ const GroupCard = ({
             e.stopPropagation();
             onJoin();
           }}
-          className="mx-2.5 mb-2.5 w-[calc(100%-1.25rem)] rounded-full bg-primary py-1.5 text-xs font-medium text-primary-foreground active:scale-[0.98]"
+          className={cn(
+            "mx-2.5 mb-2.5 w-[calc(100%-1.25rem)] rounded-full bg-primary font-medium text-primary-foreground active:scale-[0.98]",
+            comfortable ? "py-2 text-sm" : "py-1.5 text-xs",
+          )}
         >
           加入小组
         </button>
       )}
       {onJoin && joined && (
-        <p className="mb-2 text-center text-[10px] font-medium text-muted-foreground">
+        <p
+          className={cn(
+            "mb-2 text-center font-medium text-muted-foreground",
+            comfortable ? "text-xs" : "text-[10px]",
+          )}
+        >
           已加入
         </p>
       )}
       {onJoin && !joined && full && (
-        <p className="mb-2 text-center text-[10px] font-medium text-muted-foreground">
+        <p
+          className={cn(
+            "mb-2 text-center font-medium text-muted-foreground",
+            comfortable ? "text-xs" : "text-[10px]",
+          )}
+        >
           已满员
         </p>
       )}

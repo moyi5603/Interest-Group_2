@@ -15,7 +15,7 @@ const InterestTagPill = ({
 }: Props) => (
   <span
     className={cn(
-      "inline-flex items-center gap-0.5 rounded-md border px-2.5 py-1.5 text-xs",
+      "inline-flex items-center gap-0.5 rounded-md border px-2.5 py-1.5 text-sm",
       selected
         ? "border-primary/25 bg-primary/8 text-foreground"
         : "border-border bg-secondary/50 text-foreground",

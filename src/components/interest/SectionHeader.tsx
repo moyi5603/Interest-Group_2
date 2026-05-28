@@ -12,13 +12,25 @@ type Props = {
   subtitle?: string;
   action?: Action;
   secondaryAction?: Action;
+  /** 首页等场景用稍大字号 */
+  size?: "default" | "comfortable";
 };
 
-const HeaderAction = ({ action }: { action: Action }) => (
+const HeaderAction = ({
+  action,
+  size,
+}: {
+  action: Action;
+  size: "default" | "comfortable";
+}) => (
   <button
     type="button"
     onClick={action.onClick}
-    className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground transition-base active:scale-95 active:text-foreground"
+    className={
+      size === "comfortable"
+        ? "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-base active:scale-95 active:text-foreground"
+        : "inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground transition-base active:scale-95 active:text-foreground"
+    }
   >
     {action.icon}
     {action.label}
@@ -26,19 +38,41 @@ const HeaderAction = ({ action }: { action: Action }) => (
   </button>
 );
 
-const SectionHeader = ({ title, subtitle, action, secondaryAction }: Props) => (
+const SectionHeader = ({
+  title,
+  subtitle,
+  action,
+  secondaryAction,
+  size = "comfortable",
+}: Props) => (
   <div className={subtitle ? "mb-2" : "mb-1.5"}>
     <div className="flex items-center justify-between gap-2">
-      <h2 className="text-xs font-semibold text-foreground">{title}</h2>
+      <h2
+        className={
+          size === "comfortable"
+            ? "text-sm font-semibold text-foreground"
+            : "text-xs font-semibold text-foreground"
+        }
+      >
+        {title}
+      </h2>
       {(secondaryAction || action) && (
         <div className="flex shrink-0 items-center gap-2.5">
-          {secondaryAction && <HeaderAction action={secondaryAction} />}
-          {action && <HeaderAction action={action} />}
+          {secondaryAction && (
+            <HeaderAction action={secondaryAction} size={size} />
+          )}
+          {action && <HeaderAction action={action} size={size} />}
         </div>
       )}
     </div>
     {subtitle && (
-      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+      <p
+        className={
+          size === "comfortable"
+            ? "mt-1 text-xs leading-relaxed text-muted-foreground"
+            : "mt-1 text-[11px] leading-relaxed text-muted-foreground"
+        }
+      >
         {subtitle}
       </p>
     )}

@@ -10,11 +10,13 @@ import {
   CURRENT_EMPLOYEE_ID,
   joinGroup,
 } from "@/data/interestGroups";
+import { cn } from "@/lib/utils";
 import { filterDiscoverGroups } from "@/lib/interestDiscover";
 import {
   getRecommendSummary,
   recommendGroups,
 } from "@/lib/interestRecommend";
+import { interestTypography as t } from "@/components/interest/interestTypography";
 import { toast } from "@/components/ui/sonner";
 
 const RECOMMEND_BATCH_SIZE = 10;
@@ -74,10 +76,8 @@ const InterestGroupDiscover = () => {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1 text-center">
-            <h1 className="text-base font-semibold">加入小组</h1>
-            <p className="text-[10px] text-muted-foreground">
-              AI 智能推荐 · 按兴趣匹配
-            </p>
+            <h1 className={t.pageTitle}>加入小组</h1>
+            <p className={t.pageSubtitle}>AI 智能推荐 · 按兴趣匹配</p>
           </div>
           <div className="w-9" />
         </div>
@@ -100,8 +100,8 @@ const InterestGroupDiscover = () => {
               未找到相关小组
             </p>
           ) : (
-            <div className="space-y-1.5 pb-4">
-              <p className="px-0.5 text-xs font-medium text-muted-foreground">
+            <div className="space-y-2 pb-4">
+              <p className={cn("px-0.5", t.sectionHint)}>
                 搜索结果 · {searchResults.length} 个
               </p>
               {searchResults.map((g) => (
@@ -120,22 +120,22 @@ const InterestGroupDiscover = () => {
             暂无推荐小组
           </p>
         ) : (
-          <InterestSection variant="ai" className="mb-4">
+          <InterestSection variant="ai" className="mb-4 p-2.5">
             <SectionHeader
               title={
-                <span className="inline-flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span className="inline-flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-primary" />
                   AI 为你推荐
                 </span>
               }
               subtitle={recommendSummary}
               secondaryAction={{
                 label: "换一批",
-                icon: <RefreshCw className="h-3 w-3" />,
+                icon: <RefreshCw className="h-3.5 w-3.5" />,
                 onClick: () => setRecommendOffset((n) => n + 1),
               }}
             />
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {recommended.map(({ group, reasons }) => (
                 <li key={group.id}>
                   <GroupCard

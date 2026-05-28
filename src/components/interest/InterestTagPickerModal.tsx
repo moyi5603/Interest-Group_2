@@ -125,7 +125,7 @@ const InterestTagPickerModal = ({
       disabled={isDisabled(name)}
       onClick={() => togglePending(name)}
       className={cn(
-        "rounded-md border px-3.5 py-1.5 text-xs transition-colors",
+        "rounded-md border px-3.5 py-1.5 text-sm transition-colors",
         isSelected(name)
           ? "border-primary bg-primary/10 font-medium text-primary"
           : "border-border bg-secondary/40 text-foreground",
@@ -170,14 +170,14 @@ const InterestTagPickerModal = ({
 
         <div className="border-b border-border px-4 py-3">
           <div className="mb-3 flex items-start gap-2">
-            <span className="shrink-0 pt-1.5 text-xs text-muted-foreground">
+            <span className="shrink-0 pt-1.5 text-sm text-muted-foreground">
               已选择
             </span>
             <div className="flex min-h-7 min-w-0 flex-1 flex-wrap gap-1.5">
               {pendingNames.map((name) => (
                 <span
                   key={name}
-                  className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary"
+                  className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-2 py-0.5 text-sm text-primary"
                 >
                   {name}
                   <button
@@ -193,14 +193,14 @@ const InterestTagPickerModal = ({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {maxCount !== undefined && (
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {totalCount}/{maxCount}
                 </span>
               )}
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground active:scale-95"
+                className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground active:scale-95"
               >
                 确定
               </button>
@@ -217,7 +217,7 @@ const InterestTagPickerModal = ({
         </div>
 
         {atLimit && (
-          <p className="px-4 pt-2 text-xs text-amber-600">
+          <p className="px-4 pt-2 text-sm text-amber-600">
             已达上限 {maxCount} 项，请删除部分后再添加。
           </p>
         )}
@@ -233,7 +233,7 @@ const InterestTagPickerModal = ({
                     setQuery("");
                   }}
                   className={cn(
-                    "block w-full border-l-[3px] px-3 py-2.5 text-left text-xs transition-colors",
+                    "block w-full border-l-[3px] px-3 py-2.5 text-left text-sm transition-colors",
                     cat.id === activeCategoryId
                       ? "border-l-primary bg-background font-medium text-primary"
                       : "border-l-transparent text-muted-foreground",
@@ -248,12 +248,12 @@ const InterestTagPickerModal = ({
           <div className="min-w-0 flex-1 overflow-y-auto px-3 py-3 scrollbar-hide">
             {searchResults ? (
               searchResults.length === 0 ? (
-                <p className="py-8 text-center text-xs text-muted-foreground">
+                <p className="py-8 text-center text-sm text-muted-foreground">
                   未找到匹配项
                 </p>
               ) : (
                 <div>
-                  <p className="mb-2 text-xs font-semibold text-foreground">
+                  <p className="mb-2 text-sm font-semibold text-foreground">
                     搜索结果
                   </p>
                   <div className="flex flex-wrap gap-2">{searchResults.map(renderTag)}</div>
@@ -262,7 +262,7 @@ const InterestTagPickerModal = ({
             ) : (
               activeCategory.groups.map((group) => (
                 <div key={group.title} className="mb-4 last:mb-0">
-                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-foreground">
+                  <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
                     <span className="h-3.5 w-0.5 rounded-full bg-primary" />
                     {group.title}
                   </p>

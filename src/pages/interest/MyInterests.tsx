@@ -14,10 +14,11 @@ import {
 import { CURRENT_EMPLOYEE_ID } from "@/data/interestGroups";
 import { resolveTagIdsFromNames } from "@/lib/interestTagResolve";
 import { getSuggestedTags } from "@/lib/interestTagSuggest";
+import { interestTypography as t } from "@/components/interest/interestTypography";
 import { cn } from "@/lib/utils";
 
 const tagChipClass =
-  "rounded-md border border-border bg-secondary/50 px-2.5 py-1.5 text-xs text-foreground transition-base active:scale-[0.98]";
+  "rounded-md border border-border bg-secondary/50 px-2.5 py-1.5 text-sm text-foreground transition-base active:scale-[0.98]";
 
 const MyInterests = () => {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ const MyInterests = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-sm font-semibold">我的兴趣</h1>
+        <h1 className={t.pageTitle}>我的兴趣</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto scrollbar-hide">
@@ -70,7 +71,7 @@ const MyInterests = () => {
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground active:scale-95"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground active:scale-95"
             >
               <Plus className="h-3.5 w-3.5" />
               添加兴趣
@@ -86,7 +87,7 @@ const MyInterests = () => {
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-muted-foreground">
                 <Plus className="h-5 w-5" />
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 点击添加你的兴趣标签
               </span>
             </button>
@@ -109,7 +110,7 @@ const MyInterests = () => {
 
         {suggested.length > 0 && (
           <section className="border-t border-border/50 px-3 py-4">
-            <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               AI 建议补充
             </p>
@@ -139,7 +140,7 @@ const MyInterests = () => {
                       dismissSuggestedTag(t.id);
                       refresh();
                     }}
-                    className="border-l border-primary/15 px-2 text-xs text-muted-foreground active:bg-secondary/60"
+                    className="border-l border-primary/15 px-2 text-sm text-muted-foreground active:bg-secondary/60"
                   >
                     ×
                   </button>

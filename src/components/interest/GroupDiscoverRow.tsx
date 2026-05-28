@@ -38,37 +38,37 @@ const GroupDiscoverRow = ({ group, onOpen, onJoin, joined }: Props) => {
             {group.name}
           </h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-0.5 rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+            <span className="inline-flex items-center gap-0.5 rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
               <Users className="h-3 w-3" />
               {group.memberCount}
             </span>
             {categoryLabel && (
-              <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              <span className="rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
                 {categoryLabel}
               </span>
             )}
             {tags.slice(0, 2).map((t) => (
               <span
                 key={t.id}
-                className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                className="rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground"
               >
                 {t.name}
               </span>
             ))}
           </div>
           {group.description && (
-            <p className="mt-1.5 line-clamp-1 text-xs text-muted-foreground">
+            <p className="mt-1.5 line-clamp-1 text-sm text-muted-foreground">
               {group.description}
             </p>
           )}
         </div>
       </button>
       {isJoined ? (
-        <span className="shrink-0 rounded-full border border-border px-4 py-1.5 text-xs text-muted-foreground">
+        <span className="shrink-0 rounded-full border border-border px-4 py-1.5 text-sm text-muted-foreground">
           已加入
         </span>
       ) : full ? (
-        <span className="shrink-0 rounded-full border border-border px-4 py-1.5 text-xs text-muted-foreground">
+        <span className="shrink-0 rounded-full border border-border px-4 py-1.5 text-sm text-muted-foreground">
           已满
         </span>
       ) : (
@@ -76,7 +76,7 @@ const GroupDiscoverRow = ({ group, onOpen, onJoin, joined }: Props) => {
           type="button"
           onClick={onJoin}
           className={cn(
-            "shrink-0 rounded-full border border-foreground/20 px-4 py-1.5 text-xs font-medium text-foreground",
+            "shrink-0 rounded-full border border-foreground/20 px-4 py-1.5 text-sm font-medium text-foreground",
             "active:scale-95",
           )}
         >

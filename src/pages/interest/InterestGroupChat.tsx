@@ -6,6 +6,7 @@ import ActivityCard from "@/components/interest/ActivityCard";
 import GroupCard from "@/components/interest/GroupCard";
 import ChatInputBar from "@/components/agent/ChatInputBar";
 import InterestTopicPanel from "@/components/interest/InterestTopicPanel";
+import { interestTypography as t } from "@/components/interest/interestTypography";
 import { buildReply, parseIntent } from "@/lib/interestAgent";
 import type { AgentReply } from "@/lib/interestAgent";
 
@@ -56,8 +57,8 @@ const InterestGroupChat = () => {
             <Sparkles className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-sm font-semibold">兴趣小组助手</h1>
-            <p className="text-[10px] text-muted-foreground">AI 对话 · 推荐与查询</p>
+            <h1 className={t.pageTitle}>兴趣小组助手</h1>
+            <p className={t.pageSubtitle}>AI 对话 · 推荐与查询</p>
           </div>
         </div>
       </header>
@@ -71,8 +72,8 @@ const InterestGroupChat = () => {
             }`}
           >
             {m.role === "assistant" && (
-              <span className="mb-0.5 flex items-center gap-1 px-1 text-[9px] font-medium text-primary">
-                <Sparkles className="h-2.5 w-2.5" />
+              <span className="mb-0.5 flex items-center gap-1 px-1 text-sm font-medium text-primary">
+                <Sparkles className="h-3 w-3" />
                 AI 助手
               </span>
             )}
@@ -140,11 +141,11 @@ const InterestGroupChat = () => {
       </main>
 
       <footer className="shrink-0 border-t border-primary/10 bg-gradient-to-t from-primary/[0.06] to-background/98 shadow-tab backdrop-blur-lg">
-        <div className="px-3 py-1.5">
+        <div className="px-3 py-2">
           <InterestTopicPanel
             compact
             onSelect={send}
-            className="rounded-xl border border-primary/10 bg-card/80 px-2 py-1.5"
+            className="rounded-xl border border-primary/10 bg-card/80 px-2.5 py-2"
           />
         </div>
         <ChatInputBar placeholder="输入问题…" onSubmit={send} />

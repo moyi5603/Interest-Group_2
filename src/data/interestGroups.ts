@@ -1335,6 +1335,7 @@ export const isEnrolledInOccurrence = (
       e.status === "enrolled",
   );
 
+/** 报名不要求先加入小组（见设计文档 §7.10） */
 export const enrollActivity = (
   activityId: string,
   employeeId: string,
@@ -1529,6 +1530,29 @@ export const cancelAllEnrollments = (
   activityId: string,
   employeeId: string,
 ) => cancelEnrollment(activityId, employeeId);
+
+/** 普通成员退出小组（组长请使用解散） */
+export const leaveGroup = (groupId: string, employeeId: string): boolean => {
+  if (!isMember(groupId, employeeId) || isGroupOwner(groupId, employeeId)) {
+    return false;
+  }
+  const group = getGroupById(groupId);
+  if (!group || group.status !== "active") return false;
+
+  groupMemberships = groupMemberships.filter(
+    (m) => !(m.groupId === groupId && m.employeeId === employeeId),
+  );
+  interestGroups = interestGroups.map((g) =>
+    g.id === groupId
+      ? { ...g, memberCount: Math.max(0, g.memberCount - 1) }
+      : g,
+  );
+
+  for (const activity of activities.filter((a) => a.groupId === groupId)) {
+    cancelAllEnrollments(activity.id, employeeId);
+  }
+  return true;
+};
 
 /** 周期 / 系列活动是否仍可被创建人终止 */
 export const canTerminateActivity = (activityId: string): boolean => {

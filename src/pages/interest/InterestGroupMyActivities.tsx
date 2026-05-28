@@ -15,6 +15,7 @@ import {
   getActivityScheduleLabel,
   getEnrolledOccurrenceScheduleLabel,
 } from "@/lib/interestOccurrences";
+import { interestTypography as t } from "@/components/interest/interestTypography";
 import { cn } from "@/lib/utils";
 
 type RoleTab = "organized" | "participated";
@@ -159,7 +160,7 @@ const InterestGroupMyActivities = () => {
               type="button"
               onClick={() => setRoleTab(key)}
               className={cn(
-                "flex-1 rounded-md py-2 text-xs font-medium transition-colors",
+                "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
                 roleTab === key
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground",
@@ -177,7 +178,7 @@ const InterestGroupMyActivities = () => {
               type="button"
               onClick={() => setPhaseTab(t)}
               className={cn(
-                "shrink-0 pb-2 text-xs font-medium",
+                "shrink-0 pb-2 text-sm font-medium",
                 phaseTab === t
                   ? "border-b-2 border-primary text-foreground"
                   : "text-muted-foreground",

@@ -27,11 +27,7 @@ import {
   joinGroup,
 } from "@/data/interestGroups";
 import { getProfileTagIds } from "@/data/interestProfileStore";
-import {
-  getRecommendSummary,
-  getRecentActivities,
-  recommendGroups,
-} from "@/lib/interestRecommend";
+import { getRecentActivities, recommendGroups } from "@/lib/interestRecommend";
 import { toast } from "@/components/ui/sonner";
 
 const DISCOVER_PATH = "/agents/interest-groups/discover";
@@ -53,7 +49,7 @@ const shortcuts = [
 
 const viewMore = (navigate: ReturnType<typeof useNavigate>, section: InterestListSection) => ({
   label: "查看更多",
-  trailingIcon: <ChevronRight className="h-3 w-3" />,
+  trailingIcon: <ChevronRight className="h-3.5 w-3.5" />,
   onClick: () => navigate(`/agents/interest-groups/list/${section}`),
 });
 
@@ -66,16 +62,10 @@ const InterestGroupHome = () => {
     () => recommendGroups(CURRENT_EMPLOYEE_ID, 3, recommendOffset),
     [recommendOffset],
   );
-  const recommendSummary = useMemo(
-    () => getRecommendSummary(CURRENT_EMPLOYEE_ID, recommended.length),
-    [recommended.length],
-  );
-  const heroHint = useMemo(() => {
-    if (tagCount < 2) {
-      return "完善兴趣标签后，AI 能更懂你的喜好并推荐合适的小组与活动。";
-    }
-    return recommendSummary;
-  }, [tagCount, recommendSummary]);
+  const heroHint =
+    tagCount < 2
+      ? "完善兴趣标签后，AI 能更懂你的喜好并推荐合适的小组与活动。"
+      : undefined;
   const myGroups = useMemo(() => getJoinedGroups(CURRENT_EMPLOYEE_ID), []);
   const myGroupsPreview = useMemo(() => {
     if (myGroups.length <= 2) return myGroups;
@@ -115,8 +105,8 @@ const InterestGroupHome = () => {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-sm font-semibold text-foreground">兴趣小组</h1>
-            <p className="text-[10px] text-muted-foreground">
+            <h1 className="text-base font-semibold text-foreground">兴趣小组</h1>
+            <p className="text-xs text-muted-foreground">
               AI 推荐 · 活动发现 · 智能对话
             </p>
           </div>
@@ -132,20 +122,20 @@ const InterestGroupHome = () => {
           <button
             type="button"
             onClick={() => navigate("/profile/interests")}
-            className="flex w-full items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-2.5 py-2 text-left transition-base active:scale-[0.99]"
+            className="flex w-full items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-left transition-base active:scale-[0.99]"
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/15">
-              <Tag className="h-3.5 w-3.5 text-primary" />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15">
+              <Tag className="h-4 w-4 text-primary" />
             </span>
-            <span className="flex-1 text-[11px] leading-snug text-primary">
+            <span className="flex-1 text-sm leading-snug text-primary">
               完善兴趣标签，让 AI 推荐更精准
             </span>
-            <span className="text-[10px] text-primary/80">去设置 →</span>
+            <span className="text-xs text-primary/80">去设置 →</span>
           </button>
         )}
 
-        <InterestSection variant="hub">
-          <div className="grid grid-cols-3 gap-1">
+        <InterestSection variant="hub" className="p-2.5">
+          <div className="grid grid-cols-3 gap-1.5">
             {shortcuts.map((s) => {
               const Icon = s.icon;
               return (
@@ -153,12 +143,12 @@ const InterestGroupHome = () => {
                   key={s.label}
                   type="button"
                   onClick={() => navigate(s.to)}
-                  className="flex flex-col items-center gap-0.5 rounded-xl p-1 transition-base active:scale-95"
+                  className="flex flex-col items-center gap-1 rounded-xl p-1.5 transition-base active:scale-95"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary-glow/10 ring-1 ring-primary/10">
-                    <Icon className="h-3.5 w-3.5 text-primary" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary-glow/10 ring-1 ring-primary/10">
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
-                  <span className="text-center text-[8px] font-medium leading-tight text-foreground">
+                  <span className="text-center text-sm font-medium leading-tight text-foreground">
                     {s.label}
                   </span>
                 </button>
@@ -167,22 +157,22 @@ const InterestGroupHome = () => {
           </div>
         </InterestSection>
 
-        <InterestSection>
+        <InterestSection className="p-2.5">
           <SectionHeader
             title={
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays className="h-3 w-3 text-primary" />
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4 text-primary" />
                 近期活动
               </span>
             }
             action={viewMore(navigate, "recent")}
           />
           {recentActivities.length === 0 ? (
-            <p className="py-1 text-center text-[10px] text-muted-foreground">
+            <p className="py-1 text-center text-xs text-muted-foreground">
               暂无即将开始的活动
             </p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {recentActivities.map((item) => (
                 <li key={item.activity.id}>
                   <ActivityCard
@@ -198,22 +188,22 @@ const InterestGroupHome = () => {
           )}
         </InterestSection>
 
-        <InterestSection id="my-groups">
+        <InterestSection id="my-groups" className="p-2.5">
           <SectionHeader
             title={
-              <span className="inline-flex items-center gap-1">
-                <Users className="h-3 w-3 text-muted-foreground" />
+              <span className="inline-flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-muted-foreground" />
                 我的小组
               </span>
             }
             action={viewMore(navigate, "my-groups")}
           />
           {myGroups.length === 0 ? (
-            <p className="pb-1 text-[11px] text-muted-foreground">
+            <p className="pb-1 text-sm text-muted-foreground">
               还没有加入小组，可从下方 AI 推荐开始探索
             </p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {myGroupsPreview.map((g) => (
                 <li key={g.id}>
                   <GroupCard
@@ -227,31 +217,31 @@ const InterestGroupHome = () => {
           )}
         </InterestSection>
 
-        <InterestSection variant="ai">
+        <InterestSection variant="ai" className="p-2.5">
           <SectionHeader
             title={
-              <span className="inline-flex items-center gap-1">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span className="inline-flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-primary" />
                 AI 推荐
               </span>
             }
             secondaryAction={{
               label: "换一批",
-              icon: <RefreshCw className="h-3 w-3" />,
+              icon: <RefreshCw className="h-3.5 w-3.5" />,
               onClick: () => setRecommendOffset((n) => n + 1),
             }}
             action={{
               label: "查看更多",
-              trailingIcon: <ChevronRight className="h-3 w-3" />,
+              trailingIcon: <ChevronRight className="h-3.5 w-3.5" />,
               onClick: () => navigate(DISCOVER_PATH),
             }}
           />
           {recommended.length === 0 ? (
-            <p className="pb-1 text-[11px] text-muted-foreground">
+            <p className="pb-1 text-sm text-muted-foreground">
               暂无推荐，可先完善兴趣标签
             </p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {recommended.map(({ group, reasons }) => (
                 <li key={group.id}>
                   <GroupCard
@@ -280,19 +270,19 @@ const InterestGroupHome = () => {
             <Sparkles className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold text-foreground">
+            <p className="text-sm font-semibold text-foreground">
               兴趣小组助手
             </p>
-            <p className="text-[9px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               推荐小组、查询活动、解答参与问题
             </p>
           </div>
         </div>
-        <div className="px-3 py-1.5">
+        <div className="px-3 py-2">
           <InterestTopicPanel
             compact
             onSelect={goChat}
-            className="rounded-xl border border-primary/10 bg-card/80 px-2 py-1.5"
+            className="rounded-xl border border-primary/10 bg-card/80 px-2.5 py-2"
           />
         </div>
         <ChatInputBar

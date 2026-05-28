@@ -12,6 +12,7 @@ import {
   updateGroup,
 } from "@/data/interestGroups";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
+import { interestTypography as t } from "@/components/interest/interestTypography";
 import { toast } from "@/components/ui/sonner";
 
 const GroupEdit = () => {
@@ -76,7 +77,7 @@ const GroupEdit = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-semibold">编辑小组</h1>
+        <h1 className={t.pageTitle}>编辑小组</h1>
       </header>
 
       <main className="flex-1 space-y-4 overflow-y-auto px-3 pb-24 scrollbar-hide">
@@ -88,7 +89,7 @@ const GroupEdit = () => {
         />
 
         <label className="block space-y-1">
-          <span className="text-xs font-medium text-foreground">小组名称</span>
+          <span className={t.formLabel}>小组名称</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -98,7 +99,7 @@ const GroupEdit = () => {
         </label>
 
         <label className="block space-y-1">
-          <span className="text-xs font-medium text-foreground">简介</span>
+          <span className={t.formLabel}>简介</span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -109,7 +110,7 @@ const GroupEdit = () => {
         </label>
 
         <div className="space-y-2">
-          <span className="text-xs font-medium text-foreground">兴趣标签</span>
+          <span className={t.formLabel}>兴趣标签</span>
           {tagIds.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {getTagsByIds(tagIds).map((t) => (
@@ -117,7 +118,7 @@ const GroupEdit = () => {
                   key={t.id}
                   type="button"
                   onClick={() => toggleTag(t.id)}
-                  className="rounded-full bg-primary px-3 py-1.5 text-xs text-primary-foreground"
+                  className="rounded-full bg-primary px-3 py-1.5 text-sm text-primary-foreground"
                 >
                   {t.name} ×
                 </button>

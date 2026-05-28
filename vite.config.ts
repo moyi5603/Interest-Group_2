@@ -2,9 +2,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-// Production builds target https://moyi5603.github.io/humanistic-care/
+// Production builds target https://moyi5603.github.io/Interest-Group/
 export default defineConfig(({ mode }) => ({
-  base: mode === "production" ? "/humanistic-care/" : "/",
+  base: mode === "production" ? "/Interest-Group/" : "/",
   server: {
     // host: true 在部分 macOS 上会触发 uv_interface_addresses 错误，导致 dev 起不来
     host: "127.0.0.1",

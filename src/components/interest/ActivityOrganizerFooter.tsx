@@ -91,7 +91,7 @@ const ActivityOrganizerFooter = ({
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>确认终止「{activity.title}」？此操作不可撤销。</p>
-                <ul className="list-inside list-disc space-y-1 text-xs">
+                <ul className="list-inside list-disc space-y-1 text-sm">
                   <li>活动将从小组列表下架，不再接受新报名</li>
                   <li>所有未举办的场次将标记为已取消</li>
                   <li>

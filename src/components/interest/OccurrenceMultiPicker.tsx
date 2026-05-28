@@ -82,21 +82,21 @@ const OccurrenceMultiPicker = ({
         )}
       >
         {activity.activityKind === "series" && row.seriesIndex != null && (
-          <span className="mb-0.5 text-[9px] font-medium leading-none text-primary">
+          <span className="mb-0.5 text-sm font-medium leading-none text-primary">
             第{row.seriesIndex + 1}场
           </span>
         )}
-        <span className="text-xs font-semibold leading-tight text-foreground">
+        <span className="text-sm font-semibold leading-tight text-foreground">
           {formatPickerSlotDateLine(row.occurrence.startAt)}
         </span>
-        <span className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+        <span className="mt-0.5 text-sm leading-tight text-muted-foreground">
           {formatPickerSlotTimeLine(
             row.occurrence.startAt,
             row.occurrence.endAt,
           )}
         </span>
         {isFull && (
-          <span className="absolute right-1 top-1 rounded bg-muted px-1 py-px text-[9px] text-muted-foreground">
+          <span className="absolute right-1 top-1 rounded bg-muted px-1 py-px text-xs text-muted-foreground">
             满
           </span>
         )}
@@ -119,20 +119,20 @@ const OccurrenceMultiPicker = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <p className="shrink-0 text-xs text-muted-foreground">
+      <p className="shrink-0 text-sm text-muted-foreground">
         展示最近 {ENROLLMENT_PICKER_SESSION_LIMIT} 场，可多选
       </p>
 
       {enrolled.length > 0 && (
         <div className="mt-3 shrink-0">
-          <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+          <p className="mb-1.5 text-sm font-medium text-muted-foreground">
             已报名
           </p>
           <div className="flex flex-wrap gap-1.5">
             {enrolled.map((row) => (
               <span
                 key={row.occurrence.id}
-                className="rounded-full bg-secondary px-2.5 py-1 text-[11px] text-foreground"
+                className="rounded-full bg-secondary px-2.5 py-1 text-sm text-foreground"
               >
                 {activity.activityKind === "series" &&
                 row.seriesIndex != null
@@ -152,7 +152,7 @@ const OccurrenceMultiPicker = ({
               ? `已选 ${selectedCount} 场`
               : `可选 ${selectable.length} 场`}
           </span>
-          <div className="flex gap-2 text-xs">
+          <div className="flex gap-2 text-sm">
             <button
               type="button"
               onClick={selectAll}
@@ -176,7 +176,7 @@ const OccurrenceMultiPicker = ({
       <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1">
         {groupedSelectable.map(([month, monthRows]) => (
           <section key={month} className="mb-4 last:mb-0">
-            <p className="sticky top-0 z-[1] mb-2 bg-background py-0.5 text-xs font-medium text-muted-foreground">
+            <p className="sticky top-0 z-[1] mb-2 bg-background py-0.5 text-sm font-medium text-muted-foreground">
               {month}
             </p>
             <div className="grid grid-cols-4 gap-1">
@@ -187,7 +187,7 @@ const OccurrenceMultiPicker = ({
 
         {full.length > 0 && (
           <section className="mb-4">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
+            <p className="mb-2 text-sm font-medium text-muted-foreground">
               名额已满
             </p>
             <div className="grid grid-cols-4 gap-1">{full.map(renderSlotButton)}</div>
@@ -202,7 +202,7 @@ const OccurrenceMultiPicker = ({
       </div>
 
       {beyondCount > 0 && (
-        <p className="mt-2 shrink-0 text-center text-[11px] text-muted-foreground">
+        <p className="mt-2 shrink-0 text-center text-sm text-muted-foreground">
           更晚场次暂不显示
         </p>
       )}

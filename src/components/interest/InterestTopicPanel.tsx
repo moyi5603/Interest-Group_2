@@ -11,6 +11,8 @@ const topicGroups = [
 type Props = {
   onSelect: (text: string) => void;
   compact?: boolean;
+  /** 紧凑模式稍大字号（首页底部等） */
+  comfortable?: boolean;
   /** 固定话题列表；不传则轮换默认三组 */
   topics?: string[];
   hideRefresh?: boolean;
@@ -20,6 +22,7 @@ type Props = {
 const InterestTopicPanel = ({
   onSelect,
   compact,
+  comfortable = true,
   topics: topicsProp,
   hideRefresh,
   className,
@@ -37,17 +40,25 @@ const InterestTopicPanel = ({
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1 text-[10px] font-medium text-primary">
-          <Sparkles className="h-3 w-3" />
+        <span
+          className={cn(
+            "flex items-center gap-1 font-medium text-primary",
+            comfortable ? "text-xs" : "text-[10px]",
+          )}
+        >
+          <Sparkles className={comfortable ? "h-3.5 w-3.5" : "h-3 w-3"} />
           试试这样问
         </span>
         {!hideRefresh && !topicsProp && (
           <button
             type="button"
             onClick={() => setIdx((i) => i + 1)}
-            className="flex items-center gap-0.5 text-[10px] text-muted-foreground"
+            className={cn(
+              "flex items-center gap-0.5 text-muted-foreground",
+              comfortable ? "text-xs" : "text-[10px]",
+            )}
           >
-            <RefreshCw className="h-2.5 w-2.5" />
+            <RefreshCw className={comfortable ? "h-3 w-3" : "h-2.5 w-2.5"} />
             换一批
           </button>
         )}
@@ -58,7 +69,12 @@ const InterestTopicPanel = ({
             key={t}
             type="button"
             onClick={() => onSelect(t)}
-            className="shrink-0 rounded-full border border-border/70 bg-secondary/50 px-2.5 py-1 text-[10px] text-foreground active:scale-95"
+            className={cn(
+              "shrink-0 rounded-full border border-border/70 bg-secondary/50 text-foreground active:scale-95",
+              comfortable
+                ? "px-3 py-1.5 text-xs"
+                : "px-2.5 py-1 text-[10px]",
+            )}
           >
             {t}
           </button>

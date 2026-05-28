@@ -18,6 +18,7 @@ import {
   type RecentActivityDateFilter,
 } from "@/lib/interestRecommend";
 import type { InterestListSection } from "@/data/interestTypes";
+import { interestTypography as t } from "@/components/interest/interestTypography";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
 
@@ -106,7 +107,7 @@ const InterestGroupSectionList = () => {
     switch (section) {
       case "recent": {
         return (
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {recentFiltered.map((item) => (
               <li key={item.activity.id}>
                 <ActivityCard
@@ -123,7 +124,7 @@ const InterestGroupSectionList = () => {
       }
       case "my-groups": {
         return (
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {myGroupsList.map((g) => (
               <li key={g.id}>
                 <GroupCard
@@ -139,7 +140,7 @@ const InterestGroupSectionList = () => {
       case "recommend": {
         const scored = recommendGroups(CURRENT_EMPLOYEE_ID, 20);
         return (
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {scored.map(({ group, reasons }) => (
               <li key={group.id}>
                 <GroupCard
@@ -198,7 +199,7 @@ const InterestGroupSectionList = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-sm font-semibold">{meta.title}</h1>
+          <h1 className={t.pageTitle}>{meta.title}</h1>
         </div>
 
         {section === "recent" && (
@@ -209,7 +210,7 @@ const InterestGroupSectionList = () => {
                 type="button"
                 onClick={() => setDateFilter(key)}
                 className={cn(
-                  "shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-base active:scale-95",
+                  "shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-base active:scale-95",
                   dateFilter === key
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary/70 text-muted-foreground",
@@ -229,7 +230,7 @@ const InterestGroupSectionList = () => {
                 type="button"
                 onClick={() => setMyGroupsTab(key)}
                 className={cn(
-                  "flex-1 rounded-md py-2 text-xs font-medium transition-colors",
+                  "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
                   myGroupsTab === key
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground",
@@ -244,13 +245,9 @@ const InterestGroupSectionList = () => {
 
       <main className="flex-1 overflow-y-auto px-3 py-2 scrollbar-hide">
         {isEmpty ? (
-          <p className="py-8 text-center text-xs text-muted-foreground">
-            {emptyMessage}
-          </p>
+          <p className={t.empty}>{emptyMessage}</p>
         ) : recentFilterEmpty ? (
-          <p className="py-8 text-center text-xs text-muted-foreground">
-            该时段暂无活动
-          </p>
+          <p className={t.empty}>该时段暂无活动</p>
         ) : (
           content
         )}

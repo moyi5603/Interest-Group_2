@@ -392,7 +392,7 @@ const ActivityDetail = () => {
               </p>
             )}
             {isOrganizer && !myEnrollments.length && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 你已作为组织者参与本活动
               </p>
             )}
@@ -414,7 +414,7 @@ const ActivityDetail = () => {
                         ? pickerOccurrences.findIndex((o) => o.id === occ.id)
                         : undefined;
                     return (
-                      <li key={occ.id} className="text-xs">
+                      <li key={occ.id} className="text-sm">
                         {formatOccurrenceLabel(occ, idx >= 0 ? idx : undefined)}
                       </li>
                     );
@@ -488,7 +488,7 @@ const ActivityDetail = () => {
             <div className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-border" />
             <SheetHeader className="shrink-0 space-y-1 px-4 text-left">
               <SheetTitle className="text-base">选择场次</SheetTitle>
-              <SheetDescription className="line-clamp-2 text-xs">
+              <SheetDescription className="line-clamp-2 text-sm">
                 {activity.title}
               </SheetDescription>
             </SheetHeader>
@@ -532,7 +532,7 @@ const ActivityDetail = () => {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>确认取消「{activity.title}」的报名？</p>
                 {enrolledOccs.length > 0 && (
-                  <ul className="space-y-0.5 text-xs text-foreground">
+                  <ul className="space-y-0.5 text-sm text-foreground">
                     {enrolledOccs.map((occ) => (
                       <li key={occ.id}>
                         ·{" "}

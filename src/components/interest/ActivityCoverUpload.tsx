@@ -43,7 +43,7 @@ const ActivityCoverUpload = ({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <span className="text-xs font-medium text-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       <div className="relative">
         <ActivityCover
           coverUrl={value}
@@ -52,7 +52,7 @@ const ActivityCoverUpload = ({
           {!value && (
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 text-muted-foreground">
               <ImagePlus className="h-8 w-8 opacity-60" />
-              <span className="text-xs">上传封面图</span>
+              <span className="text-sm">上传封面图</span>
             </div>
           )}
         </ActivityCover>
@@ -68,7 +68,7 @@ const ActivityCoverUpload = ({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="rounded-full bg-black/50 px-2.5 py-1 text-[10px] text-white active:scale-95"
+              className="rounded-full bg-black/50 px-2.5 py-1 text-xs text-white active:scale-95"
             >
               更换
             </button>
@@ -93,7 +93,7 @@ const ActivityCoverUpload = ({
           }}
         />
       </div>
-      <p className="text-[10px] text-muted-foreground">{hint}</p>
+      <p className="text-sm text-muted-foreground">{hint}</p>
     </div>
   );
 };

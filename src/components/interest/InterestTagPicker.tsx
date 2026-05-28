@@ -64,12 +64,12 @@ const InterestTagPicker = ({
         <button
           type="button"
           onClick={addCustom}
-          className="shrink-0 rounded-xl bg-secondary px-3 py-2 text-xs font-medium text-foreground active:scale-95"
+          className="shrink-0 rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-foreground active:scale-95"
         >
           添加
         </button>
       </div>
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         可从下方选择，或直接输入自定义内容（最多 6 字）
       </p>
 
@@ -85,7 +85,7 @@ const InterestTagPicker = ({
                   if (active && !allowDeselect) return;
                   onToggle(t.id);
                 }}
-                className={`rounded-full px-3 py-1.5 text-xs ${
+                className={`rounded-full px-3 py-1.5 text-sm ${
                   active
                     ? "bg-primary text-primary-foreground"
                     : "border border-border bg-card"
@@ -99,7 +99,7 @@ const InterestTagPicker = ({
       ) : (
         Object.entries(byCategory).map(([cat, tags]) => (
           <div key={cat}>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+            <p className="mb-1.5 text-sm font-medium text-muted-foreground">
               {cat}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -113,7 +113,7 @@ const InterestTagPicker = ({
                       if (active && !allowDeselect) return;
                       onToggle(t.id);
                     }}
-                    className={`rounded-full px-3 py-1.5 text-xs ${
+                    className={`rounded-full px-3 py-1.5 text-sm ${
                       active
                         ? "bg-primary text-primary-foreground"
                         : "border border-border bg-card"

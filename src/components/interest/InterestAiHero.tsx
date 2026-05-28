@@ -5,18 +5,18 @@ type Props = {
 };
 
 const InterestAiHero = ({ tagHint }: Props) => (
-  <div className="relative w-full overflow-hidden rounded-2xl p-3 text-primary-foreground shadow-glow gradient-banner">
-    <div className="relative z-10 flex items-start gap-2.5">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+  <div className="relative w-full overflow-hidden rounded-2xl p-3.5 text-primary-foreground shadow-glow gradient-banner">
+    <div className="relative z-10 flex items-start gap-3">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
         <Sparkles className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium opacity-90">兴趣小组 · AI 助手</p>
-        <h2 className="mt-0.5 text-sm font-bold leading-snug">
+        <p className="text-xs font-medium opacity-90">兴趣小组 · AI 助手</p>
+        <h2 className="mt-1 text-base font-bold leading-snug">
           智能推荐社群，发现适合你的活动
         </h2>
         {tagHint && (
-          <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed opacity-90">
+          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed opacity-90">
             {tagHint}
           </p>
         )}

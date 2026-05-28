@@ -6,6 +6,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import ActivityCard from "@/components/interest/ActivityCard";
 import GroupOrganizerFooter from "@/components/interest/GroupOrganizerFooter";
 import ReportBanner from "@/components/interest/ReportBanner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getTagsByIds } from "@/data/interestTags";
 import type { ActivityKind } from "@/data/interestTypes";
@@ -17,6 +27,7 @@ import {
   isGroupOwner,
   isMember,
   joinGroup,
+  leaveGroup,
   markGroupReported,
 } from "@/data/interestGroups";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
@@ -43,6 +54,7 @@ const GroupDetail = () => {
     kindTabValues,
   );
   const [version, setVersion] = useState(0);
+  const [leaveOpen, setLeaveOpen] = useState(false);
 
   const group = getGroupById(groupId || "");
   const visible = group && canViewGroup(group, CURRENT_EMPLOYEE_ID);
@@ -115,13 +127,13 @@ const GroupDetail = () => {
             {tags.map((t) => (
               <span
                 key={t.id}
-                className="rounded-full bg-secondary px-2 py-0.5 text-[11px]"
+                className="rounded-full bg-secondary px-2 py-0.5 text-sm"
               >
                 #{t.name}
               </span>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             {group.memberCount} 位成员
           </p>
           {!isArchived && !member ? (
@@ -159,6 +171,14 @@ const GroupDetail = () => {
             >
               发布活动
             </button>
+          ) : !isArchived && member ? (
+            <button
+              type="button"
+              onClick={() => setLeaveOpen(true)}
+              className="mt-3 w-full rounded-full border border-destructive/40 py-2.5 text-sm font-medium text-destructive active:scale-[0.99]"
+            >
+              退出小组
+            </button>
           ) : null}
         </section>
 
@@ -173,7 +193,7 @@ const GroupDetail = () => {
                 <TabsTrigger
                   key={f.key}
                   value={f.key}
-                  className="shrink-0 rounded-full border border-border px-3 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                  className="shrink-0 rounded-full border border-border px-3 py-1.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                 >
                   {f.label}
                 </TabsTrigger>
@@ -181,7 +201,7 @@ const GroupDetail = () => {
             </TabsList>
             <TabsContent value={kind} className="mt-3 space-y-2.5">
               {activities.length === 0 ? (
-                <p className="text-xs text-muted-foreground">暂无活动</p>
+                <p className="text-sm text-muted-foreground">暂无活动</p>
               ) : (
                 activities.map((a) => (
                   <ActivityCard
@@ -213,6 +233,34 @@ const GroupDetail = () => {
           />
         </footer>
       )}
+
+      <AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>退出小组</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              确认退出「{group.name}」？退出后将取消你在该小组活动中的报名。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction
+              onClick={() => {
+                if (!leaveGroup(group.id, CURRENT_EMPLOYEE_ID)) {
+                  toast.error("退出失败，请稍后重试");
+                  return;
+                }
+                setLeaveOpen(false);
+                toast.success("已退出小组");
+                goBack();
+              }}
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              确认退出
+            </AlertDialogAction>
+            <AlertDialogCancel className="mt-0 w-full">取消</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -23,16 +23,18 @@ node node_modules/vite/bin/vite.js
 
 ## GitHub Pages
 
-站点地址：<https://moyi5603.github.io/humanistic-care/>
+站点地址：<https://moyi5603.github.io/Interest-Group/>
 
-推送 `main` 分支后，GitHub Actions 会自动构建并部署。首次使用前请在仓库设置中启用 Pages：
+推送 `main` 分支后，GitHub Actions（`.github/workflows/deploy-pages.yml`）会自动构建并部署。首次使用前请在仓库设置中启用 Pages：
 
 1. 打开 **Settings → Pages**
 2. **Build and deployment → Source** 选择 **GitHub Actions**
 
-本地预览生产构建：
+本地预览生产构建（需带仓库子路径）：
 
 ```bash
 npm run build
 npm run preview
 ```
+
+浏览器访问预览地址时路径需包含 `/Interest-Group/`（与 `vite.config.ts` 中 `base` 一致）。
