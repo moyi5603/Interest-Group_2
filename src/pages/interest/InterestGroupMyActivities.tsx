@@ -22,8 +22,8 @@ type RoleTab = "organized" | "participated";
 type FilterTab = "全部" | "未开始" | "进行中" | "已结束" | "已终止";
 
 const roleTabs: { key: RoleTab; label: string }[] = [
-  { key: "organized", label: "我组织的" },
-  { key: "participated", label: "我参与的场次" },
+  { key: "organized", label: "我发布的" },
+  { key: "participated", label: "我报名的场次" },
 ];
 
 const phaseTabs: FilterTab[] = [
@@ -122,7 +122,7 @@ const InterestGroupMyActivities = () => {
   const emptyMessage =
     roleTab === "organized"
       ? phaseTab === "全部"
-        ? "还没有组织任何活动"
+        ? "还没有发布任何活动"
         : phaseTab === "已终止"
           ? "暂无已终止的活动"
           : "该状态下暂无活动"
@@ -198,10 +198,14 @@ const InterestGroupMyActivities = () => {
         ) : roleTab === "organized" ? (
           <ul className="space-y-2">
             {organizedItems.map(({ activity, occurrence, group }) => {
+              const allOccs = getOccurrencesByActivity(activity.id);
               const scheduleLabel = getActivityScheduleLabel(
                 activity,
                 occurrence,
-                getOccurrencesByActivity(activity.id),
+                allOccs,
+                {
+                  seriesSessionTotal: activity.activityKind === "series",
+                },
               );
 
               return (
@@ -230,11 +234,8 @@ const InterestGroupMyActivities = () => {
                 terminated,
                 enrollment,
               }) => {
-                const scheduleLabel = getEnrolledOccurrenceScheduleLabel(
-                  activity,
-                  occurrence,
-                  occurrenceIndex,
-                );
+                const scheduleLabel =
+                  getEnrolledOccurrenceScheduleLabel(occurrence);
                 return (
                   <li key={`${enrollment.id}:${occurrence.id}`}>
                     <ActivityCard
@@ -244,11 +245,14 @@ const InterestGroupMyActivities = () => {
                       title={`${group.name}：${activity.title}`}
                       scheduleLabel={scheduleLabel}
                       enrolled={!terminated}
-                      onOpen={() =>
+                      onOpen={() => {
+                        const params = new URLSearchParams({
+                          occurrenceId: occurrence.id,
+                        });
                         navigate(
-                          `/agents/interest-groups/activities/${activity.id}`,
-                        )
-                      }
+                          `/agents/interest-groups/activities/${activity.id}?${params}`,
+                        );
+                      }}
                     />
                   </li>
                 );

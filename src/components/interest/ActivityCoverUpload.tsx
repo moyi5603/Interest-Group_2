@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import ActivityCover from "@/components/interest/ActivityCover";
+import { interestTypography as t } from "@/components/interest/interestTypography";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
 
@@ -12,6 +13,7 @@ type Props = {
   className?: string;
   label?: string;
   hint?: string;
+  required?: boolean;
 };
 
 const ActivityCoverUpload = ({
@@ -19,7 +21,8 @@ const ActivityCoverUpload = ({
   onChange,
   className,
   label = "活动封面",
-  hint = "建议横图，与活动详情页顶部展示一致；不上传则使用默认背景",
+  hint,
+  required = false,
 }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,7 +46,14 @@ const ActivityCoverUpload = ({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className={t.formLabel}>
+        {required ? (
+          <span className={t.requiredMark} aria-hidden>
+            *
+          </span>
+        ) : null}
+        {label}
+      </span>
       <div className="relative">
         <ActivityCover
           coverUrl={value}
@@ -93,7 +103,9 @@ const ActivityCoverUpload = ({
           }}
         />
       </div>
-      <p className="text-sm text-muted-foreground">{hint}</p>
+      {hint ? (
+        <p className="text-sm text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 };

@@ -118,20 +118,22 @@ const ActivityCard = ({
               </p>
             )}
             {activity.location && (
-              <p
+              <div
                 className={cn(
-                  "mt-0.5 flex items-center gap-0.5 line-clamp-1 text-muted-foreground",
+                  "mt-0.5 flex min-w-0 items-center gap-1 text-muted-foreground",
                   metaText,
                 )}
               >
                 <MapPin
                   className={cn(
                     "shrink-0",
-                    comfortable ? "h-3 w-3" : "h-2.5 w-2.5",
+                    comfortable ? "h-3.5 w-3.5" : "h-3 w-3",
                   )}
                 />
-                <span className="truncate">{activity.location}</span>
-              </p>
+                <span className="min-w-0 flex-1 truncate">
+                  {activity.location}
+                </span>
+              </div>
             )}
           </div>
           {editable && phase !== "已结束" && !terminated && (
@@ -201,15 +203,22 @@ const ActivityCard = ({
             </p>
           )}
           {activity.location && (
-            <p
+            <div
               className={cn(
-                "flex items-center gap-1 text-muted-foreground",
+                "flex min-w-0 items-center gap-1 text-muted-foreground",
                 comfortable ? "text-xs" : "text-[11px]",
               )}
             >
-              <MapPin className={comfortable ? "h-3.5 w-3.5" : "h-3 w-3"} />
-              <span className="truncate">{activity.location}</span>
-            </p>
+              <MapPin
+                className={cn(
+                  "shrink-0",
+                  comfortable ? "h-3.5 w-3.5" : "h-3 w-3",
+                )}
+              />
+              <span className="min-w-0 flex-1 truncate">
+                {activity.location}
+              </span>
+            </div>
           )}
         </div>
       </button>

@@ -85,11 +85,15 @@ const GroupEdit = () => {
           value={coverUrl ?? resolveGroupCover(group)}
           onChange={setCoverUrl}
           label="小组封面"
-          hint="建议横图，与小组详情页顶部展示一致"
         />
 
         <label className="block space-y-1">
-          <span className={t.formLabel}>小组名称</span>
+          <span className={t.formLabel}>
+            <span className={t.requiredMark} aria-hidden>
+              *
+            </span>
+            小组名称
+          </span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -110,7 +114,7 @@ const GroupEdit = () => {
         </label>
 
         <div className="space-y-2">
-          <span className={t.formLabel}>兴趣标签</span>
+          <span className={t.formLabel}>标签</span>
           {tagIds.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {getTagsByIds(tagIds).map((t) => (

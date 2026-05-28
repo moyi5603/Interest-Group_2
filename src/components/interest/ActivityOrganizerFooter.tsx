@@ -38,9 +38,7 @@ const ActivityOrganizerFooter = ({
 
   const showTerminate =
     activity.status === "published" &&
-    canTerminateActivity(activity.id) &&
-    (activity.activityKind === "recurring" ||
-      activity.activityKind === "series");
+    canTerminateActivity(activity.id, organizerId);
 
   const enrollCount = countActivityEnrollments(activity.id);
 

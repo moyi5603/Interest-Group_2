@@ -4,9 +4,12 @@ import {
   INTEREST_TAG_CATALOG,
   type CatalogCategory,
 } from "@/data/interestTagCatalog";
-import { getTagsByIds } from "@/data/interestTags";
+import { getAllTags, getTagsByIds } from "@/data/interestTags";
 import { normalizeTagLabel } from "@/lib/interestTagResolve";
+import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+
+const MAX_CUSTOM_TAG_LEN = 6;
 
 type Props = {
   open: boolean;
@@ -56,18 +59,32 @@ const InterestTagPickerModal = ({
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return null;
+    const seen = new Set<string>();
     const items: string[] = [];
+    const push = (name: string) => {
+      const key = name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        items.push(name);
+      }
+    };
     for (const cat of catalog) {
       for (const group of cat.groups) {
         for (const name of group.items) {
-          if (name.toLowerCase().includes(q) && !items.includes(name)) {
-            items.push(name);
-          }
+          if (name.toLowerCase().includes(q)) push(name);
         }
       }
     }
+    for (const tag of getAllTags()) {
+      if (tag.name.toLowerCase().includes(q)) push(tag.name);
+    }
     return items;
   }, [query, catalog]);
+
+  const customFromQuery = useMemo(
+    () => normalizeTagLabel(query),
+    [query],
+  );
 
   const togglePending = (name: string) => {
     const key = name.toLowerCase();
@@ -82,9 +99,23 @@ const InterestTagPickerModal = ({
 
   const addCustom = (raw: string) => {
     const name = normalizeTagLabel(raw);
-    if (!name) return;
+    if (!name) {
+      toast.error("请输入标签内容");
+      return;
+    }
+    if (name.length > MAX_CUSTOM_TAG_LEN) {
+      toast.error(`自定义标签最多 ${MAX_CUSTOM_TAG_LEN} 个字`);
+      return;
+    }
     const key = name.toLowerCase();
-    if (existingLower.has(key) || pendingLower.has(key)) return;
+    if (existingLower.has(key)) {
+      toast.message("该标签已在你的兴趣列表中");
+      return;
+    }
+    if (pendingLower.has(key)) {
+      toast.message("该标签已在待选列表中");
+      return;
+    }
     if (atLimit) return;
     setPendingNames((prev) => [...prev, name]);
     setQuery("");
@@ -211,9 +242,12 @@ const InterestTagPickerModal = ({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="搜索标签"
+            placeholder="搜索或输入自定义标签"
             className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
           />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            搜不到时可添加自定义标签（最多 {MAX_CUSTOM_TAG_LEN} 个字）
+          </p>
         </div>
 
         {atLimit && (
@@ -248,9 +282,53 @@ const InterestTagPickerModal = ({
           <div className="min-w-0 flex-1 overflow-y-auto px-3 py-3 scrollbar-hide">
             {searchResults ? (
               searchResults.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  未找到匹配项
-                </p>
+                <div className="flex flex-col items-center py-8 text-center">
+                  {query.trim() ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        未找到「{query.trim()}」相关标签
+                      </p>
+                      {customFromQuery &&
+                      customFromQuery.length <= MAX_CUSTOM_TAG_LEN ? (
+                        !existingLower.has(customFromQuery.toLowerCase()) &&
+                        !pendingLower.has(customFromQuery.toLowerCase()) &&
+                        !atLimit ? (
+                          <button
+                            type="button"
+                            onClick={() => addCustom(query)}
+                            className="mt-4 rounded-full border border-primary bg-primary/10 px-4 py-2 text-sm font-medium text-primary active:scale-[0.98]"
+                          >
+                            添加自定义标签「{customFromQuery}」
+                          </button>
+                        ) : existingLower.has(
+                            customFromQuery.toLowerCase(),
+                          ) ? (
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            该标签已在你的兴趣列表中
+                          </p>
+                        ) : pendingLower.has(
+                            customFromQuery.toLowerCase(),
+                          ) ? (
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            该标签已在待选列表中
+                          </p>
+                        ) : null
+                      ) : customFromQuery.length > MAX_CUSTOM_TAG_LEN ? (
+                        <p className="mt-3 text-sm text-amber-600">
+                          自定义标签最多 {MAX_CUSTOM_TAG_LEN} 个字，请缩短后添加
+                        </p>
+                      ) : (
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          请输入有效标签名称
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      输入关键词搜索或添加自定义标签
+                    </p>
+                  )}
+                </div>
               ) : (
                 <div>
                   <p className="mb-2 text-sm font-semibold text-foreground">

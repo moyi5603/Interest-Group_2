@@ -128,17 +128,29 @@ const ActivityCreate = () => {
       toast.error("请填写活动标题");
       return;
     }
+    if (!description.trim()) {
+      toast.error("请填写活动介绍");
+      return;
+    }
+    if (!location.trim()) {
+      toast.error("请填写活动地点");
+      return;
+    }
+    const cap = Number(capacity);
+    if (!capacity.trim() || Number.isNaN(cap) || cap < 1) {
+      toast.error("请填写人数上限");
+      return;
+    }
     const id = `act-${Date.now()}`;
-    const cap = Number(capacity) || undefined;
     const base: GroupActivity = {
       id,
       groupId: group.id,
       organizerId: CURRENT_EMPLOYEE_ID,
       title: title.trim(),
-      description: description.trim() || "欢迎参加！",
+      description: description.trim(),
       coverUrl: coverUrl ?? DEFAULT_ACTIVITY_COVER,
       activityKind: kind,
-      location: location.trim() || undefined,
+      location: location.trim(),
       capacity: cap,
       status: "published",
       startAt:

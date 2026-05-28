@@ -57,6 +57,9 @@ export const formatMobileTime = (time: string | undefined) => {
 export const combineDateAndTime = (date: string, time: string) =>
   date && time ? `${date}T${time}` : "";
 
+/** 与活动表单等页面字段标题一致 */
+export const MOBILE_FIELD_LABEL_CLASS = "text-sm font-medium text-foreground";
+
 export const splitDatetimeLocal = (value: string) => {
   if (!value) return { date: "", time: "" };
   const [date, time = ""] = value.split("T");
@@ -929,7 +932,7 @@ export const MobileMonthDayField = ({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <span className="text-xs font-medium text-foreground">{label}</span>
+      <span className={MOBILE_FIELD_LABEL_CLASS}>{label}</span>
       <div className={PICKER_LIST_CLASS}>
         <CompactPickerRow
           label="日期"
@@ -973,7 +976,7 @@ export const MobileTimeRangeField = ({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <span className="text-xs font-medium text-foreground">{label}</span>
+      <span className={MOBILE_FIELD_LABEL_CLASS}>{label}</span>
       <div className={PICKER_LIST_CLASS}>
         <CompactPickerRow
           label="时段"
@@ -1037,7 +1040,7 @@ export const MobileDateTimeRangeField = ({
   return (
     <div className={cn(compact ? undefined : "space-y-1.5", className)}>
       {!compact && (
-        <span className="text-xs font-medium text-foreground">{label}</span>
+        <span className={MOBILE_FIELD_LABEL_CLASS}>{label}</span>
       )}
       <div className={PICKER_LIST_CLASS}>
         <CompactPickerRow

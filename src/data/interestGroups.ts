@@ -1304,6 +1304,18 @@ export const countActivityEnrollments = (activityId: string) =>
     (e) => e.activityId === activityId && e.status === "enrolled",
   ).length;
 
+/** 除组织者外是否已有他人报名（编辑时锁定场次信息） */
+export const hasOtherEnrollments = (
+  activityId: string,
+  organizerId: string,
+): boolean =>
+  enrollments.some(
+    (e) =>
+      e.activityId === activityId &&
+      e.status === "enrolled" &&
+      e.employeeId !== organizerId,
+  );
+
 export const ensureOccurrenceRecord = (occ: ActivityOccurrence) => {
   const existing = getOccurrenceById(occ.id);
   if (existing) return existing;
@@ -1554,14 +1566,23 @@ export const leaveGroup = (groupId: string, employeeId: string): boolean => {
   return true;
 };
 
-/** 周期 / 系列活动是否仍可被创建人终止 */
-export const canTerminateActivity = (activityId: string): boolean => {
+/** 创建人是否可在详情页终止活动（周期/系列；单次在已有他人报名时可终止） */
+export const canTerminateActivity = (
+  activityId: string,
+  organizerId?: string,
+): boolean => {
   const activity = getActivityById(activityId);
   if (!activity || activity.status !== "published") return false;
-  return (
+  if (
     activity.activityKind === "recurring" ||
     activity.activityKind === "series"
-  );
+  ) {
+    return true;
+  }
+  if (activity.activityKind === "one_off" && organizerId) {
+    return hasOtherEnrollments(activityId, organizerId);
+  }
+  return false;
 };
 
 /**
@@ -1573,14 +1594,8 @@ export const terminateActivity = (
 ): GroupActivity | undefined => {
   const activity = getActivityById(activityId);
   if (!activity || activity.organizerId !== organizerId) return undefined;
-  if (
-    activity.activityKind !== "recurring" &&
-    activity.activityKind !== "series"
-  ) {
-    return undefined;
-  }
   if (activity.status !== "published") return undefined;
-  if (!canTerminateActivity(activityId)) return undefined;
+  if (!canTerminateActivity(activityId, organizerId)) return undefined;
 
   if (!terminatePublishedActivity(activityId)) return undefined;
   return getActivityById(activityId);

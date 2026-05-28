@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import ActivityCover from "@/components/interest/ActivityCover";
 import ActivityCoverUpload from "@/components/interest/ActivityCoverUpload";
@@ -5,6 +6,7 @@ import {
   ACTIVITY_KIND_LABEL,
   ACTIVITY_KIND_OPTIONS,
 } from "@/components/interest/activityFormConstants";
+import { interestTypography as ty } from "@/components/interest/interestTypography";
 import {
   MobileDateTimeRangeField,
   MobileMonthDayField,
@@ -50,6 +52,10 @@ type BaseProps = {
 
 type EditProps = BaseProps & {
   mode: "create" | "edit";
+  /** 已有他人报名时，场次/时间规则只读 */
+  scheduleLocked?: boolean;
+  /** 编辑且场次锁定时，展示系列场次报名数 */
+  editOccurrences?: ActivityOccurrence[];
   onKindChange: (kind: ActivityKind) => void;
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
@@ -78,6 +84,15 @@ type ViewProps = BaseProps & {
 
 type Props = EditProps | ViewProps;
 
+const FormLabel = ({ children }: { children: ReactNode }) => (
+  <span className={ty.formLabel}>
+    <span className={ty.requiredMark} aria-hidden>
+      *
+    </span>
+    {children}
+  </span>
+);
+
 const ReadOnlyField = ({
   label,
   value,
@@ -104,6 +119,15 @@ const ReadOnlyField = ({
 const ActivityFormFields = (props: Props) => {
   const { kind, mode } = props;
   const isView = mode === "view";
+  const scheduleLocked =
+    mode === "edit" && Boolean(props.scheduleLocked);
+  const scheduleReadOnly = isView || scheduleLocked;
+  const seriesOccurrences =
+    isView && props.mode === "view"
+      ? props.occurrences
+      : scheduleLocked
+        ? props.editOccurrences
+        : undefined;
   const activeKind = ACTIVITY_KIND_OPTIONS.find((k) => k.key === kind);
 
   const coverDisplay =
@@ -114,7 +138,11 @@ const ActivityFormFields = (props: Props) => {
   return (
     <div className="space-y-4">
       <section className="space-y-1.5">
-        <span className="text-sm font-medium text-foreground">活动类型</span>
+        {isView ? (
+          <span className={ty.formLabel}>活动类型</span>
+        ) : (
+          <FormLabel>活动类型</FormLabel>
+        )}
         {isView ? (
           <p className="rounded-xl border border-border/60 bg-card px-3 py-2 text-sm">
             {ACTIVITY_KIND_LABEL[kind]}
@@ -165,6 +193,7 @@ const ActivityFormFields = (props: Props) => {
         <ActivityCoverUpload
           value={props.coverUrl}
           onChange={props.onCoverChange}
+          required
         />
       )}
 
@@ -172,7 +201,7 @@ const ActivityFormFields = (props: Props) => {
         <ReadOnlyField label="标题" value={props.title} />
       ) : (
         <label className="block space-y-1">
-          <span className="text-sm font-medium">标题</span>
+          <FormLabel>标题</FormLabel>
           <input
             value={props.title}
             onChange={(e) => props.onTitleChange(e.target.value)}
@@ -186,7 +215,7 @@ const ActivityFormFields = (props: Props) => {
         <ReadOnlyField label="活动介绍" value={props.description} multiline />
       ) : (
         <label className="block space-y-1">
-          <span className="text-sm font-medium">活动介绍</span>
+          <FormLabel>活动介绍</FormLabel>
           <textarea
             value={props.description}
             onChange={(e) => props.onDescriptionChange(e.target.value)}
@@ -201,7 +230,7 @@ const ActivityFormFields = (props: Props) => {
         <ReadOnlyField label="地点" value={props.location} />
       ) : (
         <label className="block space-y-1">
-          <span className="text-sm font-medium">地点</span>
+          <FormLabel>地点</FormLabel>
           <input
             value={props.location}
             onChange={(e) => props.onLocationChange(e.target.value)}
@@ -212,7 +241,7 @@ const ActivityFormFields = (props: Props) => {
       )}
 
       {kind === "one_off" &&
-        (isView ? (
+        (scheduleReadOnly ? (
           <ReadOnlyField
             label="活动时间"
             value={
@@ -232,8 +261,12 @@ const ActivityFormFields = (props: Props) => {
       {kind === "series" && (
         <section className="space-y-2.5 rounded-xl border border-primary/15 bg-primary/5 p-3">
           <div className="space-y-2">
-            <span className="text-sm font-medium text-foreground">报名方式</span>
-            {isView ? (
+            {scheduleReadOnly ? (
+              <span className={ty.formLabel}>报名方式</span>
+            ) : (
+              <FormLabel>报名方式</FormLabel>
+            )}
+            {scheduleReadOnly ? (
               <p className="rounded-lg border border-border/60 bg-card px-2.5 py-2 text-sm text-foreground">
                 {SERIES_ENROLLMENT_MODE_LABEL[props.seriesEnrollmentMode]}
               </p>
@@ -273,12 +306,16 @@ const ActivityFormFields = (props: Props) => {
             )}
           </div>
           <div>
-            <span className="text-sm font-medium text-foreground">系列场次</span>
-            <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-              {isView
-                ? "人数上限对各场生效。"
-                : "为每场填写开始与结束时间。人数上限对各场生效。"}
-            </p>
+            {scheduleReadOnly ? (
+              <span className={ty.formLabel}>系列场次</span>
+            ) : (
+              <FormLabel>系列场次</FormLabel>
+            )}
+            {!scheduleReadOnly && (
+              <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                为每场填写开始与结束时间。
+              </p>
+            )}
           </div>
           <ul className="space-y-1.5">
             {props.seriesSessions.map((session, index) => (
@@ -289,19 +326,18 @@ const ActivityFormFields = (props: Props) => {
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-sm font-medium text-muted-foreground">
                     第 {index + 1} 场
-                    {isView &&
-                      props.mode === "view" &&
-                      props.occurrences?.[index] && (
+                    {scheduleReadOnly &&
+                      seriesOccurrences?.[index] && (
                         <span className="ml-2 text-foreground">
-                          · {props.occurrences[index].enrollCount}
-                          {props.occurrences[index].capacity != null
-                            ? `/${props.occurrences[index].capacity}`
+                          · {seriesOccurrences[index].enrollCount}
+                          {seriesOccurrences[index].capacity != null
+                            ? `/${seriesOccurrences[index].capacity}`
                             : ""}{" "}
                           人报名
                         </span>
                       )}
                   </span>
-                  {!isView && props.seriesSessions.length > 1 && (
+                  {!scheduleReadOnly && props.seriesSessions.length > 1 && (
                     <button
                       type="button"
                       aria-label="删除场次"
@@ -312,7 +348,7 @@ const ActivityFormFields = (props: Props) => {
                     </button>
                   )}
                 </div>
-                {isView ? (
+                {scheduleReadOnly ? (
                   <p className="text-sm text-foreground">
                     {session.date
                       ? `${formatMobileDate(session.date)} ${formatMobileTime(session.startTime)} – ${formatMobileTime(session.endTime)}`
@@ -335,7 +371,7 @@ const ActivityFormFields = (props: Props) => {
               </li>
             ))}
           </ul>
-          {!isView && props.seriesSessions.length < 8 && (
+          {!scheduleReadOnly && props.seriesSessions.length < 10 && (
             <button
               type="button"
               onClick={props.onAddSeriesSession}
@@ -350,7 +386,7 @@ const ActivityFormFields = (props: Props) => {
 
       {kind === "recurring" && (
         <div className="space-y-3 rounded-xl border border-border/60 bg-card p-3">
-          {isView ? (
+          {scheduleReadOnly ? (
             <>
               <ReadOnlyField
                 label="重复频率"
@@ -376,7 +412,7 @@ const ActivityFormFields = (props: Props) => {
           ) : (
             <>
               <div className="space-y-1.5">
-                <span className="text-sm font-medium">重复频率</span>
+                <FormLabel>重复频率</FormLabel>
                 <div className="flex gap-2">
                   {(["weekly", "monthly"] as const).map((r) => (
                     <button
@@ -398,7 +434,7 @@ const ActivityFormFields = (props: Props) => {
 
               {props.recurrence === "weekly" ? (
                 <div className="space-y-1.5">
-                  <span className="text-sm font-medium">每周几</span>
+                  <FormLabel>每周几</FormLabel>
                   <div className="grid grid-cols-7 gap-1">
                     {WEEKDAY_OPTIONS.map((w) => (
                       <button
@@ -456,14 +492,14 @@ const ActivityFormFields = (props: Props) => {
         />
       ) : (
         <label className="block space-y-1">
-          <span className="text-sm font-medium">
+          <FormLabel>
             人数上限
             {kind === "series" && (
               <span className="ml-1 font-normal text-muted-foreground">
                 （各场次共用）
               </span>
             )}
-          </span>
+          </FormLabel>
           <input
             type="number"
             value={props.capacity}

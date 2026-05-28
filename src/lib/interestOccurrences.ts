@@ -116,8 +116,27 @@ export const buildRecurringEndAt = (startAtIso: string, endTime: string) => {
   return d.toISOString();
 };
 
+const isSameCalendarDay = (startAt: string, endAt: string) => {
+  const s = new Date(startAt);
+  const e = new Date(endAt);
+  return (
+    s.getFullYear() === e.getFullYear() &&
+    s.getMonth() === e.getMonth() &&
+    s.getDate() === e.getDate()
+  );
+};
+
+export const formatActivityTimeOfDay = (iso: string) => {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+/** 同一天：日期 + 开始时刻 – 结束时刻；跨天则两端均含日期 */
 export const formatTimeRange = (startAt: string, endAt?: string) => {
   if (!endAt || endAt === startAt) return formatActivityTime(startAt);
+  if (isSameCalendarDay(startAt, endAt)) {
+    return `${formatActivityTime(startAt)} – ${formatActivityTimeOfDay(endAt)}`;
+  }
   return `${formatActivityTime(startAt)} – ${formatActivityTime(endAt)}`;
 };
 
@@ -225,16 +244,14 @@ export const formatOccurrenceLabel = (
   return index != null ? `第${index + 1}场 · ${range}` : range;
 };
 
-/** 「我参与的场次」卡片时间行：始终展示该场次具体时间 */
+/** 「我报名的场次」卡片副标题：不论活动类型，均展示该场次日期 + 时间 */
 export const getEnrolledOccurrenceScheduleLabel = (
-  activity: GroupActivity,
-  occurrence: ActivityOccurrence,
-  occurrenceIndex?: number,
-): string => {
-  if (activity.activityKind === "series" && occurrenceIndex != null) {
-    return formatOccurrenceLabel(occurrence, occurrenceIndex);
-  }
-  return formatTimeRange(occurrence.startAt, occurrence.endAt);
+  occurrence: Pick<ActivityOccurrence, "startAt" | "endAt">,
+): string => formatTimeRange(occurrence.startAt, occurrence.endAt);
+
+export type ActivityScheduleLabelOptions = {
+  /** 我发布的系列活动卡片：展示「系列 · 共 n 场」 */
+  seriesSessionTotal?: boolean;
 };
 
 /** 活动卡片时间文案（含已结束的周期/系列） */
@@ -242,6 +259,7 @@ export const getActivityScheduleLabel = (
   activity: GroupActivity,
   occurrence?: ActivityOccurrence,
   allOccurrences?: ActivityOccurrence[],
+  options?: ActivityScheduleLabelOptions,
 ): string | undefined => {
   if (activity.activityKind === "recurring") {
     return (
@@ -252,13 +270,19 @@ export const getActivityScheduleLabel = (
       ) ?? undefined
     );
   }
-  if (activity.activityKind === "series" && occurrence) {
+  if (activity.activityKind === "series") {
     const occs = allOccurrences ?? [];
-    const idx = occs.findIndex((o) => o.id === occurrence.id);
-    if (idx >= 0) {
-      return `系列 · 第 ${idx + 1} 场 · ${formatActivityTime(occurrence.startAt)}`;
+    if (options?.seriesSessionTotal) {
+      const n = occs.length;
+      return n > 0 ? `系列 · 共 ${n} 场` : "系列活动";
     }
-    return formatTimeRange(occurrence.startAt, occurrence.endAt);
+    if (occurrence) {
+      const idx = occs.findIndex((o) => o.id === occurrence.id);
+      if (idx >= 0) {
+        return `系列 · 第 ${idx + 1} 场 · ${formatActivityTime(occurrence.startAt)}`;
+      }
+      return formatTimeRange(occurrence.startAt, occurrence.endAt);
+    }
   }
   const start = occurrence?.startAt ?? activity.startAt;
   const end = occurrence?.endAt ?? activity.endAt;

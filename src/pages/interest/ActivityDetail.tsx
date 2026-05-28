@@ -161,6 +161,54 @@ const ActivityDetail = () => {
     activity.id,
     CURRENT_EMPLOYEE_ID,
   );
+
+  const focusOccurrenceId = searchParams.get("occurrenceId") ?? undefined;
+  const focusOccurrencePhase = (() => {
+    if (!focusOccurrenceId) return undefined;
+    if (focusOccurrenceId.startsWith("virtual-")) {
+      if (activity.activityKind === "one_off" && activity.startAt && activity.endAt) {
+        return getActivityPhase(activity.startAt, activity.endAt);
+      }
+      return undefined;
+    }
+    const occ =
+      occs.find((o) => o.id === focusOccurrenceId) ??
+      pickerOccurrences.find((o) => o.id === focusOccurrenceId);
+    return occ
+      ? getActivityPhase(occ.startAt, occ.endAt)
+      : undefined;
+  })();
+
+  const allEnrolledOccurrencesEnded =
+    hasEnrollment &&
+    (enrolledOccs.length > 0
+      ? enrolledOccs.every(
+          (o) => getActivityPhase(o.startAt, o.endAt) === "已结束",
+        )
+      : activity.activityKind === "one_off" &&
+          activity.startAt &&
+          activity.endAt
+        ? getActivityPhase(activity.startAt, activity.endAt) === "已结束"
+        : seriesWholeMode
+          ? (() => {
+              const active = occs.filter((o) => o.status !== "cancelled");
+              return (
+                active.length > 0 &&
+                active.every(
+                  (o) =>
+                    getActivityPhase(o.startAt, o.endAt) === "已结束",
+                )
+              );
+            })()
+          : false);
+
+  /** 报名者查看已结束场次（含活动仍有未来场次、仅本场已结束） */
+  const participantEndedContext =
+    !isOrganizer &&
+    hasEnrollment &&
+    (focusOccurrencePhase === "已结束" ||
+      (!focusOccurrenceId && allEnrolledOccurrencesEnded));
+
   const participates = hasEnrollment || isOrganizer;
   const isTerminated = activity.status === "cancelled";
   const wantsEdit = searchParams.get("edit") === "1";
@@ -307,6 +355,11 @@ const ActivityDetail = () => {
     setTick((n) => n + 1);
   };
 
+  /** 已结束且未终止：无报名/编辑等底部操作 */
+  const showFooter =
+    isTerminated ||
+    (!participantEndedContext && phase !== "已结束");
+
   const enrollButtonLabel = () => {
     if (hasEnrollment) {
       if (seriesWholeMode) return "已报名系列活动";
@@ -338,6 +391,7 @@ const ActivityDetail = () => {
           activity={activity}
           group={group}
           onSaved={handleSaved}
+          onTerminated={handleTerminated}
         />
       </div>
     );
@@ -356,7 +410,9 @@ const ActivityDetail = () => {
         <h1 className="truncate text-base font-semibold">{activity.title}</h1>
       </header>
 
-      <main className="flex-1 space-y-3 overflow-y-auto px-3 pb-32 scrollbar-hide">
+      <main
+        className={`flex-1 space-y-3 overflow-y-auto px-3 scrollbar-hide ${showFooter ? "pb-32" : "pb-6"}`}
+      >
         {isTerminated && (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             本活动已由创建人终止，不再接受报名，未举办的场次已取消。
@@ -427,51 +483,53 @@ const ActivityDetail = () => {
 
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 mx-auto max-w-md border-t border-border bg-background/95 px-3 py-3 backdrop-blur">
-        {isTerminated ? (
-          <p className="py-3 text-center text-sm text-muted-foreground">
-            活动已终止
-          </p>
-        ) : isOrganizer ? (
-          <ActivityOrganizerFooter
-            activity={activity}
-            organizerId={CURRENT_EMPLOYEE_ID}
-            canEdit={phase !== "已结束"}
-            onEdit={() => {
-              const next = new URLSearchParams(searchParams);
-              next.set("edit", "1");
-              setSearchParams(next);
-            }}
-            onTerminated={handleTerminated}
-          />
-        ) : canCancel ? (
-          <button
-            type="button"
-            onClick={() => setCancelOpen(true)}
-            className="w-full rounded-full border border-destructive/40 py-3 text-sm font-medium text-destructive active:scale-[0.99]"
-          >
-            取消报名
-            {myEnrollments.length > 1
-              ? `（${myEnrollments.length} 场）`
-              : ""}
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={!canEnroll && !hasEnrollment}
-            onClick={() => {
-              if (multiOccMode) {
-                openEnrollDialog();
-              } else {
-                doEnroll();
-              }
-            }}
-            className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground"
-          >
-            {enrollButtonLabel()}
-          </button>
-        )}
-      </footer>
+      {showFooter && (
+        <footer className="fixed bottom-0 left-0 right-0 mx-auto max-w-md border-t border-border bg-background/95 px-3 py-3 backdrop-blur">
+          {isTerminated ? (
+            <p className="py-3 text-center text-sm text-muted-foreground">
+              活动已终止
+            </p>
+          ) : isOrganizer ? (
+            <ActivityOrganizerFooter
+              activity={activity}
+              organizerId={CURRENT_EMPLOYEE_ID}
+              canEdit={phase !== "已结束"}
+              onEdit={() => {
+                const next = new URLSearchParams(searchParams);
+                next.set("edit", "1");
+                setSearchParams(next);
+              }}
+              onTerminated={handleTerminated}
+            />
+          ) : canCancel ? (
+            <button
+              type="button"
+              onClick={() => setCancelOpen(true)}
+              className="w-full rounded-full border border-destructive/40 py-3 text-sm font-medium text-destructive active:scale-[0.99]"
+            >
+              取消报名
+              {myEnrollments.length > 1
+                ? `（${myEnrollments.length} 场）`
+                : ""}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={!canEnroll && !hasEnrollment}
+              onClick={() => {
+                if (multiOccMode) {
+                  openEnrollDialog();
+                } else {
+                  doEnroll();
+                }
+              }}
+              className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground"
+            >
+              {enrollButtonLabel()}
+            </button>
+          )}
+        </footer>
+      )}
 
       {multiOccMode && (
         <Sheet
