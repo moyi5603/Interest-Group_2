@@ -28,6 +28,7 @@ import {
 } from "@/data/interestGroups";
 import { getProfileTagIds } from "@/data/interestProfileStore";
 import { getRecentActivities, recommendGroups } from "@/lib/interestRecommend";
+import { HOME_SUGGESTED_QUESTIONS } from "@/lib/interestAgent";
 import { toast } from "@/components/ui/sonner";
 
 const DISCOVER_PATH = "/agents/interest-groups/discover";
@@ -281,6 +282,8 @@ const InterestGroupHome = () => {
         <div className="px-3 py-2">
           <InterestTopicPanel
             compact
+            topics={[...HOME_SUGGESTED_QUESTIONS]}
+            hideRefresh
             onSelect={goChat}
             className="rounded-xl border border-primary/10 bg-card/80 px-2.5 py-2"
           />

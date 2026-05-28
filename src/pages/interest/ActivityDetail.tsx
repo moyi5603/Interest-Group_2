@@ -355,10 +355,13 @@ const ActivityDetail = () => {
     setTick((n) => n + 1);
   };
 
-  /** 已结束且未终止：无报名/编辑等底部操作 */
+  /** 详情页底部操作：已结束/进行中/指定场次已结束时不展示 */
+  const footerPhase = focusOccurrencePhase ?? phase;
   const showFooter =
     isTerminated ||
-    (!participantEndedContext && phase !== "已结束");
+    (!participantEndedContext &&
+      footerPhase !== "已结束" &&
+      footerPhase !== "进行中");
 
   const enrollButtonLabel = () => {
     if (hasEnrollment) {

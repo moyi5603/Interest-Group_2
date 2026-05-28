@@ -1,36 +1,116 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
-import ActivityCard from "@/components/interest/ActivityCard";
-import GroupCard from "@/components/interest/GroupCard";
 import ChatInputBar from "@/components/agent/ChatInputBar";
+import InterestAgentReply from "@/components/interest/InterestAgentReply";
 import InterestTopicPanel from "@/components/interest/InterestTopicPanel";
 import { interestTypography as t } from "@/components/interest/interestTypography";
-import { buildReply, parseIntent } from "@/lib/interestAgent";
+import {
+  buildReply,
+  HOME_SUGGESTED_QUESTIONS,
+  parseIntent,
+} from "@/lib/interestAgent";
 import type { AgentReply } from "@/lib/interestAgent";
+import {
+  CURRENT_EMPLOYEE_ID,
+  cancelEnrollment,
+  terminateActivity,
+} from "@/data/interestGroups";
+import { toast } from "@/components/ui/sonner";
 
 type Msg = { role: "user" | "assistant"; text: string; reply?: AgentReply };
 
 const InterestGroupChat = () => {
-  const navigate = useNavigate();
   const goBack = useNavigateBack();
   const [params] = useSearchParams();
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
       text: "你好！我是兴趣小组 AI 助手，可以为你推荐小组、查询近期活动，或解答参与方式。",
+      reply: buildReply({ intent: "join_guide", timeFilter: "all" }),
     },
   ]);
+  const [tick, setTick] = useState(0);
   const booted = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const send = (text: string) => {
-    const intent = parseIntent(text);
-    const reply = buildReply(intent);
+  const appendExchange = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    if (trimmed === "保留报名") {
+      setMessages((m) => [
+        ...m,
+        { role: "user", text: trimmed },
+        {
+          role: "assistant",
+          text: "好的，已为你保留当前报名。如需查看，可前往「我的活动」。",
+        },
+      ]);
+      return;
+    }
+    if (trimmed === "保留活动") {
+      setMessages((m) => [
+        ...m,
+        { role: "user", text: trimmed },
+        {
+          role: "assistant",
+          text: "好的，活动将继续保留。如需调整，可前往活动详情编辑。",
+        },
+      ]);
+      return;
+    }
+
+    const parsed = parseIntent(trimmed);
+    const reply = buildReply(parsed);
     setMessages((m) => [
       ...m,
-      { role: "user", text },
+      { role: "user", text: trimmed },
       { role: "assistant", text: reply.text, reply },
+    ]);
+  }, []);
+
+  const send = useCallback(
+    (text: string) => {
+      appendExchange(text);
+    },
+    [appendExchange],
+  );
+
+  const handleTerminateConfirm = (activityId: string) => {
+    const updated = terminateActivity(activityId, CURRENT_EMPLOYEE_ID);
+    if (!updated) {
+      toast.error("终止失败，请稍后再试");
+      return;
+    }
+    toast.success("活动已终止");
+    setTick((n) => n + 1);
+    setMessages((m) => [
+      ...m,
+      {
+        role: "assistant",
+        text: "已终止该活动，未举办场次已取消。",
+      },
+    ]);
+  };
+
+  const handleCancelConfirm = (activityId: string) => {
+    if (!cancelEnrollment(activityId, CURRENT_EMPLOYEE_ID)) {
+      toast.error("取消失败，请稍后再试");
+      return;
+    }
+    toast.success("已取消报名");
+    setTick((n) => n + 1);
+    setMessages((m) => [
+      ...m,
+      {
+        role: "assistant",
+        text: "已取消报名。如需参加其他活动，可以问我「这周有什么活动」。",
+        reply: buildReply({
+          intent: "list_activity",
+          timeFilter: "week",
+        }),
+      },
     ]);
   };
 
@@ -40,7 +120,14 @@ const InterestGroupChat = () => {
       booted.current = true;
       send(q);
     }
-  }, [params]);
+  }, [params, send]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [messages.length, tick]);
 
   return (
     <div className="mx-auto flex h-screen max-w-md flex-col bg-gradient-to-b from-primary/[0.07] via-background to-background">
@@ -48,6 +135,7 @@ const InterestGroupChat = () => {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            aria-label="返回"
             onClick={goBack}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary active:scale-95"
           >
@@ -63,10 +151,13 @@ const InterestGroupChat = () => {
         </div>
       </header>
 
-      <main className="flex-1 space-y-3 overflow-y-auto px-3 py-2 pb-2 scrollbar-hide">
+      <main
+        ref={scrollRef}
+        className="flex-1 space-y-3 overflow-y-auto px-3 py-2 pb-2 scrollbar-hide"
+      >
         {messages.map((m, i) => (
           <div
-            key={i}
+            key={`${i}-${tick}`}
             className={`flex flex-col gap-2 ${
               m.role === "user" ? "items-end" : "items-start"
             }`}
@@ -78,7 +169,7 @@ const InterestGroupChat = () => {
               </span>
             )}
             <div
-              className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+              className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
                 m.role === "user"
                   ? "gradient-primary text-primary-foreground shadow-glow"
                   : "border border-primary/10 bg-card shadow-soft text-foreground"
@@ -86,55 +177,14 @@ const InterestGroupChat = () => {
             >
               {m.text}
             </div>
-            {m.reply?.scoredGroups && (
-              <ul className="w-full space-y-2">
-                {m.reply.scoredGroups.map(({ group, reasons }) => (
-                  <li key={group.id}>
-                    <GroupCard
-                      compact
-                      group={group}
-                      reasons={reasons}
-                      onOpen={() =>
-                        navigate(`/agents/interest-groups/${group.id}`)
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-            {m.reply?.groups && (
-              <ul className="w-full space-y-2">
-                {m.reply.groups.map((g) => (
-                  <li key={g.id}>
-                    <GroupCard
-                      compact
-                      group={g}
-                      onOpen={() =>
-                        navigate(`/agents/interest-groups/${group.id}`)
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-            {m.reply?.recentActivities && (
-              <ul className="w-full space-y-2">
-                {m.reply.recentActivities.map((item) => (
-                  <li key={item.activity.id}>
-                    <ActivityCard
-                      compact
-                      activity={item.activity}
-                      occurrence={item.statusOccurrence}
-                      scheduleLabel={item.timeLabel}
-                      onOpen={() =>
-                        navigate(
-                          `/agents/interest-groups/activities/${item.activity.id}`,
-                        )
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
+            {m.reply && (
+              <InterestAgentReply
+                reply={m.reply}
+                onSuggest={send}
+                onCancelConfirm={handleCancelConfirm}
+                onTerminateConfirm={handleTerminateConfirm}
+                onJoined={() => setTick((n) => n + 1)}
+              />
             )}
           </div>
         ))}
@@ -144,11 +194,13 @@ const InterestGroupChat = () => {
         <div className="px-3 py-2">
           <InterestTopicPanel
             compact
+            topics={[...HOME_SUGGESTED_QUESTIONS]}
+            hideRefresh
             onSelect={send}
             className="rounded-xl border border-primary/10 bg-card/80 px-2.5 py-2"
           />
         </div>
-        <ChatInputBar placeholder="输入问题…" onSubmit={send} />
+        <ChatInputBar placeholder="输入消息…" onSubmit={send} />
       </footer>
     </div>
   );

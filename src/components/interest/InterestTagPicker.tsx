@@ -10,6 +10,8 @@ type Props = {
   allowDeselect?: boolean;
   /** 为 true 时不按分类展示，全部平铺 */
   flat?: boolean;
+  /** 最多可选数量；达上限后不可再选/自定义添加 */
+  maxSelected?: number;
 };
 
 const InterestTagPicker = ({
@@ -18,10 +20,30 @@ const InterestTagPicker = ({
   onAdd,
   allowDeselect = false,
   flat = false,
+  maxSelected,
 }: Props) => {
   const [customInput, setCustomInput] = useState("");
+  const atMax =
+    maxSelected !== undefined && selectedIds.length >= maxSelected;
+
+  const trySelect = (tagId: string) => {
+    if (selectedIds.includes(tagId)) {
+      if (allowDeselect) onToggle(tagId);
+      return;
+    }
+    if (atMax) {
+      toast.error(`最多选择 ${maxSelected} 个标签`);
+      return;
+    }
+    if (onAdd) onAdd(tagId);
+    else onToggle(tagId);
+  };
 
   const addCustom = () => {
+    if (atMax) {
+      toast.error(`最多选择 ${maxSelected} 个标签`);
+      return;
+    }
     const tag = ensureCustomTag(customInput);
     if (!tag) {
       toast.error("请输入 1–6 个字的标签");
@@ -59,36 +81,44 @@ const InterestTagPicker = ({
           }}
           maxLength={6}
           placeholder="输入自定义标签"
-          className="min-w-0 flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm"
+          disabled={atMax}
+          className="min-w-0 flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm disabled:opacity-50"
         />
         <button
           type="button"
           onClick={addCustom}
-          className="shrink-0 rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-foreground active:scale-95"
+          disabled={atMax}
+          className="shrink-0 rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-foreground active:scale-95 disabled:opacity-50"
         >
           添加
         </button>
       </div>
       <p className="text-sm text-muted-foreground">
-        可从下方选择，或直接输入自定义内容（最多 6 字）
+        {maxSelected !== undefined
+          ? `最多 ${maxSelected} 个标签，可从下方选择或自定义（每个最多 6 字）`
+          : "可从下方选择，或直接输入自定义内容（最多 6 字）"}
       </p>
 
       {flat ? (
         <div className="flex flex-wrap gap-2">
           {interestTagList.map((t) => {
             const active = selectedIds.includes(t.id);
+            const disabled = !active && atMax;
             return (
               <button
                 key={t.id}
                 type="button"
+                disabled={disabled}
                 onClick={() => {
                   if (active && !allowDeselect) return;
-                  onToggle(t.id);
+                  trySelect(t.id);
                 }}
                 className={`rounded-full px-3 py-1.5 text-sm ${
                   active
                     ? "bg-primary text-primary-foreground"
-                    : "border border-border bg-card"
+                    : disabled
+                      ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
+                      : "border border-border bg-card"
                 }`}
               >
                 {t.name}
@@ -105,18 +135,22 @@ const InterestTagPicker = ({
             <div className="flex flex-wrap gap-2">
               {tags.map((t) => {
                 const active = selectedIds.includes(t.id);
+                const disabled = !active && atMax;
                 return (
                   <button
                     key={t.id}
                     type="button"
+                    disabled={disabled}
                     onClick={() => {
                       if (active && !allowDeselect) return;
-                      onToggle(t.id);
+                      trySelect(t.id);
                     }}
                     className={`rounded-full px-3 py-1.5 text-sm ${
                       active
                         ? "bg-primary text-primary-foreground"
-                        : "border border-border bg-card"
+                        : disabled
+                          ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
+                          : "border border-border bg-card"
                     }`}
                   >
                     {t.name}

@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import ActivityCoverUpload from "@/components/interest/ActivityCoverUpload";
 import InterestTagPicker from "@/components/interest/InterestTagPicker";
+import { GROUP_TAG_MAX } from "@/components/interest/groupFormConstants";
 import { resolveGroupCover } from "@/data/interestImages";
 import { getTagsByIds } from "@/data/interestTags";
 import {
@@ -39,9 +40,14 @@ const GroupEdit = () => {
   }
 
   const toggleTag = (id: string) => {
-    setTagIds((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
-    );
+    setTagIds((prev) => {
+      if (prev.includes(id)) return prev.filter((t) => t !== id);
+      if (prev.length >= GROUP_TAG_MAX) {
+        toast.error(`最多选择 ${GROUP_TAG_MAX} 个标签`);
+        return prev;
+      }
+      return [...prev, id];
+    });
   };
 
   const submit = () => {
@@ -51,6 +57,10 @@ const GroupEdit = () => {
     }
     if (tagIds.length === 0) {
       toast.error("请至少选择一个标签");
+      return;
+    }
+    if (tagIds.length > GROUP_TAG_MAX) {
+      toast.error(`最多选择 ${GROUP_TAG_MAX} 个标签`);
       return;
     }
     const updated = updateGroup(group.id, CURRENT_EMPLOYEE_ID, {
@@ -114,7 +124,12 @@ const GroupEdit = () => {
         </label>
 
         <div className="space-y-2">
-          <span className={t.formLabel}>标签</span>
+          <span className={t.formLabel}>
+            标签
+            <span className="ml-1 font-normal text-muted-foreground">
+              （最多 {GROUP_TAG_MAX} 个）
+            </span>
+          </span>
           {tagIds.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {getTagsByIds(tagIds).map((t) => (
@@ -132,13 +147,10 @@ const GroupEdit = () => {
           <InterestTagPicker
             selectedIds={tagIds}
             onToggle={toggleTag}
-            onAdd={(id) => {
-              setTagIds((prev) =>
-                prev.includes(id) ? prev : [...prev, id],
-              );
-            }}
+            onAdd={toggleTag}
             allowDeselect
             flat
+            maxSelected={GROUP_TAG_MAX}
           />
         </div>
       </main>
