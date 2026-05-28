@@ -156,6 +156,12 @@ export type OccurrenceWithActivity = {
   group: InterestGroupFull;
 };
 
+/** 近期活动等列表卡片标题：小组名：活动名 */
+export const formatGroupActivityTitle = (
+  groupName: string,
+  activityTitle: string,
+) => `${groupName}：${activityTitle}`;
+
 /** 近期活动列表：以活动为维度，周期/系列不重复卡片 */
 export type RecentActivityItem = {
   activity: GroupActivity;

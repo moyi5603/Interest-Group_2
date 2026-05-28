@@ -214,7 +214,7 @@ const InterestGroupMyActivities = () => {
                     compact
                     activity={activity}
                     occurrence={occurrence}
-                    title={`${group.name}：${activity.title}`}
+                    groupName={group.name}
                     scheduleLabel={scheduleLabel}
                     meta="我发起"
                     onOpen={() => openOrganizedActivity(activity.id)}
@@ -242,7 +242,7 @@ const InterestGroupMyActivities = () => {
                       compact
                       activity={activity}
                       occurrence={occurrence}
-                      title={`${group.name}：${activity.title}`}
+                      groupName={group.name}
                       scheduleLabel={scheduleLabel}
                       enrolled={!terminated}
                       onOpen={() => {

@@ -23,8 +23,9 @@ type Props = {
   editable?: boolean;
   /** 卡片顶部辅助信息（如「我发起」） */
   meta?: string;
-  /** 覆盖标题，默认 activity.title */
+  /** 覆盖标题；未传 title 时若提供 groupName 则为「小组名：活动名」 */
   title?: string;
+  groupName?: string;
   /** 覆盖时间行展示（周期/系列活动用活动级文案，不展示各场次日期） */
   scheduleLabel?: string;
 };
@@ -41,9 +42,12 @@ const ActivityCard = ({
   editable = false,
   meta,
   title,
+  groupName,
   scheduleLabel,
 }: Props) => {
-  const displayTitle = title ?? activity.title;
+  const displayTitle =
+    title ??
+    (groupName ? `${groupName}：${activity.title}` : activity.title);
   const start = occurrence?.startAt ?? activity.startAt;
   const end = occurrence?.endAt ?? activity.endAt;
   const terminated = activity.status === "cancelled";

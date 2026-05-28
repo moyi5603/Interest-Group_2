@@ -113,6 +113,7 @@ const InterestGroupSectionList = () => {
                 <ActivityCard
                   compact
                   activity={item.activity}
+                  groupName={item.group.name}
                   occurrence={item.statusOccurrence}
                   scheduleLabel={item.timeLabel}
                   onOpen={() => openActivity(item.activity.id)}

@@ -160,7 +160,7 @@ const InterestAgentReply = ({
                       className="flex w-full items-center justify-between rounded-lg bg-secondary/40 px-2.5 py-2 text-left text-xs active:scale-[0.99]"
                     >
                       <span className="line-clamp-1 text-foreground">
-                        {item.timeLabel} · {item.activity.title}
+                        {item.group.name}：{item.activity.title}
                       </span>
                       <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     </button>
@@ -219,6 +219,7 @@ const InterestAgentReply = ({
                 <ActivityCard
                   compact
                   activity={item.activity}
+                  groupName={item.group.name}
                   occurrence={item.statusOccurrence}
                   scheduleLabel={item.timeLabel}
                   showEnroll
