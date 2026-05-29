@@ -259,9 +259,11 @@ const InterestAgentReply = ({
               </li>
             ))}
           </ol>
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            ⚠️ {reply.createGuide.note}
-          </p>
+          {reply.createGuide.note ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              ⚠️ {reply.createGuide.note}
+            </p>
+          ) : null}
           {reply.intent === "create_hint" ? (
             <button
               type="button"

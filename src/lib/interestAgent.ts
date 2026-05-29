@@ -99,7 +99,7 @@ export type AgentReply = {
   scoredGroups?: ScoredGroup[];
   recentActivities?: RecentActivityItem[];
   groupDetail?: GroupDetailPayload;
-  createGuide?: { steps: CreateGuideStep[]; note: string };
+  createGuide?: { steps: CreateGuideStep[]; note?: string };
   cancelConfirm?: CancelEnrollmentPayload;
   terminateConfirm?: TerminateConfirmPayload;
   navigateTo?: string;
@@ -491,6 +491,20 @@ export const getNextCancelableEnrollment = (
   };
 };
 
+const isCreateGroupQuery = (q: string) =>
+  (/帮我创建|帮我发起|怎么创建|怎么发起|创建小组/.test(q) &&
+    (/小组/.test(q) || !/活动/.test(q))) ||
+  (/创建小组/.test(q) && !/活动/.test(q));
+
+const isCreateActivityQuery = (q: string) =>
+  (/帮我创建|帮我发起|怎么创建|怎么发起/.test(q) &&
+    /活动/.test(q) &&
+    !/小组/.test(q)) ||
+  (/发起.*活动|创建.*活动/.test(q) && !/小组/.test(q));
+
+const isCreateQuery = (q: string) =>
+  isCreateGroupQuery(q) || isCreateActivityQuery(q);
+
 export const parseIntent = (input: string): ParsedIntent => {
   const q = input.trim();
   const lower = q.toLowerCase();
@@ -502,6 +516,13 @@ export const parseIntent = (input: string): ParsedIntent => {
     (/(篮球|羽毛球|跑步|摄影|读书|徒步|咖啡|音乐|电竞)/.exec(q)?.[1] as
       | string
       | undefined);
+
+  if (isCreateGroupQuery(q)) {
+    return { intent: "create_hint", timeFilter };
+  }
+  if (isCreateActivityQuery(q)) {
+    return { intent: "create_activity_hint", timeFilter };
+  }
 
   if (
     /终止|下架|删除|取消发布/.test(q) &&
@@ -555,22 +576,6 @@ export const parseIntent = (input: string): ParsedIntent => {
     return { intent: "my_groups", timeFilter };
   }
 
-  if (/帮我创建|帮我发起/.test(q)) {
-    return {
-      intent: /活动/.test(q) ? "create_activity_hint" : "create_hint",
-      timeFilter,
-    };
-  }
-
-  if (/怎么发起|怎么创建|创建小组|发起.*活动|创建.*活动/.test(q)) {
-    return {
-      intent: /活动/.test(q) && !/小组/.test(q)
-        ? "create_activity_hint"
-        : "create_hint",
-      timeFilter,
-    };
-  }
-
   if (/换.*兴趣|改.*标签|兴趣标签|管理.*兴趣/.test(q)) {
     return { intent: "interest_tags", timeFilter };
   }
@@ -588,9 +593,12 @@ export const parseIntent = (input: string): ParsedIntent => {
   }
 
   if (
-    /有什么活动|这周.*活动|下周.*活动|活动推荐|可报名|最近.*活动/.test(q) ||
-    (/活动/.test(q) && /下周|这周|本周|最近/.test(q)) ||
-    (activityTopic && /活动/.test(q))
+    !isCreateQuery(q) &&
+    (/有什么活动|这周.*活动|下周.*活动|活动推荐|可报名|最近.*活动/.test(
+      q,
+    ) ||
+      (/活动/.test(q) && /下周|这周|本周|最近/.test(q)) ||
+      (activityTopic && /活动/.test(q)))
   ) {
     return {
       intent: "list_activity",
@@ -637,7 +645,8 @@ export const parseIntent = (input: string): ParsedIntent => {
   if (
     groupMatch &&
     !/推荐|有没有|随便/.test(q) &&
-    !/活动/.test(q)
+    !/活动/.test(q) &&
+    !isCreateQuery(q)
   ) {
     return {
       intent: "group_detail",
@@ -651,13 +660,17 @@ export const parseIntent = (input: string): ParsedIntent => {
   }
 
   if (
-    /推荐|有没有|想加入|找.*组/.test(q) ||
-    (topic && !/活动/.test(q))
+    !isCreateQuery(q) &&
+    (/推荐|有没有|想加入|找.*组/.test(q) ||
+      (topic && !/活动/.test(q)))
   ) {
     return { intent: "recommend_group", topic, timeFilter };
   }
 
-  if (/跑步|摄影|读书|徒步|羽毛球|篮球|咖啡|音乐|电竞/.test(lower)) {
+  if (
+    !isCreateQuery(q) &&
+    /跑步|摄影|读书|徒步|羽毛球|篮球|咖啡|音乐|电竞/.test(lower)
+  ) {
     return {
       intent: /活动/.test(q) ? "list_activity" : "recommend_group",
       topic,
@@ -848,17 +861,17 @@ export const buildReply = (
     case "create_hint":
       return {
         intent,
-        text:
-          "创建小组或发起活动，可以按下面步骤操作（发起活动需先加入小组，由组长发布）：",
+        text: "创建兴趣小组可以按以下步骤操作：",
         createGuide: {
           steps: [
             { step: 1, title: "进入创建页面", action: "点击「创建小组」按钮" },
-            { step: 2, title: "填写小组信息", action: "名称、简介、标签" },
+            { step: 2, title: "填写小组信息", action: "名称、简介、标签（最多 3 个）" },
             { step: 3, title: "上传封面图", action: "可选，不上传将使用默认封面" },
             { step: 4, title: "提交创建", action: "立即上线，可被搜索" },
           ],
-          note: "创建后 7 日内需完成工会/HR 报备",
         },
+        navigateTo: "/agents/interest-groups/new",
+        navigateLabel: "立即创建小组",
         suggestions: INTENT_SUGGESTIONS.create_hint,
       };
     case "join_guide": {
@@ -1049,23 +1062,27 @@ export const buildReply = (
         suggestions: INTENT_SUGGESTIONS.modify_activity,
       };
     }
-    case "create_activity_hint":
+    case "create_activity_hint": {
+      const joined = getJoinedGroups(viewerId);
+      const firstGroup = joined[0];
       return {
         intent,
-        text: "发起活动需先加入小组，由组长或小组创建者在小组内发布：",
+        text: "发起活动需在已加入的小组内操作，可按以下步骤进行：",
         createGuide: {
           steps: [
-            { step: 1, title: "加入或创建小组", action: "进入目标兴趣小组" },
-            { step: 2, title: "进入小组详情", action: "点击「发布活动」" },
+            { step: 1, title: "进入小组", action: "打开你加入或创建的兴趣小组" },
+            { step: 2, title: "发布活动", action: "在小组详情点击「发布活动」" },
             { step: 3, title: "填写活动信息", action: "时间、地点、名额等" },
-            { step: 4, title: "发布上线", action: "成员即可浏览报名" },
+            { step: 4, title: "提交发布", action: "成员即可浏览报名" },
           ],
-          note: "若你尚未加入任何小组，可先创建或加入一个小组",
         },
-        navigateTo: "/agents/interest-groups",
-        navigateLabel: "去兴趣小组首页",
+        navigateTo: firstGroup
+          ? `/agents/interest-groups/${firstGroup.id}/activities/new`
+          : "/agents/interest-groups",
+        navigateLabel: firstGroup ? "去发布活动" : "去兴趣小组首页",
         suggestions: INTENT_SUGGESTIONS.create_activity_hint,
       };
+    }
     case "interest_tags":
       return {
         intent,
