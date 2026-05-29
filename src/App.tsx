@@ -20,6 +20,8 @@ import MyInterests from "./pages/interest/MyInterests.tsx";
 import InterestGroupSectionList from "./pages/interest/InterestGroupSectionList.tsx";
 import InterestGroupDiscover from "./pages/interest/InterestGroupDiscover.tsx";
 import InterestGroupMyActivities from "./pages/interest/InterestGroupMyActivities.tsx";
+import ManagerMessages from "./pages/ManagerMessages.tsx";
+import GrowthEngineMessages from "./pages/GrowthEngineMessages.tsx";
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -29,6 +31,8 @@ const App = () => (
     <BrowserRouter basename={routerBasename}>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/manager" element={<ManagerMessages />} />
+        <Route path="/manager/growth-engine" element={<GrowthEngineMessages />} />
         <Route path="/agents" element={<MoreAgents />} />
         <Route path="/agents/interest-groups" element={<InterestGroupHome />} />
         <Route path="/agents/interest-groups/chat" element={<InterestGroupChat />} />

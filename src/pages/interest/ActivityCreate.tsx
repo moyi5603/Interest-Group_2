@@ -6,7 +6,7 @@ import ActivityFormFields, {
   type SeriesSessionDraft,
 } from "@/components/interest/ActivityFormFields";
 import { combineDateAndTime, type MobileDateTimeRangeValue } from "@/components/ui/mobile-date-field";
-import { DEFAULT_ACTIVITY_COVER } from "@/data/interestImages";
+import { getTagsByIds } from "@/data/interestTags";
 import {
   CURRENT_EMPLOYEE_ID,
   addActivity,
@@ -125,7 +125,7 @@ const ActivityCreate = () => {
 
   const publish = () => {
     if (!title.trim()) {
-      toast.error("请填写活动标题");
+      toast.error("请填写活动名称");
       return;
     }
     if (!description.trim()) {
@@ -141,6 +141,10 @@ const ActivityCreate = () => {
       toast.error("请填写人数上限");
       return;
     }
+    if (!coverUrl) {
+      toast.error("请上传活动封面");
+      return;
+    }
     const id = `act-${Date.now()}`;
     const base: GroupActivity = {
       id,
@@ -148,7 +152,7 @@ const ActivityCreate = () => {
       organizerId: CURRENT_EMPLOYEE_ID,
       title: title.trim(),
       description: description.trim(),
-      coverUrl: coverUrl ?? DEFAULT_ACTIVITY_COVER,
+      coverUrl,
       activityKind: kind,
       location: location.trim(),
       capacity: cap,
@@ -202,7 +206,6 @@ const ActivityCreate = () => {
           : buildWeeklyRrule(weekdayOpt!.rrule);
       addActivity(base);
       addOccurrences(expandRecurringOccurrences(base, 4));
-      enrollOrganizerAsParticipant(getActivityById(id)!);
     } else if (kind === "series") {
       if (seriesSessions.length < 1) {
         toast.error("请至少添加 1 个场次");
@@ -240,7 +243,6 @@ const ActivityCreate = () => {
         seriesEnrollmentMode,
       });
       addOccurrences(buildSeriesOccurrences(id, sessions, cap));
-      enrollOrganizerAsParticipant(getActivityById(id)!);
     } else {
       if (
         !oneOffSchedule.date ||
@@ -318,6 +320,8 @@ const ActivityCreate = () => {
             setRecurringTime(start);
             setRecurringEndTime(end);
           }}
+          groupName={group.name}
+          groupTagNames={getTagsByIds(group.tagIds).map((tag) => tag.name)}
         />
       </main>
 

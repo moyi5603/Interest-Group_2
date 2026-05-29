@@ -10,12 +10,13 @@ import {
   Users,
   ChevronRight,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import ActivityCard from "@/components/interest/ActivityCard";
 import GroupCard from "@/components/interest/GroupCard";
 import InterestAiHero from "@/components/interest/InterestAiHero";
+import InterestHomeStatsCard from "@/components/interest/InterestHomeStatsCard";
 import InterestSection from "@/components/interest/InterestSection";
 import InterestTopicPanel from "@/components/interest/InterestTopicPanel";
 import SectionHeader from "@/components/interest/SectionHeader";
@@ -23,12 +24,13 @@ import ChatInputBar from "@/components/agent/ChatInputBar";
 import type { InterestListSection } from "@/data/interestTypes";
 import {
   CURRENT_EMPLOYEE_ID,
-  getJoinedGroups,
   joinGroup,
 } from "@/data/interestGroups";
 import { getProfileTagIds } from "@/data/interestProfileStore";
 import { getRecentActivities, recommendGroups } from "@/lib/interestRecommend";
+import { getInterestHomeStats } from "@/lib/interestHomeStats";
 import { HOME_SUGGESTED_QUESTIONS } from "@/lib/interestAgent";
+import { runGrowthEngineScheduledChecks } from "@/lib/growthEngineScheduler";
 import { toast } from "@/components/ui/sonner";
 
 const DISCOVER_PATH = "/agents/interest-groups/discover";
@@ -40,12 +42,12 @@ const MY_GROUPS_PATH = "/agents/interest-groups/list/my-groups";
 const RECENT_ACTIVITIES_PATH = "/agents/interest-groups/list/recent";
 
 const shortcuts = [
-  { label: "近期活动", icon: CalendarDays, to: RECENT_ACTIVITIES_PATH },
-  { label: "加入小组", icon: UserPlus, to: DISCOVER_PATH },
-  { label: "我的活动", icon: CalendarCheck, to: MY_ACTIVITIES_PATH },
+  { label: "活动广场", icon: CalendarDays, to: RECENT_ACTIVITIES_PATH },
+  { label: "活动管理", icon: CalendarCheck, to: MY_ACTIVITIES_PATH },
   { label: "我的兴趣", icon: Tag, to: "/profile/interests" },
+  { label: "小组广场", icon: UserPlus, to: DISCOVER_PATH },
+  { label: "小组管理", icon: Users, to: MY_GROUPS_PATH },
   { label: "创建小组", icon: Plus, to: "/agents/interest-groups/new" },
-  { label: "我的小组", icon: Users, to: MY_GROUPS_PATH },
 ] as const;
 
 const viewMore = (navigate: ReturnType<typeof useNavigate>, section: InterestListSection) => ({
@@ -67,20 +69,18 @@ const InterestGroupHome = () => {
     tagCount < 2
       ? "完善兴趣标签后，AI 能更懂你的喜好并推荐合适的小组与活动。"
       : undefined;
-  const myGroups = useMemo(() => getJoinedGroups(CURRENT_EMPLOYEE_ID), []);
-  const myGroupsPreview = useMemo(() => {
-    if (myGroups.length <= 2) return myGroups;
-    const shuffled = [...myGroups];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled.slice(0, 2);
-  }, [myGroups]);
   const recentActivities = useMemo(
     () => getRecentActivities(CURRENT_EMPLOYEE_ID).slice(0, 2),
     [],
   );
+  const homeStats = useMemo(
+    () => getInterestHomeStats(CURRENT_EMPLOYEE_ID),
+    [],
+  );
+
+  useEffect(() => {
+    runGrowthEngineScheduledChecks();
+  }, []);
 
   const goChat = (q?: string) => {
     navigate(
@@ -159,6 +159,10 @@ const InterestGroupHome = () => {
         </InterestSection>
 
         <InterestSection className="p-2.5">
+          <InterestHomeStatsCard stats={homeStats} />
+        </InterestSection>
+
+        <InterestSection className="p-2.5">
           <SectionHeader
             title={
               <span className="inline-flex items-center gap-1.5">
@@ -183,35 +187,6 @@ const InterestGroupHome = () => {
                     occurrence={item.statusOccurrence}
                     scheduleLabel={item.timeLabel}
                     onOpen={() => openActivity(item.activity.id)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </InterestSection>
-
-        <InterestSection id="my-groups" className="p-2.5">
-          <SectionHeader
-            title={
-              <span className="inline-flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                我的小组
-              </span>
-            }
-            action={viewMore(navigate, "my-groups")}
-          />
-          {myGroups.length === 0 ? (
-            <p className="pb-1 text-sm text-muted-foreground">
-              还没有加入小组，可从下方 AI 推荐开始探索
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {myGroupsPreview.map((g) => (
-                <li key={g.id}>
-                  <GroupCard
-                    compact
-                    group={g}
-                    onOpen={() => navigate(`/agents/interest-groups/${g.id}`)}
                   />
                 </li>
               ))}

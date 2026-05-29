@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import ActivityCommentComposerInline from "@/components/interest/ActivityCommentComposerInline";
+import ActivityCommentComposerSheet from "@/components/interest/ActivityCommentComposerSheet";
+import ActivityCommentSection from "@/components/interest/ActivityCommentSection";
+import ActivityEnrolleesSheet from "@/components/interest/ActivityEnrolleesSheet";
 import ActivityOrganizerEdit from "@/components/interest/ActivityOrganizerEdit";
 import ActivityFormFields from "@/components/interest/ActivityFormFields";
 import OccurrenceMultiPicker from "@/components/interest/OccurrenceMultiPicker";
@@ -24,6 +28,13 @@ import {
 } from "@/components/ui/sheet";
 import { getEmployee } from "@/data/colleagueData";
 import {
+  addActivityComment,
+  addCommentReply,
+  deleteActivityComment,
+  listActivityComments,
+  toggleCommentLike,
+} from "@/data/activityComments";
+import {
   CURRENT_EMPLOYEE_ID,
   cancelAllEnrollments,
   countActivityEnrollments,
@@ -32,6 +43,7 @@ import {
   getActivityById,
   getEnrollmentsForActivity,
   getGroupById,
+  getOccurrenceEnrollees,
   getOccurrencesByActivity,
   isActivityOrganizer,
 } from "@/data/interestGroups";
@@ -65,8 +77,18 @@ const ActivityDetail = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [enrolleesOpen, setEnrolleesOpen] = useState(false);
+  const [enrolleesContext, setEnrolleesContext] = useState<{
+    occurrenceId: string;
+    sessionLabel: string;
+    enrollCount: number;
+  } | null>(null);
   const [pickOccIds, setPickOccIds] = useState<Set<string>>(() => new Set());
   const [tick, setTick] = useState(0);
+  const [commentTick, setCommentTick] = useState(0);
+  const [commentSheetOpen, setCommentSheetOpen] = useState(false);
+  const [composerFocusImages, setComposerFocusImages] = useState(false);
+  const [scrollToLatestComment, setScrollToLatestComment] = useState(false);
   const [activityOverride, setActivityOverride] = useState<
     GroupActivity | undefined
   >();
@@ -75,6 +97,16 @@ const ActivityDetail = () => {
     activityOverride ?? getActivityById(activityId || "");
   const group = activity ? getGroupById(activity.groupId) : undefined;
   const occs = activity ? getOccurrencesByActivity(activity.id) : [];
+  const comments = useMemo(
+    () =>
+      activity && commentTick >= 0
+        ? listActivityComments(activity.id)
+        : [],
+    [activity, commentTick],
+  );
+  const commentCount =
+    (activityId ? getActivityById(activityId)?.commentCount : undefined) ??
+    comments.length;
   const myEnrollments = useMemo(
     () =>
       activity && tick >= 0
@@ -123,6 +155,14 @@ const ActivityDetail = () => {
         : [],
     [activity, pickerOccurrences, enrolledOccurrenceIds, multiOccMode],
   );
+
+  const occurrenceEnrollees = useMemo(() => {
+    if (!activity || !enrolleesContext) return [];
+    return getOccurrenceEnrollees(
+      activity.id,
+      enrolleesContext.occurrenceId,
+    );
+  }, [activity, enrolleesContext, tick]);
 
   if (!activity || !group) {
     return (
@@ -239,6 +279,77 @@ const ActivityDetail = () => {
           getActivityPhase(activity.startAt, activity.endAt) === "未开始");
 
   const refresh = () => setTick((n) => n + 1);
+
+  const refreshComments = (scrollToLatest = false) => {
+    setCommentTick((n) => n + 1);
+    setScrollToLatestComment(scrollToLatest);
+    if (scrollToLatest) {
+      window.setTimeout(() => setScrollToLatestComment(false), 800);
+    }
+  };
+
+  const openCommentComposer = (focusImages = false) => {
+    setComposerFocusImages(focusImages);
+    setCommentSheetOpen(true);
+  };
+
+  const handleCommentSubmit = (input: {
+    content: string;
+    imageUrls: string[];
+  }) => {
+    if (!activity) return false;
+    const result = addActivityComment(
+      activity.id,
+      CURRENT_EMPLOYEE_ID,
+      input,
+    );
+    if (!result) {
+      toast.error("发布失败，请稍后重试");
+      return false;
+    }
+    refreshComments(true);
+    toast.success("评论已发布");
+    return true;
+  };
+
+  const handleCommentDelete = (commentId: string) => {
+    if (!deleteActivityComment(commentId, CURRENT_EMPLOYEE_ID)) {
+      toast.error("删除失败");
+      return;
+    }
+    refreshComments(false);
+    toast.success("已删除");
+  };
+
+  const handleCommentLike = (commentId: string) => {
+    toggleCommentLike(commentId, CURRENT_EMPLOYEE_ID);
+    refreshComments(false);
+  };
+
+  const handleCommentReply = (parentId: string, content: string) => {
+    if (!activity) return;
+    const result = addCommentReply(
+      activity.id,
+      parentId,
+      CURRENT_EMPLOYEE_ID,
+      content,
+    );
+    if (!result) {
+      toast.error("回复失败，请稍后重试");
+      return;
+    }
+    refreshComments(false);
+    toast.success("回复已发布");
+  };
+
+  const openEnrollees = (
+    occurrenceId: string,
+    sessionLabel: string,
+    enrollCount: number,
+  ) => {
+    setEnrolleesContext({ occurrenceId, sessionLabel, enrollCount });
+    setEnrolleesOpen(true);
+  };
 
   const openEnrollDialog = () => {
     setPickOccIds(new Set());
@@ -363,6 +474,10 @@ const ActivityDetail = () => {
       footerPhase !== "已结束" &&
       footerPhase !== "进行中");
 
+  const showCommentComposer = !isEditing;
+  const showBottomBar = showCommentComposer || showFooter;
+  const mainBottomPadding = showBottomBar ? "pb-[4.75rem]" : "pb-6";
+
   const enrollButtonLabel = () => {
     if (hasEnrollment) {
       if (seriesWholeMode) return "已报名系列活动";
@@ -414,7 +529,7 @@ const ActivityDetail = () => {
       </header>
 
       <main
-        className={`flex-1 space-y-3 overflow-y-auto px-3 scrollbar-hide ${showFooter ? "pb-32" : "pb-6"}`}
+        className={`flex-1 space-y-3 overflow-y-auto px-3 scrollbar-hide ${mainBottomPadding}`}
       >
         {isTerminated && (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -440,6 +555,7 @@ const ActivityDetail = () => {
           monthDay={formValues.monthDay}
           recurringTime={formValues.recurringTime}
           recurringEndTime={formValues.recurringEndTime}
+          onViewOccurrenceEnrollees={openEnrollees}
         />
 
         {(organizer || participates) && (
@@ -484,54 +600,83 @@ const ActivityDetail = () => {
           </section>
         )}
 
+        {showCommentComposer && (
+          <ActivityCommentSection
+            comments={comments}
+            commentCount={commentCount}
+            onDelete={handleCommentDelete}
+            onLike={handleCommentLike}
+            onReply={handleCommentReply}
+            scrollToLatest={scrollToLatestComment}
+          />
+        )}
+
       </main>
 
-      {showFooter && (
-        <footer className="fixed bottom-0 left-0 right-0 mx-auto max-w-md border-t border-border bg-background/95 px-3 py-3 backdrop-blur">
-          {isTerminated ? (
-            <p className="py-3 text-center text-sm text-muted-foreground">
-              活动已终止
-            </p>
-          ) : isOrganizer ? (
-            <ActivityOrganizerFooter
-              activity={activity}
-              organizerId={CURRENT_EMPLOYEE_ID}
-              canEdit={phase !== "已结束"}
-              onEdit={() => {
-                const next = new URLSearchParams(searchParams);
-                next.set("edit", "1");
-                setSearchParams(next);
-              }}
-              onTerminated={handleTerminated}
-            />
-          ) : canCancel ? (
-            <button
-              type="button"
-              onClick={() => setCancelOpen(true)}
-              className="w-full rounded-full border border-destructive/40 py-3 text-sm font-medium text-destructive active:scale-[0.99]"
-            >
-              取消报名
-              {myEnrollments.length > 1
-                ? `（${myEnrollments.length} 场）`
-                : ""}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={!canEnroll && !hasEnrollment}
-              onClick={() => {
-                if (multiOccMode) {
-                  openEnrollDialog();
-                } else {
-                  doEnroll();
-                }
-              }}
-              className="w-full rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground"
-            >
-              {enrollButtonLabel()}
-            </button>
+      {showBottomBar && (
+        <footer className="fixed bottom-0 left-0 right-0 z-20 mx-auto flex max-w-md items-center gap-2 border-t border-border bg-background/95 px-3 py-2.5 backdrop-blur">
+          {showCommentComposer && (
+            <ActivityCommentComposerInline onOpenComposer={openCommentComposer} />
+          )}
+
+          {showFooter && (
+            <div className="shrink-0">
+              {isTerminated ? (
+                <span className="whitespace-nowrap px-1 text-xs text-muted-foreground">
+                  活动已终止
+                </span>
+              ) : isOrganizer ? (
+                <ActivityOrganizerFooter
+                  activity={activity}
+                  organizerId={CURRENT_EMPLOYEE_ID}
+                  canEdit={phase !== "已结束"}
+                  compact={showCommentComposer}
+                  onEdit={() => {
+                    const next = new URLSearchParams(searchParams);
+                    next.set("edit", "1");
+                    setSearchParams(next);
+                  }}
+                  onTerminated={handleTerminated}
+                />
+              ) : canCancel ? (
+                <button
+                  type="button"
+                  onClick={() => setCancelOpen(true)}
+                  className="shrink-0 whitespace-nowrap rounded-full border border-destructive/40 px-3 py-2 text-xs font-medium text-destructive active:scale-[0.99]"
+                >
+                  取消报名
+                  {myEnrollments.length > 1
+                    ? ` ${myEnrollments.length}场`
+                    : ""}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!canEnroll && !hasEnrollment}
+                  onClick={() => {
+                    if (multiOccMode) {
+                      openEnrollDialog();
+                    } else {
+                      doEnroll();
+                    }
+                  }}
+                  className="min-w-[6.5rem] max-w-[12rem] shrink-0 truncate rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground active:scale-[0.99]"
+                >
+                  {enrollButtonLabel()}
+                </button>
+              )}
+            </div>
           )}
         </footer>
+      )}
+
+      {showCommentComposer && (
+        <ActivityCommentComposerSheet
+          open={commentSheetOpen}
+          onOpenChange={setCommentSheetOpen}
+          initialFocusImages={composerFocusImages}
+          onSubmit={handleCommentSubmit}
+        />
       )}
 
       {multiOccMode && (
@@ -583,6 +728,16 @@ const ActivityDetail = () => {
             </div>
           </SheetContent>
         </Sheet>
+      )}
+
+      {enrolleesContext && (
+        <ActivityEnrolleesSheet
+          open={enrolleesOpen}
+          onOpenChange={setEnrolleesOpen}
+          sessionLabel={enrolleesContext.sessionLabel}
+          enrolleeCount={enrolleesContext.enrollCount}
+          enrollees={occurrenceEnrollees}
+        />
       )}
 
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>

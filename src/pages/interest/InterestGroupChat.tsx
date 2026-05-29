@@ -39,7 +39,7 @@ const InterestGroupChat = () => {
         { role: "user", text: trimmed },
         {
           role: "assistant",
-          text: "好的，已为你保留当前报名。如需查看，可前往「我的活动」。",
+          text: "好的，已为你保留当前报名。如需查看，可前往「活动管理」。",
         },
       ]);
       return;

@@ -81,6 +81,20 @@ export type ActivityEnrollment = {
   status: "enrolled" | "cancelled";
 };
 
+export type ActivityComment = {
+  id: string;
+  activityId: string;
+  authorId: string;
+  content: string;
+  imageUrls: string[];
+  createdAt: string;
+  likeCount?: number;
+  /** 回复所归属的顶层评论 ID */
+  parentId?: string;
+};
+
+export type ActivityCommentSort = "latest" | "hottest";
+
 export type GroupMembership = {
   groupId: string;
   employeeId: string;

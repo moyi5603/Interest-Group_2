@@ -12,9 +12,33 @@ export const interestTagList: InterestTag[] = [
   { id: "tag-boardgame", name: "桌游", category: "生活" },
   { id: "tag-badminton", name: "羽毛球", category: "运动" },
   { id: "tag-basketball", name: "篮球", category: "运动" },
-  { id: "tag-tech", name: "技术分享", category: "科技" },
-  { id: "tag-volunteer", name: "公益志愿", category: "生活" },
+  { id: "tag-tech", name: "技术分享", category: "职场" },
+  { id: "tag-volunteer", name: "公益志愿", category: "社会" },
+  { id: "tag-ai", name: "AI实践", category: "职场" },
+  { id: "tag-reading", name: "读书会", category: "职场" },
+  { id: "tag-english", name: "英语角", category: "职场" },
+  { id: "tag-industry", name: "行业交流", category: "职场" },
+  { id: "tag-speech", name: "演讲", category: "职场" },
+  { id: "tag-yoga", name: "瑜伽", category: "运动" },
+  { id: "tag-pingpong", name: "乒乓球", category: "运动" },
+  { id: "tag-coffee", name: "咖啡", category: "生活" },
 ];
+
+/** 创建/编辑小组时展示的标签（偏职场与运动，少娱乐向） */
+export const groupTagList: InterestTag[] = [
+  "tag-tech",
+  "tag-ai",
+  "tag-reading",
+  "tag-english",
+  "tag-industry",
+  "tag-running",
+  "tag-fitness",
+  "tag-badminton",
+  "tag-hiking",
+  "tag-volunteer",
+]
+  .map((id) => interestTagList.find((t) => t.id === id))
+  .filter((t): t is InterestTag => !!t);
 
 let customTags: InterestTag[] = loadCustomTags();
 const tagById = new Map<string, InterestTag>();

@@ -121,12 +121,12 @@ export const viewMoreForIntent = (
     case "enroll_action":
       return {
         to: "/agents/interest-groups/list/recent",
-        label: "查看更多活动",
+        label: "前往活动广场",
       };
     case "my_groups":
       return {
         to: "/agents/interest-groups/list/my-groups",
-        label: "查看更多小组",
+        label: "前往小组管理",
       };
     case "group_detail":
       return groupId
@@ -136,12 +136,12 @@ export const viewMoreForIntent = (
           }
         : {
             to: "/agents/interest-groups/discover",
-            label: "查看更多小组",
+            label: "前往小组广场",
           };
     default:
       return {
         to: "/agents/interest-groups/discover",
-        label: "查看更多小组",
+        label: "前往小组广场",
       };
   }
 };
@@ -848,7 +848,7 @@ export const buildReply = (
             ? `你已加入 ${groups.length} 个兴趣小组：`
             : scored.length > 0
               ? "你还没有加入任何小组，可以先看看这些推荐："
-              : "你还没有加入任何小组，可以前往「加入小组」浏览。",
+              : "你还没有加入任何小组，可以前往「小组广场」浏览。",
         groups: groups.length > 0 ? groups : undefined,
         scoredGroups: groups.length === 0 ? scored : undefined,
         cardOverflow: cardOverflowMeta(
@@ -877,7 +877,7 @@ export const buildReply = (
     case "join_guide": {
       const scored = recommendGroups(viewerId, 12);
       const steps =
-        "加入兴趣小组很简单：\n\n1. 在首页浏览「AI 推荐」或「加入小组」\n2. 打开小组详情，点击「加入小组」\n3. 完善兴趣标签可获得更精准推荐\n\n发起活动需先加入小组，由组长在小组内发布。";
+        "加入兴趣小组很简单：\n\n1. 在首页浏览「AI 推荐」或「小组广场」\n2. 打开小组详情，点击「加入小组」\n3. 完善兴趣标签可获得更精准推荐\n\n发起活动需先加入小组，由组长在小组内发布。";
       return {
         intent,
         text:

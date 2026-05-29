@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { InterestTag } from "@/data/interestTypes";
 import { ensureCustomTag, interestTagList } from "@/data/interestTags";
 import { toast } from "@/components/ui/sonner";
 
@@ -12,6 +13,10 @@ type Props = {
   flat?: boolean;
   /** 最多可选数量；达上限后不可再选/自定义添加 */
   maxSelected?: number;
+  /** 可选标签列表；默认使用全量兴趣标签 */
+  tagList?: InterestTag[];
+  /** 紧凑布局（创建小组等表单） */
+  compact?: boolean;
 };
 
 const InterestTagPicker = ({
@@ -21,6 +26,8 @@ const InterestTagPicker = ({
   allowDeselect = false,
   flat = false,
   maxSelected,
+  tagList = interestTagList,
+  compact = false,
 }: Props) => {
   const [customInput, setCustomInput] = useState("");
   const atMax =
@@ -58,18 +65,18 @@ const InterestTagPicker = ({
     else onToggle(tag.id);
   };
 
-  const byCategory = interestTagList.reduce(
+  const byCategory = tagList.reduce(
     (acc, t) => {
       if (!acc[t.category]) acc[t.category] = [];
       acc[t.category].push(t);
       return acc;
     },
-    {} as Record<string, typeof interestTagList>,
+    {} as Record<string, typeof tagList>,
   );
 
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
+    <div className={compact ? "space-y-1.5" : "space-y-3"}>
+      <div className="flex gap-1.5">
         <input
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
@@ -80,28 +87,38 @@ const InterestTagPicker = ({
             }
           }}
           maxLength={6}
-          placeholder="输入自定义标签"
+          placeholder="自定义标签"
           disabled={atMax}
-          className="min-w-0 flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm disabled:opacity-50"
+          className={
+            compact
+              ? "min-w-0 flex-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs disabled:opacity-50"
+              : "min-w-0 flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm disabled:opacity-50"
+          }
         />
         <button
           type="button"
           onClick={addCustom}
           disabled={atMax}
-          className="shrink-0 rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-foreground active:scale-95 disabled:opacity-50"
+          className={
+            compact
+              ? "shrink-0 rounded-lg bg-secondary px-2.5 py-1.5 text-xs font-medium text-foreground active:scale-95 disabled:opacity-50"
+              : "shrink-0 rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-foreground active:scale-95 disabled:opacity-50"
+          }
         >
           添加
         </button>
       </div>
-      <p className="text-sm text-muted-foreground">
-        {maxSelected !== undefined
-          ? `最多 ${maxSelected} 个标签，可从下方选择或自定义（每个最多 6 字）`
-          : "可从下方选择，或直接输入自定义内容（最多 6 字）"}
-      </p>
+      {!compact && (
+        <p className="text-sm text-muted-foreground">
+          {maxSelected !== undefined
+            ? `最多 ${maxSelected} 个标签，可从下方选择或自定义（每个最多 6 字）`
+            : "可从下方选择，或直接输入自定义内容（最多 6 字）"}
+        </p>
+      )}
 
       {flat ? (
-        <div className="flex flex-wrap gap-2">
-          {interestTagList.map((t) => {
+        <div className={compact ? "flex flex-wrap gap-1.5" : "flex flex-wrap gap-2"}>
+          {tagList.map((t) => {
             const active = selectedIds.includes(t.id);
             const disabled = !active && atMax;
             return (
@@ -113,13 +130,23 @@ const InterestTagPicker = ({
                   if (active && !allowDeselect) return;
                   trySelect(t.id);
                 }}
-                className={`rounded-full px-3 py-1.5 text-sm ${
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : disabled
-                      ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
-                      : "border border-border bg-card"
-                }`}
+                className={
+                  compact
+                    ? `rounded-full px-2.5 py-1 text-xs ${
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : disabled
+                            ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
+                            : "border border-border bg-card"
+                      }`
+                    : `rounded-full px-3 py-1.5 text-sm ${
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : disabled
+                            ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
+                            : "border border-border bg-card"
+                      }`
+                }
               >
                 {t.name}
               </button>

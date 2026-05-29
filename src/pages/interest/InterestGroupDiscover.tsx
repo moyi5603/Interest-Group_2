@@ -76,7 +76,7 @@ const InterestGroupDiscover = () => {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1 text-center">
-            <h1 className={t.pageTitle}>加入小组</h1>
+            <h1 className={t.pageTitle}>小组广场</h1>
             <p className={t.pageSubtitle}>AI 智能推荐 · 按兴趣匹配</p>
           </div>
           <div className="w-9" />

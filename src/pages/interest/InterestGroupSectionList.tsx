@@ -26,8 +26,8 @@ const sectionMeta: Record<
   InterestListSection,
   { title: string; empty: string }
 > = {
-  recent: { title: "近期活动", empty: "暂无即将开始的活动" },
-  "my-groups": { title: "我的小组", empty: "" },
+  recent: { title: "活动广场", empty: "暂无即将开始的活动" },
+  "my-groups": { title: "小组管理", empty: "" },
   recommend: { title: "AI 推荐", empty: "暂无推荐小组" },
 };
 

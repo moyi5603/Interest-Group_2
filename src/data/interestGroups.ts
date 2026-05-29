@@ -21,6 +21,15 @@ import {
   isSeriesWholeEnrollmentOpen,
   sortOccurrencesByStart,
 } from "@/lib/seriesEnrollment";
+import {
+  notifyActivityEnrolled,
+  notifyActivityPublished,
+  notifyActivityTerminated,
+  notifyGroupDisbanded,
+  notifyGroupMemberJoined,
+} from "@/lib/growthEngineNotify";
+import { employeesFull, getEmployee } from "@/data/colleagueData";
+import { compareNamePinyin } from "@/lib/chineseNameSort";
 
 export const CURRENT_EMPLOYEE_ID = "u1";
 
@@ -991,27 +1000,16 @@ export let enrollments: ActivityEnrollment[] = [
     enrolledAt: atLocal(2026, 5, 1, 10, 0),
     status: "enrolled",
   },
-  {
-    id: "enr-h-1",
-    activityId: "act-7",
-    employeeId: "u2",
-    enrolledAt: addDays(now, -4),
-    status: "enrolled",
-  },
-  {
-    id: "enr-h-2",
-    activityId: "act-7",
-    employeeId: "u3",
-    enrolledAt: addDays(now, -3),
-    status: "enrolled",
-  },
-  {
-    id: "enr-h-3",
-    activityId: "act-7",
-    employeeId: "u5",
-    enrolledAt: addDays(now, -2),
-    status: "enrolled",
-  },
+  ...(["u2", "u3", "u5"] as const).flatMap((employeeId, userIdx) =>
+    ([1, 2, 3, 4, 5] as const).map((sessionNum) => ({
+      id: `enr-h-${userIdx + 1}-${sessionNum}`,
+      activityId: "act-7",
+      occurrenceId: `occ-h${sessionNum}`,
+      employeeId,
+      enrolledAt: addDays(now, -4 + userIdx),
+      status: "enrolled" as const,
+    })),
+  ),
   {
     id: "enr-t1-1",
     activityId: "act-t1",
@@ -1067,19 +1065,7 @@ const syncOccurrenceEnrollCounts = () => {
       wholeTotal != null &&
       getSeriesEnrollmentMode(activity) === "once_before_first"
     ) {
-      const scheduled = sortOccurrencesByStart(
-        allOccs.filter(
-          (x) => x.activityId === activity.id && x.status === "scheduled",
-        ),
-      );
-      const anchor =
-        getFirstSeriesOccurrence(scheduled) ??
-        getFirstSeriesOccurrence(
-          allOccs.filter((x) => x.activityId === activity.id),
-        );
-      if (anchor?.id === o.id) {
-        enrollCount = wholeTotal;
-      }
+      enrollCount = wholeTotal;
     }
 
     return { ...o, enrollCount };
@@ -1120,6 +1106,29 @@ export const getActivitiesByGroup = (groupId: string) =>
 
 export const getActivityById = (id: string) => activities.find((a) => a.id === id);
 
+export const bumpActivityCommentCount = (
+  activityId: string,
+  delta: number,
+) => {
+  activities = activities.map((a) =>
+    a.id === activityId
+      ? {
+          ...a,
+          commentCount: Math.max(0, (a.commentCount ?? 0) + delta),
+        }
+      : a,
+  );
+};
+
+export const setActivityCommentCount = (
+  activityId: string,
+  count: number,
+) => {
+  activities = activities.map((a) =>
+    a.id === activityId ? { ...a, commentCount: count } : a,
+  );
+};
+
 export const getOccurrencesByActivity = (activityId: string) =>
   occurrences.filter((o) => o.activityId === activityId);
 
@@ -1157,6 +1166,216 @@ export const getMyCreatedGroups = (employeeId: string) =>
 export const getMyJoinedGroups = (employeeId: string) =>
   getJoinedGroups(employeeId).filter((g) => !isGroupOwner(g.id, employeeId));
 
+export type GroupMemberInfo = {
+  employeeId: string;
+  name: string;
+  position: string;
+  deptName: string;
+  avatarColor: string;
+  avatarUrl?: string;
+  role: GroupMembership["role"];
+};
+
+const memberRoleOrder: Record<GroupMembership["role"], number> = {
+  owner: 0,
+  admin: 1,
+  member: 2,
+};
+
+const pickMemberRole = (
+  current: GroupMembership["role"] | undefined,
+  next: GroupMembership["role"],
+): GroupMembership["role"] => {
+  if (!current) return next;
+  return memberRoleOrder[next] < memberRoleOrder[current] ? next : current;
+};
+
+const mockAvatarColors = [
+  "210 90% 60%",
+  "25 95% 60%",
+  "160 70% 45%",
+  "350 85% 62%",
+  "270 70% 62%",
+  "45 95% 55%",
+  "330 80% 65%",
+  "15 85% 65%",
+  "195 80% 55%",
+  "245 75% 60%",
+];
+
+const mockSurnames = [
+  "刘",
+  "陈",
+  "杨",
+  "黄",
+  "赵",
+  "周",
+  "吴",
+  "徐",
+  "孙",
+  "胡",
+  "朱",
+  "高",
+  "林",
+  "何",
+  "郭",
+  "马",
+];
+
+const mockGivenNames = [
+  "伟",
+  "芳",
+  "娜",
+  "敏",
+  "静",
+  "丽",
+  "强",
+  "磊",
+  "军",
+  "洋",
+  "勇",
+  "艳",
+  "杰",
+  "涛",
+  "明",
+  "超",
+  "霞",
+  "平",
+  "刚",
+  "婷",
+  "浩",
+  "鑫",
+  "鹏",
+  "慧",
+];
+
+const mockDeptNames = [
+  "前端组",
+  "后端组",
+  "AI 算法组",
+  "产品组",
+  "设计组",
+  "测试组",
+  "运维组",
+  "人力资源部",
+  "财务部",
+  "行政部",
+];
+
+const mockPositions = [
+  "工程师",
+  "高级工程师",
+  "产品经理",
+  "设计师",
+  "测试工程师",
+  "运营专员",
+  "数据分析师",
+  "项目经理",
+];
+
+const mockMemberSeed = (groupId: string, index: number) => {
+  const base = groupId.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  return base + index * 17;
+};
+
+const buildMockMember = (
+  groupId: string,
+  index: number,
+): GroupMemberInfo => {
+  const seed = mockMemberSeed(groupId, index);
+  const surname = mockSurnames[seed % mockSurnames.length];
+  const given = mockGivenNames[(seed * 3) % mockGivenNames.length];
+  const second =
+    seed % 4 === 0
+      ? mockGivenNames[(seed * 5 + 2) % mockGivenNames.length]
+      : "";
+  return {
+    employeeId: `mock-${groupId}-${index}`,
+    name: `${surname}${given}${second}`,
+    position: mockPositions[seed % mockPositions.length],
+    deptName: mockDeptNames[seed % mockDeptNames.length],
+    avatarColor: mockAvatarColors[seed % mockAvatarColors.length],
+    role: "member",
+  };
+};
+
+const padGroupMembers = (
+  members: GroupMemberInfo[],
+  groupId: string,
+  targetCount: number,
+): GroupMemberInfo[] => {
+  if (members.length >= targetCount) return members;
+
+  const result = [...members];
+  const existingIds = new Set(result.map((m) => m.employeeId));
+
+  for (const emp of employeesFull) {
+    if (result.length >= targetCount) break;
+    if (existingIds.has(emp.id)) continue;
+    result.push({
+      employeeId: emp.id,
+      name: emp.name,
+      position: emp.position,
+      deptName: emp.deptName,
+      avatarColor: emp.avatarColor,
+      avatarUrl: emp.avatarUrl,
+      role: "member",
+    });
+    existingIds.add(emp.id);
+  }
+
+  let mockIndex = 0;
+  while (result.length < targetCount) {
+    const mock = buildMockMember(groupId, mockIndex);
+    if (!existingIds.has(mock.employeeId)) {
+      result.push(mock);
+      existingIds.add(mock.employeeId);
+    }
+    mockIndex += 1;
+  }
+
+  return result;
+};
+
+/** 小组成员列表（组长优先；演示数据补齐至 memberCount） */
+export const getGroupMembers = (groupId: string): GroupMemberInfo[] => {
+  const group = interestGroups.find((g) => g.id === groupId);
+  if (!group) return [];
+
+  const roleById = new Map<string, GroupMembership["role"]>();
+  roleById.set(group.ownerId, "owner");
+
+  for (const m of groupMemberships) {
+    if (m.groupId !== groupId) continue;
+    roleById.set(m.employeeId, pickMemberRole(roleById.get(m.employeeId), m.role));
+  }
+
+  for (const emp of employeesFull) {
+    if (emp.interestGroups.some((g) => g.id === groupId) && !roleById.has(emp.id)) {
+      roleById.set(emp.id, "member");
+    }
+  }
+
+  const members: GroupMemberInfo[] = [];
+  for (const [employeeId, role] of roleById) {
+    const emp = getEmployee(employeeId);
+    if (!emp) continue;
+    members.push({
+      employeeId,
+      name: emp.name,
+      position: emp.position,
+      deptName: emp.deptName,
+      avatarColor: emp.avatarColor,
+      avatarUrl: emp.avatarUrl,
+      role,
+    });
+  }
+
+  return padGroupMembers(members, groupId, group.memberCount).sort((a, b) =>
+    compareNamePinyin(a.name, b.name),
+  );
+};
+
 export const joinGroup = (groupId: string, employeeId: string): boolean => {
   if (isMember(groupId, employeeId)) return true;
   const group = interestGroups.find((g) => g.id === groupId);
@@ -1168,6 +1387,12 @@ export const joinGroup = (groupId: string, employeeId: string): boolean => {
   interestGroups = interestGroups.map((g) =>
     g.id === groupId ? { ...g, memberCount: g.memberCount + 1 } : g,
   );
+  notifyGroupMemberJoined({
+    ownerId: group.ownerId,
+    groupId,
+    groupName: group.name,
+    memberId: employeeId,
+  });
   return true;
 };
 
@@ -1226,6 +1451,16 @@ export const terminatePublishedActivity = (activityId: string): boolean => {
   const activity = getActivityById(activityId);
   if (!activity || activity.status !== "published") return false;
 
+  const enrolledMemberIds = [
+    ...new Set(
+      enrollments
+        .filter(
+          (e) => e.activityId === activityId && e.status === "enrolled",
+        )
+        .map((e) => e.employeeId),
+    ),
+  ];
+
   const active = enrollments.filter(
     (e) => e.activityId === activityId && e.status === "enrolled",
   );
@@ -1245,6 +1480,11 @@ export const terminatePublishedActivity = (activityId: string): boolean => {
   activities = activities.map((a) =>
     a.id === activityId ? { ...a, status: "cancelled" as const } : a,
   );
+  notifyActivityTerminated({
+    memberIds: enrolledMemberIds,
+    activityId,
+    activityTitle: activity.title,
+  });
   return true;
 };
 
@@ -1296,13 +1536,134 @@ export const disbandGroup = (
   interestGroups = interestGroups.map((g) =>
     g.id === groupId ? updated : g,
   );
+  notifyGroupDisbanded({
+    memberIds: groupMemberships
+      .filter((m) => m.groupId === groupId)
+      .map((m) => m.employeeId),
+    groupId,
+    groupName: group.name,
+  });
   return { group: updated, terminatedActivityCount };
 };
 
-export const countActivityEnrollments = (activityId: string) =>
-  enrollments.filter(
+export const countActivityEnrollments = (activityId: string) => {
+  const active = enrollments.filter(
     (e) => e.activityId === activityId && e.status === "enrolled",
-  ).length;
+  );
+  const activity = getActivityById(activityId);
+  if (
+    activity?.activityKind === "series" &&
+    getSeriesEnrollmentMode(activity) === "once_before_first"
+  ) {
+    return new Set(active.map((e) => e.employeeId)).size;
+  }
+  return active.length;
+};
+
+export type ActivityEnrolleeInfo = {
+  employeeId: string;
+  name: string;
+  position: string;
+  deptName: string;
+  avatarColor: string;
+  avatarUrl?: string;
+  badge?: string | null;
+};
+
+const padActivityEnrollees = (
+  enrollees: ActivityEnrolleeInfo[],
+  activityId: string,
+  targetCount: number,
+): ActivityEnrolleeInfo[] => {
+  if (targetCount <= 0) return enrollees;
+  if (enrollees.length >= targetCount) return enrollees;
+
+  const result = [...enrollees];
+  const existingIds = new Set(result.map((e) => e.employeeId));
+
+  for (const emp of employeesFull) {
+    if (result.length >= targetCount) break;
+    if (existingIds.has(emp.id)) continue;
+    result.push({
+      employeeId: emp.id,
+      name: emp.name,
+      position: emp.position,
+      deptName: emp.deptName,
+      avatarColor: emp.avatarColor,
+      avatarUrl: emp.avatarUrl,
+      badge: null,
+    });
+    existingIds.add(emp.id);
+  }
+
+  let mockIndex = 0;
+  while (result.length < targetCount) {
+    const mock = buildMockMember(activityId, mockIndex);
+    const id = `mock-enr-${mock.employeeId}`;
+    if (!existingIds.has(id)) {
+      result.push({
+        employeeId: id,
+        name: mock.name,
+        position: mock.position,
+        deptName: mock.deptName,
+        avatarColor: mock.avatarColor,
+        badge: null,
+      });
+      existingIds.add(id);
+    }
+    mockIndex += 1;
+  }
+
+  return result;
+};
+
+/** 某场次（或整场系列）报名人员列表 */
+export const getOccurrenceEnrollees = (
+  activityId: string,
+  occurrenceId: string,
+): ActivityEnrolleeInfo[] => {
+  const activity = getActivityById(activityId);
+  if (!activity) return [];
+
+  const occurrence = getOccurrenceById(occurrenceId);
+  const isWholeSeries =
+    activity.activityKind === "series" &&
+    getSeriesEnrollmentMode(activity) === "once_before_first";
+
+  const matched = enrollments.filter((e) => {
+    if (e.activityId !== activityId || e.status !== "enrolled") return false;
+    if (isWholeSeries) {
+      return e.occurrenceId === occurrenceId || !e.occurrenceId;
+    }
+    if (e.occurrenceId === occurrenceId) return true;
+    if (activity.activityKind === "one_off" && !e.occurrenceId) return true;
+    return false;
+  });
+
+  const seen = new Set<string>();
+  const enrollees: ActivityEnrolleeInfo[] = [];
+  for (const enrollment of matched) {
+    if (seen.has(enrollment.employeeId)) continue;
+    seen.add(enrollment.employeeId);
+    const emp = getEmployee(enrollment.employeeId);
+    if (!emp) continue;
+    enrollees.push({
+      employeeId: enrollment.employeeId,
+      name: emp.name,
+      position: emp.position,
+      deptName: emp.deptName,
+      avatarColor: emp.avatarColor,
+      avatarUrl: emp.avatarUrl,
+      badge:
+        enrollment.employeeId === activity.organizerId ? "组织者" : null,
+    });
+  }
+
+  const targetCount = occurrence?.enrollCount ?? enrollees.length;
+  return padActivityEnrollees(enrollees, activityId, targetCount).sort(
+    (a, b) => compareNamePinyin(a.name, b.name),
+  );
+};
 
 /** 除组织者外是否已有他人报名（编辑时锁定场次信息） */
 export const hasOtherEnrollments = (
@@ -1347,30 +1708,121 @@ export const isEnrolledInOccurrence = (
       e.status === "enrolled",
   );
 
+const enrollSeriesWhole = (
+  activityId: string,
+  employeeId: string,
+  organizerAuto: boolean,
+): ActivityEnrollment | undefined => {
+  const activity = getActivityById(activityId);
+  if (!activity) return undefined;
+
+  const scheduled = sortOccurrencesByStart(
+    getOccurrencesByActivity(activityId).filter(
+      (o) => o.status === "scheduled",
+    ),
+  );
+  if (scheduled.length === 0) return undefined;
+
+  const allJoined = scheduled.every((occ) =>
+    isEnrolledInOccurrence(activityId, employeeId, occ.id),
+  );
+  if (allJoined) {
+    return getEnrollmentsForActivity(activityId, employeeId)[0];
+  }
+
+  if (!organizerAuto && !isEnrolled(activityId, employeeId)) {
+    const enrolledCount = countActivityEnrollments(activityId);
+    if (
+      activity.capacity != null &&
+      enrolledCount >= activity.capacity
+    ) {
+      return undefined;
+    }
+  }
+
+  enrollments = enrollments.map((e) =>
+    e.activityId === activityId &&
+    e.employeeId === employeeId &&
+    e.status === "enrolled" &&
+    !e.occurrenceId
+      ? { ...e, status: "cancelled" as const }
+      : e,
+  );
+
+  const enrolledAt = new Date().toISOString();
+  const batchId = `enr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  let first: ActivityEnrollment | undefined;
+
+  for (const occ of scheduled) {
+    if (isEnrolledInOccurrence(activityId, employeeId, occ.id)) continue;
+    const enrollment: ActivityEnrollment = {
+      id: `${batchId}-${occ.id}`,
+      activityId,
+      occurrenceId: occ.id,
+      employeeId,
+      enrolledAt,
+      status: "enrolled",
+    };
+    enrollments = [...enrollments, enrollment];
+    occurrences = occurrences.map((o) =>
+      o.id === occ.id ? { ...o, enrollCount: o.enrollCount + 1 } : o,
+    );
+    if (!first) first = enrollment;
+  }
+
+  if (!first) {
+    return getEnrollmentsForActivity(activityId, employeeId)[0];
+  }
+
+  if (!organizerAuto) {
+    notifyActivityEnrolled({
+      organizerId: activity.organizerId,
+      activityId,
+      activityTitle: activity.title,
+      memberId: employeeId,
+      enrollCount: countActivityEnrollments(activityId),
+    });
+  }
+  return first;
+};
+
 /** 报名不要求先加入小组（见设计文档 §7.10） */
+export type EnrollActivityOptions = {
+  /** 发布时创建人自动加入，跳过窗口/名额限制且不重复发通知 */
+  organizerAuto?: boolean;
+};
+
 export const enrollActivity = (
   activityId: string,
   employeeId: string,
   occurrenceId?: string,
   occurrenceSnapshot?: ActivityOccurrence,
+  options?: EnrollActivityOptions,
 ) => {
   const activity = getActivityById(activityId);
   if (!activity || activity.status !== "published") return undefined;
+
+  const organizerAuto =
+    Boolean(options?.organizerAuto) &&
+    employeeId === activity.organizerId;
 
   const occs = getOccurrencesByActivity(activityId);
 
   if (activity.activityKind === "series") {
     const mode = getSeriesEnrollmentMode(activity);
     if (mode === "once_before_first") {
-      if (!isSeriesWholeEnrollmentOpen(activity, occs)) return undefined;
+      if (!organizerAuto && !isSeriesWholeEnrollmentOpen(activity, occs)) {
+        return undefined;
+      }
       const enrolledCount = countActivityEnrollments(activityId);
       if (
+        !organizerAuto &&
         activity.capacity != null &&
         enrolledCount >= activity.capacity
       ) {
         return undefined;
       }
-      occurrenceId = undefined;
+      return enrollSeriesWhole(activityId, employeeId, organizerAuto);
     } else if (occurrenceId) {
       if (isEnrolledInOccurrence(activityId, employeeId, occurrenceId)) {
         return enrollments.find(
@@ -1381,10 +1833,13 @@ export const enrollActivity = (
             e.status === "enrolled",
         );
       }
-      const enrollable = getEnrollableSeriesOccurrences(activity, occs);
-      if (!enrollable.some((o) => o.id === occurrenceId)) return undefined;
+      if (!organizerAuto) {
+        const enrollable = getEnrollableSeriesOccurrences(activity, occs);
+        if (!enrollable.some((o) => o.id === occurrenceId)) return undefined;
+      }
       const occ = getOccurrenceById(occurrenceId);
       if (
+        !organizerAuto &&
         occ &&
         occ.capacity != null &&
         occ.enrollCount >= occ.capacity
@@ -1398,6 +1853,7 @@ export const enrollActivity = (
     const occForWindow =
       getOccurrenceById(occurrenceId) ?? occurrenceSnapshot;
     if (
+      !organizerAuto &&
       occForWindow &&
       (activity.activityKind === "recurring" ||
         (activity.activityKind === "series" &&
@@ -1424,6 +1880,7 @@ export const enrollActivity = (
     }
     const occ = getOccurrenceById(occurrenceId);
     if (
+      !organizerAuto &&
       occ &&
       occ.capacity != null &&
       occ.enrollCount >= occ.capacity
@@ -1432,14 +1889,16 @@ export const enrollActivity = (
     }
   } else {
     if (activity.activityKind === "one_off") {
-      const blocked = oneOffEnrollmentBlockedReason(activity);
-      if (blocked) return undefined;
-      const enrolledCount = countActivityEnrollments(activityId);
-      if (
-        activity.capacity != null &&
-        enrolledCount >= activity.capacity
-      ) {
-        return undefined;
+      if (!organizerAuto) {
+        const blocked = oneOffEnrollmentBlockedReason(activity);
+        if (blocked) return undefined;
+        const enrolledCount = countActivityEnrollments(activityId);
+        if (
+          activity.capacity != null &&
+          enrolledCount >= activity.capacity
+        ) {
+          return undefined;
+        }
       }
     }
     const existing = enrollments.find(
@@ -1466,18 +1925,15 @@ export const enrollActivity = (
     occurrences = occurrences.map((o) =>
       o.id === occurrenceId ? { ...o, enrollCount: o.enrollCount + 1 } : o,
     );
-  } else if (
-    activity.activityKind === "series" &&
-    getSeriesEnrollmentMode(activity) === "once_before_first"
-  ) {
-    const first = getFirstSeriesOccurrence(
-      occs.filter((o) => o.status === "scheduled"),
-    );
-    if (first) {
-      occurrences = occurrences.map((o) =>
-        o.id === first.id ? { ...o, enrollCount: o.enrollCount + 1 } : o,
-      );
-    }
+  }
+  if (!organizerAuto) {
+    notifyActivityEnrolled({
+      organizerId: activity.organizerId,
+      activityId,
+      activityTitle: activity.title,
+      memberId: employeeId,
+      enrollCount: countActivityEnrollments(activityId),
+    });
   }
   return enrollment;
 };
@@ -1781,18 +2237,45 @@ export const getMyOrganizedActivities = (
 
 export const addActivity = (activity: GroupActivity) => {
   activities = [...activities, activity];
+  const group = getGroupById(activity.groupId);
+  if (!group) return;
+  notifyActivityPublished({
+    memberIds: groupMemberships
+      .filter((m) => m.groupId === activity.groupId)
+      .map((m) => m.employeeId)
+      .filter((id) => id !== activity.organizerId),
+    activityId: activity.id,
+    activityTitle: activity.title,
+    groupName: group.name,
+  });
 };
 
-/** 发布活动后，创建人默认计入报名（不占额逻辑与正式环境一致由服务端处理） */
+/** 发布活动后，创建人默认加入全部场次 */
 export const enrollOrganizerAsParticipant = (activity: GroupActivity) => {
-  if (isEnrolled(activity.id, activity.organizerId)) return;
-
+  const organizerId = activity.organizerId;
+  const autoOpts: EnrollActivityOptions = { organizerAuto: true };
   const occs = getOccurrencesByActivity(activity.id).filter(
     (o) => o.status === "scheduled",
   );
 
   if (activity.activityKind === "one_off") {
-    enrollActivity(activity.id, activity.organizerId);
+    if (occs.length > 0) {
+      for (const occ of sortOccurrencesByStart(occs)) {
+        if (!isEnrolledInOccurrence(activity.id, organizerId, occ.id)) {
+          enrollActivity(
+            activity.id,
+            organizerId,
+            occ.id,
+            undefined,
+            autoOpts,
+          );
+        }
+      }
+      return;
+    }
+    if (!isEnrolled(activity.id, organizerId)) {
+      enrollActivity(activity.id, organizerId, undefined, undefined, autoOpts);
+    }
     return;
   }
 
@@ -1800,13 +2283,20 @@ export const enrollOrganizerAsParticipant = (activity: GroupActivity) => {
     activity.activityKind === "series" &&
     getSeriesEnrollmentMode(activity) === "once_before_first"
   ) {
-    enrollActivity(activity.id, activity.organizerId);
+    enrollSeriesWhole(activity.id, organizerId, true);
     return;
   }
 
-  const first = sortOccurrencesByStart(occs)[0];
-  if (first) {
-    enrollActivity(activity.id, activity.organizerId, first.id);
+  for (const occ of sortOccurrencesByStart(occs)) {
+    if (!isEnrolledInOccurrence(activity.id, organizerId, occ.id)) {
+      enrollActivity(
+        activity.id,
+        organizerId,
+        occ.id,
+        undefined,
+        autoOpts,
+      );
+    }
   }
 };
 
@@ -1843,6 +2333,8 @@ export const replaceOccurrencesForActivity = (
     ...occurrences.filter((o) => o.activityId !== activityId),
     ...items,
   ];
+  const activity = getActivityById(activityId);
+  if (activity) enrollOrganizerAsParticipant(activity);
 };
 
 export const updateSeriesOccurrences = (
@@ -1882,4 +2374,8 @@ export const updateRecurringOccurrences = (
 
 export const addOccurrences = (items: ActivityOccurrence[]) => {
   occurrences = [...occurrences, ...items];
+  for (const activityId of new Set(items.map((o) => o.activityId))) {
+    const activity = getActivityById(activityId);
+    if (activity) enrollOrganizerAsParticipant(activity);
+  }
 };

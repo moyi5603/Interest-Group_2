@@ -8,6 +8,7 @@ import type {
   InterestGroupFull,
   SeriesEnrollmentMode,
 } from "@/data/interestTypes";
+import { getTagsByIds } from "@/data/interestTags";
 import {
   canTerminateActivity,
   getOccurrencesByActivity,
@@ -112,7 +113,7 @@ const ActivityOrganizerEdit = ({
 
   const save = () => {
     if (!title.trim()) {
-      toast.error("请填写活动标题");
+      toast.error("请填写活动名称");
       return;
     }
     if (!description.trim()) {
@@ -297,6 +298,8 @@ const ActivityOrganizerEdit = ({
             setRecurringTime(start);
             setRecurringEndTime(end);
           }}
+          groupName={group.name}
+          groupTagNames={getTagsByIds(group.tagIds).map((tag) => tag.name)}
         />
 
       </main>

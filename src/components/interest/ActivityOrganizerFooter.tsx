@@ -25,6 +25,8 @@ type Props = {
   onTerminated: (activity: GroupActivity) => void;
   /** 未结束时可编辑 */
   canEdit?: boolean;
+  /** 与评论输入同一行时使用紧凑按钮 */
+  compact?: boolean;
 };
 
 const ActivityOrganizerFooter = ({
@@ -33,6 +35,7 @@ const ActivityOrganizerFooter = ({
   onEdit,
   onTerminated,
   canEdit = true,
+  compact = false,
 }: Props) => {
   const [terminateOpen, setTerminateOpen] = useState(false);
 
@@ -53,16 +56,24 @@ const ActivityOrganizerFooter = ({
     toast.success("活动已终止，未举办场次已取消");
   };
 
+  const btnClass = compact
+    ? "shrink-0 rounded-full px-3 py-2 text-xs font-medium active:scale-[0.99] whitespace-nowrap"
+    : cn(
+        "rounded-full py-3 text-sm font-medium active:scale-[0.99]",
+        "flex-1",
+      );
+
   return (
     <>
-      <div className="flex gap-2">
+      <div className={cn("flex gap-1.5", compact ? "shrink-0" : "gap-2")}>
         {canEdit && (
           <button
             type="button"
             onClick={onEdit}
             className={cn(
-              "rounded-full border border-primary py-3 text-sm font-medium text-primary active:scale-[0.99]",
-              showTerminate ? "flex-1" : "w-full",
+              btnClass,
+              "border border-primary text-primary",
+              !compact && !showTerminate && "w-full",
             )}
           >
             编辑
@@ -73,11 +84,12 @@ const ActivityOrganizerFooter = ({
             type="button"
             onClick={() => setTerminateOpen(true)}
             className={cn(
-              "flex-1 rounded-full border border-destructive/50 py-3 text-sm font-medium text-destructive active:scale-[0.99]",
-              !canEdit && "w-full",
+              btnClass,
+              "border border-destructive/50 text-destructive",
+              !compact && !canEdit && "w-full",
             )}
           >
-            终止活动
+            终止
           </button>
         )}
       </div>

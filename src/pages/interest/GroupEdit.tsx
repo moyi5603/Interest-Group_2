@@ -5,13 +5,14 @@ import ActivityCoverUpload from "@/components/interest/ActivityCoverUpload";
 import InterestTagPicker from "@/components/interest/InterestTagPicker";
 import { GROUP_TAG_MAX } from "@/components/interest/groupFormConstants";
 import { resolveGroupCover } from "@/data/interestImages";
-import { getTagsByIds } from "@/data/interestTags";
+import { groupTagList } from "@/data/interestTags";
 import {
   CURRENT_EMPLOYEE_ID,
   getGroupById,
   isGroupOwner,
   updateGroup,
 } from "@/data/interestGroups";
+import GroupDescriptionField from "@/components/interest/GroupDescriptionField";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { interestTypography as t } from "@/components/interest/interestTypography";
 import { toast } from "@/components/ui/sonner";
@@ -112,47 +113,34 @@ const GroupEdit = () => {
           />
         </label>
 
-        <label className="block space-y-1">
-          <span className={t.formLabel}>简介</span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
-            placeholder="介绍一下小组活动内容"
-          />
-        </label>
-
-        <div className="space-y-2">
+        <div className="space-y-1">
           <span className={t.formLabel}>
+            <span className={t.requiredMark} aria-hidden>
+              *
+            </span>
             标签
             <span className="ml-1 font-normal text-muted-foreground">
               （最多 {GROUP_TAG_MAX} 个）
             </span>
           </span>
-          {tagIds.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {getTagsByIds(tagIds).map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => toggleTag(t.id)}
-                  className="rounded-full bg-primary px-3 py-1.5 text-sm text-primary-foreground"
-                >
-                  {t.name} ×
-                </button>
-              ))}
-            </div>
-          )}
           <InterestTagPicker
             selectedIds={tagIds}
             onToggle={toggleTag}
             onAdd={toggleTag}
             allowDeselect
             flat
+            compact
             maxSelected={GROUP_TAG_MAX}
+            tagList={groupTagList}
           />
         </div>
+
+        <GroupDescriptionField
+          value={description}
+          onChange={setDescription}
+          groupName={name}
+          tagIds={tagIds}
+        />
       </main>
 
       <div className="border-t border-border bg-background p-3">

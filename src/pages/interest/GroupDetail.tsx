@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { resolveGroupCover } from "@/data/interestImages";
 import ActivityCover from "@/components/interest/ActivityCover";
-import { ArrowLeft } from "lucide-react";
+import GroupMembersSheet from "@/components/interest/GroupMembersSheet";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import ActivityCard from "@/components/interest/ActivityCard";
 import GroupOrganizerFooter from "@/components/interest/GroupOrganizerFooter";
@@ -23,6 +24,7 @@ import {
   CURRENT_EMPLOYEE_ID,
   getActivitiesByGroup,
   getGroupById,
+  getGroupMembers,
   isGroupFull,
   isGroupOwner,
   isMember,
@@ -55,6 +57,7 @@ const GroupDetail = () => {
   );
   const [version, setVersion] = useState(0);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
 
   const group = getGroupById(groupId || "");
   const visible = group && canViewGroup(group, CURRENT_EMPLOYEE_ID);
@@ -69,6 +72,11 @@ const GroupDetail = () => {
     if (kind === "all") return list;
     return list.filter((a) => a.activityKind === kind);
   }, [group, kind, version]);
+
+  const members = useMemo(() => {
+    if (!group) return [];
+    return getGroupMembers(group.id);
+  }, [group, version]);
 
   if (!group || !visible) {
     return (
@@ -133,9 +141,14 @@ const GroupDetail = () => {
               </span>
             ))}
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {group.memberCount} 位成员
-          </p>
+          <button
+            type="button"
+            onClick={() => setMembersOpen(true)}
+            className="mt-2 flex w-full items-center gap-0.5 text-sm text-primary active:opacity-70"
+          >
+            <span>{group.memberCount} 位成员</span>
+            <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
+          </button>
           {!isArchived && !member ? (
             full ? (
               <p className="mt-3 text-center text-sm text-muted-foreground">
@@ -233,6 +246,14 @@ const GroupDetail = () => {
           />
         </footer>
       )}
+
+      <GroupMembersSheet
+        open={membersOpen}
+        onOpenChange={setMembersOpen}
+        groupName={group.name}
+        memberCount={group.memberCount}
+        members={members}
+      />
 
       <AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] rounded-2xl">

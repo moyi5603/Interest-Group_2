@@ -128,16 +128,54 @@ const isSameCalendarDay = (startAt: string, endAt: string) => {
 
 export const formatActivityTimeOfDay = (iso: string) => {
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "--:--";
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-/** 同一天：日期 + 开始时刻 – 结束时刻；跨天则两端均含日期 */
+/** 2026年7月20日 */
+export const formatActivityDate = (iso: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+};
+
+/** HH:mm（表单草稿或 ISO） */
+export const formatClockTime = (time: string | undefined) => {
+  if (!time) return "--:--";
+  if (time.includes("T")) return formatActivityTimeOfDay(time);
+  const [h, m] = time.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "--:--";
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+/** 2026年7月20日 19:00 */
+export const formatActivityTime = (iso: string) =>
+  `${formatActivityDate(iso)} ${formatActivityTimeOfDay(iso)}`;
+
+/** 2026年7月20日 19:00 – 22:00（跨天则两端均含日期） */
 export const formatTimeRange = (startAt: string, endAt?: string) => {
   if (!endAt || endAt === startAt) return formatActivityTime(startAt);
   if (isSameCalendarDay(startAt, endAt)) {
-    return `${formatActivityTime(startAt)} – ${formatActivityTimeOfDay(endAt)}`;
+    return `${formatActivityDate(startAt)} ${formatActivityTimeOfDay(startAt)} – ${formatActivityTimeOfDay(endAt)}`;
   }
   return `${formatActivityTime(startAt)} – ${formatActivityTime(endAt)}`;
+};
+
+/** 表单场次：YYYY-MM-DD + HH:mm */
+export const formatScheduleFromParts = (
+  date?: string,
+  startTime?: string,
+  endTime?: string,
+) => {
+  if (!date) return "—";
+  const [y, m, d] = date.split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  const dateLabel = `${y}年${m}月${d}日`;
+  const start = formatClockTime(startTime);
+  const end = formatClockTime(endTime);
+  if (!startTime) return dateLabel;
+  if (!endTime || start === end) return `${dateLabel} ${start}`;
+  return `${dateLabel} ${start} – ${end}`;
 };
 
 export const expandRecurringOccurrences = (
@@ -231,11 +269,6 @@ export const getActivityPhase = (
   return "进行中";
 };
 
-export const formatActivityTime = (iso: string) => {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-};
-
 export const formatOccurrenceLabel = (
   occ: { startAt: string; endAt?: string },
   index?: number,
@@ -279,7 +312,7 @@ export const getActivityScheduleLabel = (
     if (occurrence) {
       const idx = occs.findIndex((o) => o.id === occurrence.id);
       if (idx >= 0) {
-        return `系列 · 第 ${idx + 1} 场 · ${formatActivityTime(occurrence.startAt)}`;
+        return `系列 · 第 ${idx + 1} 场 · ${formatTimeRange(occurrence.startAt, occurrence.endAt)}`;
       }
       return formatTimeRange(occurrence.startAt, occurrence.endAt);
     }
@@ -299,12 +332,12 @@ export const formatRecurringSchedule = (
   const startTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   const time =
     endAt && endAt !== startAt
-      ? `${startTime} – ${formatActivityTime(endAt).split(" ").pop()}`
+      ? `${startTime} – ${formatActivityTimeOfDay(endAt)}`
       : startTime;
   if (rrule.includes("MONTHLY")) {
     const m = rrule.match(/BYMONTHDAY=(\d+)/);
     const day = m ? m[1] : d.getDate();
-    return `每月 ${day} 日 ${time}`;
+    return `每月${day}号 ${time}`;
   }
   const dayMatch = rrule.match(/BYDAY=([A-Z,]+)/);
   if (dayMatch) {
@@ -315,6 +348,25 @@ export const formatRecurringSchedule = (
     if (labels.length) return `每周${labels.join("、")} ${time}`;
   }
   return undefined;
+};
+
+/** 活动详情：周期规则单行文案，如「每周六 09:00 – 10:00」 */
+export const formatRecurringRuleLabel = (
+  recurrence: "weekly" | "monthly",
+  weeklyDay: number | null,
+  monthDay: number | null,
+  startTime: string,
+  endTime: string,
+): string => {
+  const time = `${formatClockTime(startTime)} – ${formatClockTime(endTime)}`;
+  if (recurrence === "weekly") {
+    const weekday =
+      weeklyDay != null
+        ? WEEKDAY_OPTIONS.find((w) => w.value === weeklyDay)?.label
+        : undefined;
+    return weekday ? `每周${weekday} ${time}` : time;
+  }
+  return monthDay != null ? `每月${monthDay}号 ${time}` : time;
 };
 
 const padTime = (h: number, m: number) =>
