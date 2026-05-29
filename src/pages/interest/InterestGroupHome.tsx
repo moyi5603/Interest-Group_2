@@ -135,7 +135,7 @@ const InterestGroupHome = () => {
           </button>
         )}
 
-        <InterestSection variant="hub" className="p-2.5">
+        <InterestSection variant="plain" className="p-2.5">
           <div className="grid grid-cols-3 gap-1.5">
             {shortcuts.map((s) => {
               const Icon = s.icon;
@@ -158,11 +158,11 @@ const InterestGroupHome = () => {
           </div>
         </InterestSection>
 
-        <InterestSection className="p-2.5">
+        <InterestSection variant="plain" className="p-2.5">
           <InterestHomeStatsCard stats={homeStats} />
         </InterestSection>
 
-        <InterestSection className="p-2.5">
+        <InterestSection variant="plain" className="p-2.5">
           <SectionHeader
             title={
               <span className="inline-flex items-center gap-1.5">
@@ -182,6 +182,7 @@ const InterestGroupHome = () => {
                 <li key={item.activity.id}>
                   <ActivityCard
                     compact
+                    flat
                     activity={item.activity}
                     groupName={item.group.name}
                     occurrence={item.statusOccurrence}
@@ -194,7 +195,7 @@ const InterestGroupHome = () => {
           )}
         </InterestSection>
 
-        <InterestSection variant="ai" className="p-2.5">
+        <InterestSection variant="plain" className="p-2.5">
           <SectionHeader
             title={
               <span className="inline-flex items-center gap-1.5">
@@ -223,6 +224,7 @@ const InterestGroupHome = () => {
                 <li key={group.id}>
                   <GroupCard
                     compact
+                    flat
                     group={group}
                     reasons={reasons}
                     onOpen={() => navigate(`/agents/interest-groups/${group.id}`)}

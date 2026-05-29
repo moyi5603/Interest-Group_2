@@ -17,7 +17,6 @@ export type InterestHomeStatItem = {
 
 export type InterestHomeStats = {
   items: InterestHomeStatItem[];
-  hint?: string;
 };
 
 export const getInterestHomeStats = (
@@ -59,12 +58,5 @@ export const getInterestHomeStats = (
     },
   ];
 
-  let hint: string | undefined;
-  if (weekActivityCount > 0) {
-    hint = `本周有 ${weekActivityCount} 场活动可报名参加`;
-  } else if (notStartedActivityCount > 0) {
-    hint = `你有 ${notStartedActivityCount} 场未开始活动`;
-  }
-
-  return { items, hint };
+  return { items };
 };

@@ -17,6 +17,8 @@ type Props = {
   enrolled?: boolean;
   onEnroll?: () => void;
   compact?: boolean;
+  /** 无底色描边（首页等轻量列表） */
+  flat?: boolean;
   /** 紧凑卡片稍大字号（首页等） */
   comfortable?: boolean;
   /** 组织者可编辑时，在卡片上显示编辑图标 */
@@ -38,6 +40,7 @@ const ActivityCard = ({
   enrolled,
   onEnroll,
   compact = false,
+  flat = false,
   comfortable = true,
   editable = false,
   meta,
@@ -71,7 +74,14 @@ const ActivityCard = ({
     const titleText = comfortable ? "text-sm" : "text-xs";
 
     return (
-      <article className="overflow-hidden rounded-xl border border-border/60 bg-card transition-base">
+      <article
+        className={cn(
+          "overflow-hidden transition-base",
+          flat
+            ? "rounded-lg"
+            : "rounded-xl border border-border/60 bg-card",
+        )}
+      >
         {meta && (
           <p
             className={cn(

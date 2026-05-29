@@ -5,7 +5,7 @@ type Props = {
   children: ReactNode;
   className?: string;
   id?: string;
-  variant?: "default" | "ai" | "hub";
+  variant?: "default" | "ai" | "hub" | "plain";
 };
 
 const InterestSection = ({
@@ -24,6 +24,7 @@ const InterestSection = ({
         "gradient-card border border-primary/10 ring-1 ring-primary/5",
       variant === "default" &&
         "border border-border/50 bg-card/95 backdrop-blur-sm",
+      variant === "plain" && "border-0 bg-transparent shadow-none ring-0",
       className,
     )}
   >

@@ -13,6 +13,8 @@ type Props = {
   onOpen: () => void;
   onJoin?: () => void;
   compact?: boolean;
+  /** 无底色描边（首页等轻量列表） */
+  flat?: boolean;
   /** 紧凑卡片稍大字号（首页等） */
   comfortable?: boolean;
 };
@@ -23,6 +25,7 @@ const GroupCard = ({
   onOpen,
   onJoin,
   compact,
+  flat = false,
   comfortable = true,
 }: Props) => {
   const tags = getTagsByIds(group.tagIds).slice(0, compact ? 2 : 4);
@@ -39,7 +42,12 @@ const GroupCard = ({
     const iconSm = comfortable ? "h-3 w-3" : "h-2.5 w-2.5";
 
     return (
-      <article className="rounded-xl border border-border/60 bg-card transition-base active:scale-[0.99]">
+      <article
+        className={cn(
+          "transition-base active:scale-[0.99]",
+          flat ? "rounded-lg" : "rounded-xl border border-border/60 bg-card",
+        )}
+      >
         <div
           className={cn(
             "flex items-center gap-2",
