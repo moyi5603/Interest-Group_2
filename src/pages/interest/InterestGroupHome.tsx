@@ -119,22 +119,6 @@ const InterestGroupHome = () => {
           <InterestAiHero tagHint={heroHint} />
         </div>
 
-        {tagCount < 2 && (
-          <button
-            type="button"
-            onClick={() => navigate("/profile/interests")}
-            className="flex w-full items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-left transition-base active:scale-[0.99]"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15">
-              <Tag className="h-4 w-4 text-primary" />
-            </span>
-            <span className="flex-1 text-sm leading-snug text-primary">
-              完善兴趣标签，让 AI 推荐更精准
-            </span>
-            <span className="text-xs text-primary/80">去设置 →</span>
-          </button>
-        )}
-
         <InterestSection variant="plain" className="p-2.5">
           <div className="grid grid-cols-3 gap-1.5">
             {shortcuts.map((s) => {

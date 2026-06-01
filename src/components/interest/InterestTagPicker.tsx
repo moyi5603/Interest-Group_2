@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { InterestTag } from "@/data/interestTypes";
-import { ensureCustomTag, interestTagList } from "@/data/interestTags";
+import InterestTagPill from "@/components/interest/InterestTagPill";
+import { ensureCustomTag, getTagsByIds, interestTagList } from "@/data/interestTags";
 import { toast } from "@/components/ui/sonner";
 
 type Props = {
@@ -32,6 +33,29 @@ const InterestTagPicker = ({
   const [customInput, setCustomInput] = useState("");
   const atMax =
     maxSelected !== undefined && selectedIds.length >= maxSelected;
+
+  const tagListIds = useMemo(() => new Set(tagList.map((t) => t.id)), [tagList]);
+  const extraSelectedTags = useMemo(
+    () => getTagsByIds(selectedIds).filter((t) => !tagListIds.has(t.id)),
+    [selectedIds, tagListIds],
+  );
+
+  const tagButtonClass = (active: boolean, disabled: boolean) =>
+    compact
+      ? `rounded-full px-2.5 py-1 text-xs ${
+          active
+            ? "bg-primary text-primary-foreground"
+            : disabled
+              ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
+              : "border border-border bg-card"
+        }`
+      : `rounded-full px-3 py-1.5 text-sm ${
+          active
+            ? "bg-primary text-primary-foreground"
+            : disabled
+              ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
+              : "border border-border bg-card"
+        }`;
 
   const trySelect = (tagId: string) => {
     if (selectedIds.includes(tagId)) {
@@ -116,6 +140,22 @@ const InterestTagPicker = ({
         </p>
       )}
 
+      {extraSelectedTags.length > 0 && (
+        <div className={compact ? "flex flex-wrap gap-1.5" : "flex flex-wrap gap-2"}>
+          {extraSelectedTags.map((t) => (
+            <InterestTagPill
+              key={t.id}
+              label={t.name}
+              selected
+              className={compact ? "px-2 py-1 text-xs" : undefined}
+              onRemove={
+                allowDeselect ? () => trySelect(t.id) : undefined
+              }
+            />
+          ))}
+        </div>
+      )}
+
       {flat ? (
         <div className={compact ? "flex flex-wrap gap-1.5" : "flex flex-wrap gap-2"}>
           {tagList.map((t) => {
@@ -130,23 +170,7 @@ const InterestTagPicker = ({
                   if (active && !allowDeselect) return;
                   trySelect(t.id);
                 }}
-                className={
-                  compact
-                    ? `rounded-full px-2.5 py-1 text-xs ${
-                        active
-                          ? "bg-primary text-primary-foreground"
-                          : disabled
-                            ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
-                            : "border border-border bg-card"
-                      }`
-                    : `rounded-full px-3 py-1.5 text-sm ${
-                        active
-                          ? "bg-primary text-primary-foreground"
-                          : disabled
-                            ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
-                            : "border border-border bg-card"
-                      }`
-                }
+                className={tagButtonClass(active, disabled)}
               >
                 {t.name}
               </button>
@@ -172,13 +196,7 @@ const InterestTagPicker = ({
                       if (active && !allowDeselect) return;
                       trySelect(t.id);
                     }}
-                    className={`rounded-full px-3 py-1.5 text-sm ${
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : disabled
-                          ? "cursor-not-allowed border border-border/50 bg-muted/40 text-muted-foreground"
-                          : "border border-border bg-card"
-                    }`}
+                    className={tagButtonClass(active, disabled)}
                   >
                     {t.name}
                   </button>

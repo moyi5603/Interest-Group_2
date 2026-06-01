@@ -5,7 +5,7 @@ export type GrowthEngineDemoNotification = {
   type: GrowthEngineNotificationType;
   preview: string;
   time: string;
-  link: string;
+  link?: string;
 };
 
 /** 成长引擎 demo：7 种场景各一条（静态展示，不区分用户） */
@@ -58,6 +58,5 @@ export const GROWTH_ENGINE_DEMO_NOTIFICATIONS: GrowthEngineDemoNotification[] =
       type: "group_disbanded",
       preview: "「咖啡品鉴」已解散，感谢你的参与",
       time: "周一",
-      link: "/agents/interest-groups/list/my-groups",
     },
   ];

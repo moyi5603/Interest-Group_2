@@ -60,6 +60,23 @@ export const combineDateAndTime = (date: string, time: string) =>
 /** 与活动表单等页面字段标题一致 */
 export const MOBILE_FIELD_LABEL_CLASS = "text-sm font-medium text-foreground";
 
+const MobileFieldLabel = ({
+  label,
+  required,
+}: {
+  label: string;
+  required?: boolean;
+}) => (
+  <span className={MOBILE_FIELD_LABEL_CLASS}>
+    {required && (
+      <span className="mr-0.5 text-destructive" aria-hidden>
+        *
+      </span>
+    )}
+    {label}
+  </span>
+);
+
 export const splitDatetimeLocal = (value: string) => {
   if (!value) return { date: "", time: "" };
   const [date, time = ""] = value.split("T");
@@ -918,6 +935,7 @@ type MobileMonthDayFieldProps = {
   value: number | null;
   onChange: (day: number) => void;
   className?: string;
+  required?: boolean;
 };
 
 export const MobileMonthDayField = ({
@@ -925,6 +943,7 @@ export const MobileMonthDayField = ({
   value,
   onChange,
   className,
+  required,
 }: MobileMonthDayFieldProps) => {
   const [open, setOpen] = useState(false);
   const filled = value != null && value >= 1 && value <= 31;
@@ -932,7 +951,7 @@ export const MobileMonthDayField = ({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <span className={MOBILE_FIELD_LABEL_CLASS}>{label}</span>
+      <MobileFieldLabel label={label} required={required} />
       <div className={PICKER_LIST_CLASS}>
         <CompactPickerRow
           label="日期"
@@ -959,6 +978,7 @@ type MobileTimeRangeFieldProps = {
   endTime: string;
   onChange: (startTime: string, endTime: string) => void;
   className?: string;
+  required?: boolean;
 };
 
 export const MobileTimeRangeField = ({
@@ -967,6 +987,7 @@ export const MobileTimeRangeField = ({
   endTime,
   onChange,
   className,
+  required,
 }: MobileTimeRangeFieldProps) => {
   const [open, setOpen] = useState(false);
   const filled = !!startTime && !!endTime;
@@ -976,7 +997,7 @@ export const MobileTimeRangeField = ({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <span className={MOBILE_FIELD_LABEL_CLASS}>{label}</span>
+      <MobileFieldLabel label={label} required={required} />
       <div className={PICKER_LIST_CLASS}>
         <CompactPickerRow
           label="时段"
@@ -1012,6 +1033,7 @@ type MobileDateTimeRangeFieldProps = {
   maxDate?: string;
   className?: string;
   compact?: boolean;
+  required?: boolean;
 };
 
 export const MobileDateTimeRangeField = ({
@@ -1022,6 +1044,7 @@ export const MobileDateTimeRangeField = ({
   maxDate,
   className,
   compact,
+  required,
 }: MobileDateTimeRangeFieldProps) => {
   const [dateOpen, setDateOpen] = useState(false);
   const [rangeOpen, setRangeOpen] = useState(false);
@@ -1040,7 +1063,7 @@ export const MobileDateTimeRangeField = ({
   return (
     <div className={cn(compact ? undefined : "space-y-1.5", className)}>
       {!compact && (
-        <span className={MOBILE_FIELD_LABEL_CLASS}>{label}</span>
+        <MobileFieldLabel label={label} required={required} />
       )}
       <div className={PICKER_LIST_CLASS}>
         <CompactPickerRow

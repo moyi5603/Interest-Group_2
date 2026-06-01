@@ -93,7 +93,6 @@ const createMockGrowthEngineNotifications = (): GrowthEngineNotification[] => [
     preview: "「咖啡品鉴」已解散，感谢你的参与",
     createdAt: daysAgo(3),
     read: true,
-    link: "/agents/interest-groups/list/my-groups",
   },
 ];
 

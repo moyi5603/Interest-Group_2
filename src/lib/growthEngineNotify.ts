@@ -32,7 +32,6 @@ export const notifyGroupDisbanded = (input: {
       employeeId,
       type: "group_disbanded" as const,
       preview: `「${input.groupName}」已解散，感谢你的参与`,
-      link: `/agents/interest-groups/list/my-groups`,
     })),
   );
 };

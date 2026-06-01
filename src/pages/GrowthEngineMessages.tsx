@@ -30,13 +30,11 @@ const GrowthEngineMessages = () => {
 
       <main className="flex-1 overflow-y-auto px-4 py-3 scrollbar-hide">
         <ul className="space-y-3">
-          {GROWTH_ENGINE_DEMO_NOTIFICATIONS.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => navigate(item.link)}
-                className="w-full rounded-2xl border border-[#EFEFEF] bg-white px-3.5 py-3 text-left shadow-sm active:scale-[0.99]"
-              >
+          {GROWTH_ENGINE_DEMO_NOTIFICATIONS.map((item) => {
+            const cardClass =
+              "w-full rounded-2xl border border-[#EFEFEF] bg-white px-3.5 py-3 text-left shadow-sm";
+            const content = (
+              <>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-[#8B7CF6]">
                     [提醒]
@@ -46,9 +44,25 @@ const GrowthEngineMessages = () => {
                 <p className="mt-1.5 text-sm leading-relaxed text-[#333333]">
                   {item.preview}
                 </p>
-              </button>
-            </li>
-          ))}
+              </>
+            );
+
+            return (
+              <li key={item.id}>
+                {item.link ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(item.link!)}
+                    className={`${cardClass} active:scale-[0.99]`}
+                  >
+                    {content}
+                  </button>
+                ) : (
+                  <div className={cardClass}>{content}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </main>
     </div>

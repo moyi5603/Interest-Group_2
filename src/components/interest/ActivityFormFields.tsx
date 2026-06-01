@@ -343,6 +343,7 @@ const ActivityFormFields = (props: Props) => {
             label="活动时间"
             value={props.oneOffSchedule}
             onChange={props.onOneOffScheduleChange}
+            required
           />
         ))}
 
@@ -548,6 +549,7 @@ const ActivityFormFields = (props: Props) => {
                   label="每月几号"
                   value={props.monthDay}
                   onChange={props.onMonthDayChange}
+                  required
                 />
               )}
 
@@ -556,6 +558,7 @@ const ActivityFormFields = (props: Props) => {
                 startTime={props.recurringTime}
                 endTime={props.recurringEndTime}
                 onChange={(start, end) => props.onRecurringTimeChange(start, end)}
+                required
               />
 
               <p className="text-sm text-muted-foreground">

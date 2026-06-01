@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import InterestTagPill from "@/components/interest/InterestTagPill";
@@ -7,18 +7,11 @@ import InterestTagPickerModal from "@/components/interest/InterestTagPickerModal
 import { getTagsByIds } from "@/data/interestTags";
 import {
   addManualTag,
-  dismissSuggestedTag,
   getProfileTags,
   removeTag,
 } from "@/data/interestProfileStore";
-import { CURRENT_EMPLOYEE_ID } from "@/data/interestGroups";
 import { resolveTagIdsFromNames } from "@/lib/interestTagResolve";
-import { getSuggestedTags } from "@/lib/interestTagSuggest";
 import { interestTypography as t } from "@/components/interest/interestTypography";
-import { cn } from "@/lib/utils";
-
-const tagChipClass =
-  "rounded-md border border-border bg-secondary/50 px-2.5 py-1.5 text-sm text-foreground transition-base active:scale-[0.98]";
 
 const MyInterests = () => {
   const navigate = useNavigate();
@@ -33,13 +26,6 @@ const MyInterests = () => {
     [version],
   );
   const selected = useMemo(() => getTagsByIds(selectedIds), [selectedIds]);
-  const suggested = useMemo(
-    () =>
-      getSuggestedTags(CURRENT_EMPLOYEE_ID).filter(
-        (t) => !selectedIds.includes(t.id),
-      ),
-    [selectedIds],
-  );
 
   const handlePickerConfirm = (names: string[]) => {
     const newIds = resolveTagIdsFromNames(names);
@@ -107,48 +93,6 @@ const MyInterests = () => {
             </div>
           )}
         </section>
-
-        {suggested.length > 0 && (
-          <section className="border-t border-border/50 px-3 py-4">
-            <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              AI 建议补充
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {suggested.map((t) => (
-                <span
-                  key={t.id}
-                  className="inline-flex overflow-hidden rounded-md border border-dashed border-primary/25"
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      addManualTag(t.id);
-                      refresh();
-                    }}
-                    className={cn(
-                      tagChipClass,
-                      "border-0 bg-primary/5 font-medium text-primary",
-                    )}
-                  >
-                    + {t.name}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`忽略${t.name}`}
-                    onClick={() => {
-                      dismissSuggestedTag(t.id);
-                      refresh();
-                    }}
-                    className="border-l border-primary/15 px-2 text-sm text-muted-foreground active:bg-secondary/60"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
       </main>
 
       <InterestTagPickerModal
