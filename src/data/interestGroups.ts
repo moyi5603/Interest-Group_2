@@ -189,6 +189,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig1,
     type: "official",
     visibility: "public",
+    category: "生活",
     tagIds: ["tag-boardgame"],
     status: "active",
     memberCount: 32,
@@ -204,6 +205,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig2,
     type: "official",
     visibility: "public",
+    category: "科技",
     tagIds: ["tag-gaming"],
     status: "active",
     memberCount: 48,
@@ -219,6 +221,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig3,
     type: "official",
     visibility: "public",
+    category: "文艺",
     tagIds: ["tag-music"],
     status: "active",
     memberCount: 26,
@@ -234,6 +237,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig4,
     type: "spontaneous",
     visibility: "public",
+    category: "文艺",
     tagIds: ["tag-music"],
     status: "active",
     reportStatus: "pending_report",
@@ -252,6 +256,7 @@ export let interestGroups: InterestGroupFull[] = [
     type: "spontaneous",
     visibility: "dept_only",
     deptIds: ["rd-fe", "rd-ai"],
+    category: "文艺",
     tagIds: ["tag-photo"],
     status: "active",
     reportStatus: "reported",
@@ -268,6 +273,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig6,
     type: "official",
     visibility: "public",
+    category: "运动",
     tagIds: ["tag-fitness", "tag-running"],
     status: "active",
     memberCount: 37,
@@ -283,6 +289,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig7,
     type: "official",
     visibility: "public",
+    category: "运动",
     tagIds: ["tag-badminton"],
     status: "active",
     memberCount: 56,
@@ -298,6 +305,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig8,
     type: "spontaneous",
     visibility: "public",
+    category: "运动",
     tagIds: ["tag-hiking"],
     status: "active",
     reportStatus: "pending_report",
@@ -315,6 +323,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig9,
     type: "official",
     visibility: "public",
+    category: "生活",
     tagIds: ["tag-boardgame"],
     status: "active",
     memberCount: 35,
@@ -330,6 +339,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig10,
     type: "official",
     visibility: "public",
+    category: "科技",
     tagIds: ["tag-tech"],
     status: "active",
     memberCount: 62,
@@ -345,6 +355,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig11,
     type: "spontaneous",
     visibility: "public",
+    category: "生活",
     tagIds: ["tag-boardgame"],
     status: "active",
     memberCount: 24,
@@ -360,6 +371,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig12,
     type: "official",
     visibility: "public",
+    category: "运动",
     tagIds: ["tag-running"],
     status: "active",
     memberCount: 44,
@@ -375,6 +387,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig13,
     type: "official",
     visibility: "public",
+    category: "生活",
     tagIds: ["tag-volunteer"],
     status: "active",
     memberCount: 28,
@@ -390,6 +403,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig14,
     type: "spontaneous",
     visibility: "public",
+    category: "文艺",
     tagIds: ["tag-music"],
     status: "active",
     memberCount: 31,
@@ -405,6 +419,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig15,
     type: "official",
     visibility: "public",
+    category: "科技",
     tagIds: ["tag-gaming"],
     status: "active",
     memberCount: 67,
@@ -420,6 +435,7 @@ export let interestGroups: InterestGroupFull[] = [
     coverUrl: GROUP_COVERS.ig16,
     type: "spontaneous",
     visibility: "public",
+    category: "文艺",
     tagIds: ["tag-photo"],
     status: "active",
     memberCount: 29,
@@ -1101,6 +1117,12 @@ export type OrganizedActivityItem = {
 
 export const getGroupById = (id: string) => interestGroups.find((g) => g.id === id);
 
+/** 管理员：全部已创建且仍在线的小组 */
+export const getAllActiveGroups = (): InterestGroupFull[] =>
+  [...interestGroups]
+    .filter((g) => g.status === "active")
+    .sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
+
 export const getActivitiesByGroup = (groupId: string) =>
   activities.filter((a) => a.groupId === groupId && a.status === "published");
 
@@ -1399,7 +1421,14 @@ export const joinGroup = (groupId: string, employeeId: string): boolean => {
 export const createSpontaneousGroup = (
   input: Pick<
     InterestGroupFull,
-    "name" | "description" | "visibility" | "tagIds" | "deptIds" | "coverUrl"
+    | "name"
+    | "description"
+    | "visibility"
+    | "category"
+    | "tagIds"
+    | "deptIds"
+    | "coverUrl"
+    | "avatarUrl"
   >,
   ownerId: string,
 ): InterestGroupFull => {
@@ -1411,8 +1440,10 @@ export const createSpontaneousGroup = (
     name: input.name,
     description: input.description,
     coverUrl: input.coverUrl ?? DEFAULT_GROUP_COVER,
+    avatarUrl: input.avatarUrl,
     type: "spontaneous",
     visibility: input.visibility,
+    category: input.category,
     deptIds: input.deptIds,
     tagIds: input.tagIds,
     status: "active",
@@ -1493,7 +1524,7 @@ export const updateGroup = (
   ownerId: string,
   patch: Pick<
     InterestGroupFull,
-    "name" | "description" | "tagIds" | "coverUrl"
+    "name" | "description" | "category" | "tagIds" | "coverUrl"
   >,
 ): InterestGroupFull | undefined => {
   const group = getGroupById(groupId);

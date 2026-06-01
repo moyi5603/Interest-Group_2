@@ -66,6 +66,16 @@ export const resolveGroupCover = (group: {
   coverUrl?: string;
 }) => group.coverUrl ?? GROUP_COVERS[group.id] ?? DEFAULT_GROUP_COVER;
 
+export const resolveGroupAvatar = (group: {
+  id: string;
+  avatarUrl?: string;
+  coverUrl?: string;
+}) =>
+  group.avatarUrl ??
+  group.coverUrl ??
+  GROUP_COVERS[group.id] ??
+  undefined;
+
 export const resolveActivityCover = (activity: {
   id: string;
   coverUrl?: string;

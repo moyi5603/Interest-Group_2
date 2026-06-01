@@ -2,6 +2,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { interestTypography as t } from "@/components/interest/interestTypography";
 import { getTagsByIds } from "@/data/interestTags";
+import type { GroupCategory } from "@/data/interestTypes";
 import { generateGroupDescriptionAsync } from "@/lib/groupDescriptionAi";
 import { toast } from "@/components/ui/sonner";
 
@@ -9,6 +10,7 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   groupName: string;
+  category?: GroupCategory;
   tagIds: string[];
 };
 
@@ -16,6 +18,7 @@ const GroupDescriptionField = ({
   value,
   onChange,
   groupName,
+  category,
   tagIds,
 }: Props) => {
   const [generating, setGenerating] = useState(false);
@@ -25,8 +28,8 @@ const GroupDescriptionField = ({
       toast.error("请先填写小组名称");
       return;
     }
-    if (tagIds.length === 0) {
-      toast.error("请先选择至少一个标签");
+    if (!category) {
+      toast.error("请先选择小组分类");
       return;
     }
 
@@ -36,6 +39,7 @@ const GroupDescriptionField = ({
       const text = await generateGroupDescriptionAsync(
         groupName.trim(),
         tagNames,
+        category,
       );
       onChange(text);
       toast.success("简介已生成");

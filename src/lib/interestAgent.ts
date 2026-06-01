@@ -44,7 +44,6 @@ export type AgentIntent =
   | "cancel_enrollment"
   | "terminate_activity"
   | "modify_activity"
-  | "interest_tags"
   | "unknown";
 
 export type ActivityTimeFilter = "all" | "week" | "next_week";
@@ -126,7 +125,7 @@ export const viewMoreForIntent = (
     case "my_groups":
       return {
         to: "/agents/interest-groups/list/my-groups",
-        label: "前往小组管理",
+        label: "前往我的小组",
       };
     case "group_detail":
       return groupId
@@ -181,7 +180,7 @@ const INTENT_SUGGESTIONS: Record<AgentIntent, string[]> = {
   group_detail: ["加入这个小组", "这个小组有什么活动", "查看其他小组"],
   activity_detail: ["报名这个活动", "这周还有什么活动", "活动在周几举行"],
   activity_schedule: ["报名这个活动", "活动在几点", "推荐我参加的活动"],
-  my_groups: ["最近有什么活动", "推荐新小组", "管理我的兴趣"],
+  my_groups: ["最近有什么活动", "推荐新小组", "小组广场"],
   create_hint: ["立即创建小组", "怎么发起活动", "查看已有小组"],
   create_activity_hint: ["我的小组", "怎么创建小组", "这周有什么活动"],
   join_guide: ["推荐适合我的小组", "这周有什么活动", "我的小组"],
@@ -190,7 +189,6 @@ const INTENT_SUGGESTIONS: Record<AgentIntent, string[]> = {
   cancel_enrollment: ["我的活动有哪些", "这周有什么活动", "推荐跑步小组"],
   terminate_activity: ["我的活动有哪些", "怎么发起活动", "推荐小组"],
   modify_activity: ["查看活动详情", "我的活动有哪些", "这周有什么活动"],
-  interest_tags: ["推荐适合我的小组", "这周有什么活动", "我的小组"],
   unknown: [
     "我想找跑步相关的小组",
     "这周有什么活动",
@@ -577,7 +575,11 @@ export const parseIntent = (input: string): ParsedIntent => {
   }
 
   if (/换.*兴趣|改.*标签|兴趣标签|管理.*兴趣/.test(q)) {
-    return { intent: "interest_tags", timeFilter };
+    return {
+      intent: "recommend_group",
+      timeFilter,
+      topic: activityTopic,
+    };
   }
 
   if (/如何加入|怎么加入|加入兴趣|参与方式/.test(q)) {
@@ -724,7 +726,7 @@ export const buildReply = (
             ? header
             : topic
               ? `没有找到与「${topic}」强相关的小组，先看看这些热门推荐：`
-              : "暂无更多推荐，可以先完善兴趣标签或浏览发现页。",
+              : "暂无更多推荐，可前往小组广场浏览。",
         scoredGroups: scored.length > 0 ? scored : undefined,
         cardOverflow: cardOverflowMeta(scored.length, intent),
         suggestions: INTENT_SUGGESTIONS.recommend_group,
@@ -877,7 +879,7 @@ export const buildReply = (
     case "join_guide": {
       const scored = recommendGroups(viewerId, 12);
       const steps =
-        "加入兴趣小组很简单：\n\n1. 在首页浏览「AI 推荐」或「小组广场」\n2. 打开小组详情，点击「加入小组」\n3. 完善兴趣标签可获得更精准推荐\n\n发起活动需先加入小组，由组长在小组内发布。";
+        "加入兴趣小组很简单：\n\n1. 在首页浏览「AI 推荐」或「小组广场」\n2. 打开小组详情，点击「加入小组」\n\n发起活动需先加入小组，由组长在小组内发布。";
       return {
         intent,
         text:
@@ -1083,14 +1085,6 @@ export const buildReply = (
         suggestions: INTENT_SUGGESTIONS.create_activity_hint,
       };
     }
-    case "interest_tags":
-      return {
-        intent,
-        text: "你可以在「我的兴趣」中更新兴趣标签，AI 会据此推荐更合适的小组与活动。",
-        navigateTo: "/profile/interests",
-        navigateLabel: "去设置兴趣标签",
-        suggestions: INTENT_SUGGESTIONS.interest_tags,
-      };
     case "unknown":
     default:
       return buildUnknownReply();

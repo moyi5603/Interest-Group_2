@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
+import { useAppRole } from "@/hooks/useAppRole";
 import ChatInputBar from "@/components/agent/ChatInputBar";
 import InterestAgentReply from "@/components/interest/InterestAgentReply";
 import { interestTypography as t } from "@/components/interest/interestTypography";
@@ -18,6 +19,7 @@ type Msg = { role: "user" | "assistant"; text: string; reply?: AgentReply };
 
 const InterestGroupChat = () => {
   const goBack = useNavigateBack();
+  const { isManager } = useAppRole();
   const [params] = useSearchParams();
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -39,7 +41,7 @@ const InterestGroupChat = () => {
         { role: "user", text: trimmed },
         {
           role: "assistant",
-          text: "好的，已为你保留当前报名。如需查看，可前往「活动管理」。",
+          text: "好的，已为你保留当前报名。如需查看，可前往「我的活动」。",
         },
       ]);
       return;
@@ -123,6 +125,10 @@ const InterestGroupChat = () => {
       behavior: "smooth",
     });
   }, [messages.length, tick]);
+
+  if (isManager) {
+    return <Navigate to="/agents/interest-groups" replace />;
+  }
 
   return (
     <div className="mx-auto flex h-screen max-w-md flex-col bg-gradient-to-b from-primary/[0.07] via-background to-background">

@@ -16,10 +16,10 @@ import GroupEdit from "./pages/interest/GroupEdit.tsx";
 import ActivityDetail from "./pages/interest/ActivityDetail.tsx";
 import ActivityCreate from "./pages/interest/ActivityCreate.tsx";
 import ActivityEdit from "./pages/interest/ActivityEdit.tsx";
-import MyInterests from "./pages/interest/MyInterests.tsx";
 import InterestGroupSectionList from "./pages/interest/InterestGroupSectionList.tsx";
 import InterestGroupDiscover from "./pages/interest/InterestGroupDiscover.tsx";
 import InterestGroupMyActivities from "./pages/interest/InterestGroupMyActivities.tsx";
+import InterestGroupAdminList from "./pages/interest/InterestGroupAdminList.tsx";
 import ManagerMessages from "./pages/ManagerMessages.tsx";
 import GrowthEngineMessages from "./pages/GrowthEngineMessages.tsx";
 
@@ -39,13 +39,13 @@ const App = () => (
         <Route path="/agents/interest-groups/new" element={<GroupCreate />} />
         <Route path="/agents/interest-groups/discover" element={<InterestGroupDiscover />} />
         <Route path="/agents/interest-groups/my-activities" element={<InterestGroupMyActivities />} />
+        <Route path="/agents/interest-groups/admin/:kind" element={<InterestGroupAdminList />} />
         <Route path="/agents/interest-groups/list/:section" element={<InterestGroupSectionList />} />
         <Route path="/agents/interest-groups/:groupId/edit" element={<GroupEdit />} />
         <Route path="/agents/interest-groups/:groupId/activities/new" element={<ActivityCreate />} />
         <Route path="/agents/interest-groups/activities/:activityId/edit" element={<ActivityEdit />} />
         <Route path="/agents/interest-groups/activities/:activityId" element={<ActivityDetail />} />
         <Route path="/agents/interest-groups/:groupId" element={<GroupDetail />} />
-        <Route path="/profile/interests" element={<MyInterests />} />
         <Route path="/colleagues" element={<ColleagueAgent />} />
         <Route path="/colleagues/employee/:id" element={<EmployeeDetail />} />
         <Route path="/colleagues/employee/:id/profile" element={<EmployeeProfile />} />

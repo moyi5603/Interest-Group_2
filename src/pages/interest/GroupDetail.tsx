@@ -35,6 +35,7 @@ import {
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import { canViewGroup } from "@/lib/interestVisibility";
+import { canManageInterestGroups } from "@/lib/appRoleStore";
 import { toast } from "@/components/ui/sonner";
 
 const kindFilters: { key: "all" | ActivityKind; label: string }[] = [
@@ -63,6 +64,7 @@ const GroupDetail = () => {
   const visible = group && canViewGroup(group, CURRENT_EMPLOYEE_ID);
   const member = group ? isMember(group.id, CURRENT_EMPLOYEE_ID) : false;
   const owner = group ? isGroupOwner(group.id, CURRENT_EMPLOYEE_ID) : false;
+  const canOrganize = owner && canManageInterestGroups();
   const full = group ? isGroupFull(group) : false;
   const isArchived = group?.status === "archived";
 
@@ -87,7 +89,7 @@ const GroupDetail = () => {
   }
 
   const tags = getTagsByIds(group.tagIds);
-  const showOwnerFooter = owner && !isArchived;
+  const showOwnerFooter = canOrganize && !isArchived;
 
   return (
     <div className="mx-auto flex h-screen max-w-md flex-col bg-background">
@@ -174,7 +176,7 @@ const GroupDetail = () => {
                 加入小组
               </button>
             )
-          ) : !isArchived && owner ? (
+          ) : !isArchived && canOrganize ? (
             <button
               type="button"
               onClick={() =>

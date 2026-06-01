@@ -148,7 +148,7 @@ const InterestGroupMyActivities = () => {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="flex-1 text-center text-base font-semibold">
-            活动管理
+            我的活动
           </h1>
           <div className="w-9" />
         </div>

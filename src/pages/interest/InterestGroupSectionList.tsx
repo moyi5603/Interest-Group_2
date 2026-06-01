@@ -27,7 +27,7 @@ const sectionMeta: Record<
   { title: string; empty: string }
 > = {
   recent: { title: "活动广场", empty: "暂无即将开始的活动" },
-  "my-groups": { title: "小组管理", empty: "" },
+  "my-groups": { title: "我的小组", empty: "" },
   recommend: { title: "AI 推荐", empty: "暂无推荐小组" },
 };
 

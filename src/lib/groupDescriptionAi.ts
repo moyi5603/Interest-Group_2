@@ -1,3 +1,5 @@
+import type { GroupCategory } from "@/data/interestTypes";
+
 /** 小组简介 AI 生成系统提示（对接真实 LLM 时使用） */
 export const GROUP_DESCRIPTION_AI_SYSTEM_PROMPT = `你是一位企业内部兴趣小组的内容运营专家。你的任务是根据用户输入的小组名称和标签，生成1条小组简介文案。
 
@@ -105,7 +107,14 @@ const DEFAULT_META: TagMeta = {
 const clampText = (text: string, max = 120) =>
   text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 
-const buildMeta = (tagNames: string[]): TagMeta => {
+const buildMeta = (tagNames: string[], category?: GroupCategory): TagMeta => {
+  if (tagNames.length === 0 && category) {
+    return {
+      ...DEFAULT_META,
+      positioning: `${category}方向的兴趣爱好者小组`,
+      activity: `围绕${category}主题开展活动与交流`,
+    };
+  }
   const primary = tagNames.find((name) => TAG_META[name]) ?? tagNames[0];
   const base = (primary && TAG_META[primary]) || DEFAULT_META;
   if (tagNames.length <= 1) return base;
@@ -127,9 +136,10 @@ const buildStyleA = (name: string, meta: TagMeta) =>
 export const generateGroupDescription = (
   name: string,
   tagNames: string[],
+  category?: GroupCategory,
 ): string => {
   const trimmedName = name.trim();
-  const meta = buildMeta(tagNames);
+  const meta = buildMeta(tagNames, category);
   return buildStyleA(trimmedName, meta);
 };
 
@@ -137,11 +147,12 @@ export const generateGroupDescription = (
 export const generateGroupDescriptionAsync = (
   name: string,
   tagNames: string[],
+  category?: GroupCategory,
   delayMs = 700,
 ): Promise<string> =>
   new Promise((resolve) => {
     window.setTimeout(
-      () => resolve(generateGroupDescription(name, tagNames)),
+      () => resolve(generateGroupDescription(name, tagNames, category)),
       delayMs,
     );
   });

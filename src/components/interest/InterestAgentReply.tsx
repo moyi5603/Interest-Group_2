@@ -14,6 +14,7 @@ import {
   type AgentCardOverflow,
   type AgentReply,
 } from "@/lib/interestAgent";
+import { canManageInterestGroups } from "@/lib/appRoleStore";
 import { toast } from "@/components/ui/sonner";
 
 type Props = {
@@ -49,6 +50,7 @@ const InterestAgentReply = ({
   onJoined,
 }: Props) => {
   const navigate = useNavigate();
+  const canManage = canManageInterestGroups();
 
   const handleJoin = (groupId: string, groupName: string) => {
     if (!joinGroup(groupId, CURRENT_EMPLOYEE_ID)) {
@@ -265,15 +267,24 @@ const InterestAgentReply = ({
             </p>
           ) : null}
           {reply.intent === "create_hint" ? (
-            <button
-              type="button"
-              onClick={() => navigate("/agents/interest-groups/new")}
-              className="w-full rounded-lg gradient-primary py-2.5 text-sm font-medium text-primary-foreground shadow-glow active:scale-[0.98]"
-            >
-              立即创建小组
-            </button>
+            canManage ? (
+              <button
+                type="button"
+                onClick={() => navigate("/agents/interest-groups/new")}
+                className="w-full rounded-lg gradient-primary py-2.5 text-sm font-medium text-primary-foreground shadow-glow active:scale-[0.98]"
+              >
+                立即创建小组
+              </button>
+            ) : (
+              <p className="text-center text-xs text-muted-foreground">
+                请切换为管理员身份后再创建小组
+              </p>
+            )
           ) : (
-            reply.navigateTo && (
+            reply.navigateTo &&
+            (canManage ||
+              (!reply.navigateTo.includes("/activities/new") &&
+                reply.navigateTo !== "/agents/interest-groups/new")) ? (
               <button
                 type="button"
                 onClick={() => navigate(reply.navigateTo!)}
@@ -281,7 +292,12 @@ const InterestAgentReply = ({
               >
                 {reply.navigateLabel ?? "前往"}
               </button>
-            )
+            ) : reply.navigateTo?.includes("/activities/new") ||
+              reply.navigateTo === "/agents/interest-groups/new" ? (
+              <p className="text-center text-xs text-muted-foreground">
+                请切换为管理员身份后再操作
+              </p>
+            ) : null
           )}
         </div>
       )}

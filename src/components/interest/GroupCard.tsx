@@ -1,4 +1,4 @@
-import { resolveGroupCover } from "@/data/interestImages";
+import { resolveGroupCover, resolveGroupAvatar } from "@/data/interestImages";
 import ActivityCover from "@/components/interest/ActivityCover";
 import GroupAvatar from "@/components/interest/GroupAvatar";
 import { ChevronRight, Sparkles, Users } from "lucide-react";
@@ -34,6 +34,7 @@ const GroupCard = ({
   const memberLabel = `${group.memberCount} 人`;
 
   const cover = resolveGroupCover(group);
+  const avatar = resolveGroupAvatar(group);
 
   if (compact) {
     const metaText = comfortable ? "text-xs" : "text-[10px]";
@@ -60,7 +61,7 @@ const GroupCard = ({
             className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
           >
             <GroupAvatar
-              coverUrl={cover}
+              avatarUrl={avatar}
               name={group.name}
               className={comfortable ? "h-10 w-10 text-sm" : "h-9 w-9 text-sm"}
             />
@@ -144,7 +145,7 @@ const GroupCard = ({
         <ActivityCover coverUrl={cover} className="h-24" />
         <div className="flex gap-2.5 p-2.5">
           <GroupAvatar
-            coverUrl={cover}
+            avatarUrl={avatar}
             name={group.name}
             className="-mt-8 h-12 w-12 border-2 border-card text-base shadow-soft"
           />

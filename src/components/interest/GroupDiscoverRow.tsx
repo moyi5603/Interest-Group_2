@@ -1,4 +1,4 @@
-import { resolveGroupCover } from "@/data/interestImages";
+import { resolveGroupAvatar } from "@/data/interestImages";
 import GroupAvatar from "@/components/interest/GroupAvatar";
 import { Users } from "lucide-react";
 import { getTagsByIds } from "@/data/interestTags";
@@ -15,10 +15,10 @@ type Props = {
 
 const GroupDiscoverRow = ({ group, onOpen, onJoin, joined }: Props) => {
   const tags = getTagsByIds(group.tagIds);
-  const categoryLabel = tags[0]?.category;
+  const categoryLabel = group.category;
   const isJoined = joined ?? isMember(group.id, CURRENT_EMPLOYEE_ID);
   const full = isGroupFull(group);
-  const cover = resolveGroupCover(group);
+  const avatar = resolveGroupAvatar(group);
 
   return (
     <div className="flex items-center gap-3 border-b border-border/50 py-3 last:border-b-0">
@@ -28,7 +28,7 @@ const GroupDiscoverRow = ({ group, onOpen, onJoin, joined }: Props) => {
         className="flex min-w-0 flex-1 items-start gap-3 text-left"
       >
         <GroupAvatar
-          coverUrl={cover}
+          avatarUrl={avatar}
           name={group.name}
           rounded="full"
           className="h-12 w-12 text-base"

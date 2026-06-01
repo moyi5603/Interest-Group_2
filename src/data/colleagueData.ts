@@ -14,7 +14,7 @@ export type EmployeeFull = {
   badges: Badge[];
   points: number;
   interestGroups: InterestGroup[];
-  /** 员工管理 / 档案中的兴趣标签 ID，与 `/profile/interests` 保持同步 */
+  /** 员工档案中的兴趣标签 ID（供推荐算法读取） */
   interestTagIds?: string[];
   bio: string;
   projects: string[];

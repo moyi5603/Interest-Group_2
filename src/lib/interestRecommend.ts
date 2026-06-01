@@ -5,6 +5,8 @@ import {
   activities,
   enrollments,
   getJoinedGroups,
+  getGroupById,
+  getOccurrencesByActivity,
   interestGroups,
   isGroupOwner,
   isMember,
@@ -87,8 +89,8 @@ export const getRecommendSummary = (viewerId: string, count: number) => {
   const tagIds = getProfileTagIds();
 
   if (!tagIds.length) {
-    if (count === 0) return "完善兴趣标签后可获得更精准推荐";
-    return `你还没填够兴趣标签，先按热门小组推荐 ${count} 个；完善后会更准`;
+    if (count === 0) return "暂无匹配小组，可前往小组广场浏览";
+    return `先为你推荐 ${count} 个热门小组`;
   }
 
   if (count === 0) {
@@ -174,6 +176,20 @@ export type RecentActivityItem = {
   statusOccurrence?: ActivityOccurrence;
 };
 
+export const matchActivityItemBySearchQuery = (
+  item: RecentActivityItem,
+  query: string,
+): boolean => {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const { activity, group } = item;
+  if (activity.title.toLowerCase().includes(q)) return true;
+  if (activity.description.toLowerCase().includes(q)) return true;
+  if (activity.location?.toLowerCase().includes(q)) return true;
+  if (group.name.toLowerCase().includes(q)) return true;
+  return false;
+};
+
 const sessionNotExpired = (startAt: string, endAt?: string) => {
   const endMs = endAt
     ? new Date(endAt).getTime()
@@ -257,6 +273,53 @@ const buildRecentActivityItem = (
     nextOccurrence,
     statusOccurrence,
   };
+};
+
+/** 管理员：全部已发布活动（含已结束），按最近时间倒序 */
+const buildAdminActivityItem = (
+  activity: GroupActivity,
+  group: InterestGroupFull,
+): RecentActivityItem | null => {
+  const upcoming = upcomingOccurrencesForActivity(activity.id);
+  const allOccs = getOccurrencesByActivity(activity.id);
+  let sortStartAt = activity.startAt ?? allOccs[0]?.startAt;
+  if (upcoming.length > 0) {
+    sortStartAt = upcoming[0].startAt;
+  } else if (allOccs.length > 0) {
+    sortStartAt = [...allOccs].sort(
+      (a, b) =>
+        new Date(b.startAt).getTime() - new Date(a.startAt).getTime(),
+    )[0].startAt;
+  }
+  if (!sortStartAt) return null;
+
+  const timeLabel =
+    buildActivityTimeLabel(activity, upcoming) ||
+    formatTimeRange(sortStartAt, activity.endAt ?? sortStartAt);
+
+  return {
+    activity,
+    group,
+    sortStartAt,
+    timeLabel,
+    nextOccurrence: upcoming[0],
+    statusOccurrence: upcoming[0] ?? allOccs[0],
+  };
+};
+
+export const getAllPublishedActivities = (): RecentActivityItem[] => {
+  const items: RecentActivityItem[] = [];
+  for (const activity of activities) {
+    if (activity.status !== "published") continue;
+    const group = getGroupById(activity.groupId);
+    if (!group) continue;
+    const item = buildAdminActivityItem(activity, group);
+    if (item) items.push(item);
+  }
+  return items.sort(
+    (a, b) =>
+      new Date(b.sortStartAt).getTime() - new Date(a.sortStartAt).getTime(),
+  );
 };
 
 export const getRecentActivities = (viewerId: string): RecentActivityItem[] => {

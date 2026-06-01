@@ -34,6 +34,8 @@ import type {
   GroupActivity,
   SeriesEnrollmentMode,
 } from "@/data/interestTypes";
+import InterestRoleGate from "@/components/interest/InterestRoleGate";
+import { canManageInterestGroups } from "@/lib/appRoleStore";
 import { toast } from "@/components/ui/sonner";
 
 const newSessionKey = () =>
@@ -73,6 +75,16 @@ const ActivityCreate = () => {
       <div className="mx-auto flex h-screen max-w-md items-center justify-center">
         <p className="text-sm text-muted-foreground">小组不存在</p>
       </div>
+    );
+  }
+
+  if (!canManageInterestGroups()) {
+    return (
+      <InterestRoleGate
+        actionLabel="发布活动"
+        backLabel="返回小组"
+        onBack={() => navigate(`/agents/interest-groups/${group.id}`)}
+      />
     );
   }
 

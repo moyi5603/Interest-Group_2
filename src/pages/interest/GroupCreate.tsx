@@ -3,14 +3,14 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import ActivityCoverUpload from "@/components/interest/ActivityCoverUpload";
-import InterestTagPicker from "@/components/interest/InterestTagPicker";
+import GroupTagField from "@/components/interest/GroupTagField";
 import { GROUP_TAG_MAX } from "@/components/interest/groupFormConstants";
-import { groupTagList } from "@/data/interestTags";
 import {
   CURRENT_EMPLOYEE_ID,
   createSpontaneousGroup,
 } from "@/data/interestGroups";
 import GroupDescriptionField from "@/components/interest/GroupDescriptionField";
+import InterestRoleGate from "@/components/interest/InterestRoleGate";
 import { interestTypography as t } from "@/components/interest/interestTypography";
 import { toast } from "@/components/ui/sonner";
 
@@ -21,17 +21,7 @@ const GroupCreate = () => {
   const [description, setDescription] = useState("");
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
-
-  const toggleTag = (id: string) => {
-    setTagIds((prev) => {
-      if (prev.includes(id)) return prev.filter((t) => t !== id);
-      if (prev.length >= GROUP_TAG_MAX) {
-        toast.error(`最多选择 ${GROUP_TAG_MAX} 个标签`);
-        return prev;
-      }
-      return [...prev, id];
-    });
-  };
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
 
   const submit = () => {
     if (!name.trim()) {
@@ -57,6 +47,7 @@ const GroupCreate = () => {
         visibility: "public",
         tagIds,
         coverUrl,
+        avatarUrl,
       },
       CURRENT_EMPLOYEE_ID,
     );
@@ -65,7 +56,8 @@ const GroupCreate = () => {
   };
 
   return (
-    <div className="mx-auto flex h-screen max-w-md flex-col bg-background">
+    <InterestRoleGate actionLabel="创建小组">
+      <div className="mx-auto flex h-screen max-w-md flex-col bg-background">
       <header className="sticky top-0 z-30 flex items-center gap-2 bg-background/85 px-3 py-3 backdrop-blur-lg">
         <button
           type="button"
@@ -85,6 +77,13 @@ const GroupCreate = () => {
           required
         />
 
+        <ActivityCoverUpload
+          value={avatarUrl}
+          onChange={setAvatarUrl}
+          label="小组头像"
+          aspect="square"
+        />
+
         <label className="block space-y-1">
           <span className={t.formLabel}>
             <span className={t.requiredMark} aria-hidden>
@@ -100,27 +99,7 @@ const GroupCreate = () => {
           />
         </label>
 
-        <div className="space-y-1">
-          <span className={t.formLabel}>
-            <span className={t.requiredMark} aria-hidden>
-              *
-            </span>
-            标签
-            <span className="ml-1 font-normal text-muted-foreground">
-              （最多 {GROUP_TAG_MAX} 个）
-            </span>
-          </span>
-          <InterestTagPicker
-            selectedIds={tagIds}
-            onToggle={toggleTag}
-            onAdd={toggleTag}
-            allowDeselect
-            flat
-            compact
-            maxSelected={GROUP_TAG_MAX}
-            tagList={groupTagList}
-          />
-        </div>
+        <GroupTagField value={tagIds} onChange={setTagIds} required />
 
         <GroupDescriptionField
           value={description}
@@ -139,7 +118,8 @@ const GroupCreate = () => {
           创建并上线
         </button>
       </div>
-    </div>
+      </div>
+    </InterestRoleGate>
   );
 };
 

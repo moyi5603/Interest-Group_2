@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 
 type Props = {
+  avatarUrl?: string;
+  /** @deprecated 使用 avatarUrl */
   coverUrl?: string;
   name: string;
   className?: string;
@@ -8,17 +10,19 @@ type Props = {
 };
 
 const GroupAvatar = ({
+  avatarUrl,
   coverUrl,
   name,
   className,
   rounded = "lg",
 }: Props) => {
   const roundClass = rounded === "full" ? "rounded-full" : "rounded-lg";
+  const imageUrl = avatarUrl ?? coverUrl;
 
-  if (coverUrl) {
+  if (imageUrl) {
     return (
       <img
-        src={coverUrl}
+        src={imageUrl}
         alt=""
         className={cn(
           "shrink-0 object-cover",

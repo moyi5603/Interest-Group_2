@@ -15,7 +15,9 @@ type Props = {
   open: boolean;
   existingTagIds: string[];
   maxCount?: number;
-  onConfirm: (addedTagIds: string[]) => void;
+  title?: string;
+  existingHint?: string;
+  onConfirm: (addedTagNames: string[]) => void;
   onClose: () => void;
 };
 
@@ -23,6 +25,8 @@ const InterestTagPickerModal = ({
   open,
   existingTagIds,
   maxCount,
+  title = "选择兴趣",
+  existingHint = "该标签已在你的兴趣列表中",
   onConfirm,
   onClose,
 }: Props) => {
@@ -109,7 +113,7 @@ const InterestTagPickerModal = ({
     }
     const key = name.toLowerCase();
     if (existingLower.has(key)) {
-      toast.message("该标签已在你的兴趣列表中");
+      toast.message(existingHint);
       return;
     }
     if (pendingLower.has(key)) {
@@ -187,7 +191,7 @@ const InterestTagPickerModal = ({
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 id="interest-picker-title" className="text-base font-semibold">
-            选择兴趣
+            {title}
           </h3>
           <button
             type="button"
@@ -224,7 +228,7 @@ const InterestTagPickerModal = ({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {maxCount !== undefined && (
-                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                <span className="whitespace-nowrap text-sm text-muted-foreground">
                   {totalCount}/{maxCount}
                 </span>
               )}
@@ -256,7 +260,7 @@ const InterestTagPickerModal = ({
           </p>
         )}
 
-        <div className="flex min-h-0 flex-1 max-h-[50vh]">
+        <div className="flex min-h-0 max-h-[50vh] flex-1">
           <ul className="w-[108px] shrink-0 overflow-y-auto border-r border-border bg-secondary/30 py-1">
             {catalog.map((cat: CatalogCategory) => (
               <li key={cat.id}>
@@ -304,7 +308,7 @@ const InterestTagPickerModal = ({
                             customFromQuery.toLowerCase(),
                           ) ? (
                           <p className="mt-3 text-sm text-muted-foreground">
-                            该标签已在你的兴趣列表中
+                            {existingHint}
                           </p>
                         ) : pendingLower.has(
                             customFromQuery.toLowerCase(),

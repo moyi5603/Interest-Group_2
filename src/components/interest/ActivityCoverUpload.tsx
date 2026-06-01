@@ -14,6 +14,8 @@ type Props = {
   label?: string;
   hint?: string;
   required?: boolean;
+  /** banner 横图封面；square 方图头像 */
+  aspect?: "banner" | "square";
 };
 
 const ActivityCoverUpload = ({
@@ -23,6 +25,7 @@ const ActivityCoverUpload = ({
   label = "活动封面",
   hint,
   required = false,
+  aspect = "banner",
 }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -44,6 +47,8 @@ const ActivityCoverUpload = ({
     reader.readAsDataURL(file);
   };
 
+  const isSquare = aspect === "square";
+
   return (
     <div className={cn("space-y-1.5", className)}>
       <span className={t.formLabel}>
@@ -54,15 +59,21 @@ const ActivityCoverUpload = ({
         ) : null}
         {label}
       </span>
-      <div className="relative">
+      <div className={cn("relative", isSquare && "w-24")}>
         <ActivityCover
           coverUrl={value}
-          className="h-36 w-full rounded-2xl"
+          className={
+            isSquare
+              ? "aspect-square h-24 w-24 rounded-xl"
+              : "h-36 w-full rounded-2xl"
+          }
         >
           {!value && (
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 text-muted-foreground">
-              <ImagePlus className="h-8 w-8 opacity-60" />
-              <span className="text-sm">上传封面图</span>
+              <ImagePlus className={cn(isSquare ? "h-6 w-6" : "h-8 w-8", "opacity-60")} />
+              <span className={cn("text-sm", isSquare && "text-xs")}>
+                {isSquare ? "上传头像" : "上传封面图"}
+              </span>
             </div>
           )}
         </ActivityCover>
@@ -70,9 +81,30 @@ const ActivityCoverUpload = ({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="absolute inset-0 rounded-2xl"
-            aria-label="上传活动封面"
+            className={cn(
+              "absolute inset-0",
+              isSquare ? "rounded-xl" : "rounded-2xl",
+            )}
+            aria-label={isSquare ? "上传小组头像" : "上传活动封面"}
           />
+        ) : isSquare ? (
+          <div className="absolute inset-x-1 bottom-1 flex justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="rounded-full bg-black/50 px-2 py-0.5 text-[10px] text-white active:scale-95"
+            >
+              更换
+            </button>
+            <button
+              type="button"
+              aria-label="移除头像"
+              onClick={() => onChange(undefined)}
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white active:scale-95"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         ) : (
           <div className="absolute right-2 top-2 flex gap-1.5">
             <button
@@ -84,7 +116,7 @@ const ActivityCoverUpload = ({
             </button>
             <button
               type="button"
-              aria-label="移除封面"
+              aria-label={isSquare ? "移除头像" : "移除封面"}
               onClick={() => onChange(undefined)}
               className="flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white active:scale-95"
             >

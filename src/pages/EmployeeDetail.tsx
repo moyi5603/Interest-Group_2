@@ -5,7 +5,7 @@ import { ArrowLeft, MessageSquare, Phone, Heart, ChevronLeft, ChevronRight, Cred
 import GroupAvatar from "@/components/interest/GroupAvatar";
 import { getEmployee, getYearsOfService } from "@/data/colleagueData";
 import { getGroupById } from "@/data/interestGroups";
-import { resolveGroupCover } from "@/data/interestImages";
+import { resolveGroupAvatar } from "@/data/interestImages";
 
 const EmployeeDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -286,10 +286,9 @@ const EmployeeDetail = () => {
           <div className="space-y-2">
             {emp.interestGroups.map((g) => {
               const fullGroup = getGroupById(g.id);
-              const cover = resolveGroupCover({
-                id: g.id,
-                coverUrl: fullGroup?.coverUrl,
-              });
+              const avatar = fullGroup
+                ? resolveGroupAvatar(fullGroup)
+                : resolveGroupAvatar({ id: g.id });
               return (
                 <div
                   key={g.id}
@@ -303,7 +302,7 @@ const EmployeeDetail = () => {
                   className="flex cursor-pointer items-center gap-3 rounded-xl bg-background px-3 py-2.5 active:scale-[0.99]"
                 >
                   <GroupAvatar
-                    coverUrl={cover}
+                    avatarUrl={avatar}
                     name={g.name}
                     className="h-9 w-9 text-sm"
                   />

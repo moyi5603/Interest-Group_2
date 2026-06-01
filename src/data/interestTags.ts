@@ -24,22 +24,6 @@ export const interestTagList: InterestTag[] = [
   { id: "tag-coffee", name: "咖啡", category: "生活" },
 ];
 
-/** 创建/编辑小组时展示的标签（偏职场与运动，少娱乐向） */
-export const groupTagList: InterestTag[] = [
-  "tag-tech",
-  "tag-ai",
-  "tag-reading",
-  "tag-english",
-  "tag-industry",
-  "tag-running",
-  "tag-fitness",
-  "tag-badminton",
-  "tag-hiking",
-  "tag-volunteer",
-]
-  .map((id) => interestTagList.find((t) => t.id === id))
-  .filter((t): t is InterestTag => !!t);
-
 let customTags: InterestTag[] = loadCustomTags();
 const tagById = new Map<string, InterestTag>();
 

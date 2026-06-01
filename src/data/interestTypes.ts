@@ -1,3 +1,5 @@
+export type GroupCategory = "运动" | "文艺" | "生活" | "科技";
+
 export type TagSource = "manual" | "ai_suggested" | "inferred";
 export type GroupType = "official" | "spontaneous";
 export type GroupVisibility = "public" | "dept_only" | "invite_only";
@@ -25,7 +27,11 @@ export type InterestGroupFull = {
   name: string;
   description: string;
   coverUrl?: string;
+  /** 小组头像（方图，列表/卡片展示） */
+  avatarUrl?: string;
   type: GroupType;
+  /** 小组分类（发现页筛选与列表展示） */
+  category: GroupCategory;
   visibility: GroupVisibility;
   deptIds?: string[];
   tagIds: string[];
