@@ -37,7 +37,7 @@ import {
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import { canViewGroup } from "@/lib/interestVisibility";
-import { canOrganizeGroup } from "@/lib/interestGroupAccess";
+import { canOrganizeGroup, canPostInterestComments } from "@/lib/interestGroupAccess";
 import { buildFeaturedActivityListItem } from "@/lib/interestRecommend";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
@@ -109,9 +109,10 @@ const GroupDetail = () => {
   }
 
   const tags = getTagsByIds(group.tagIds);
-  const showOwnerFooter = canOrganize && !isArchived;
-  const showMomentsComposer = panel === "moments" && member && !isArchived;
-  const showBottomBar = showMomentsComposer || showOwnerFooter;
+  const canPostMoments = member && canPostInterestComments();
+  const showMomentsComposer =
+    panel === "moments" && canPostMoments && !isArchived;
+  const showBottomBar = showMomentsComposer;
   const openMomentComposerRef = useRef<(focusImages?: boolean) => void>(
     () => {},
   );
@@ -180,15 +181,28 @@ const GroupDetail = () => {
             <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
           </button>
           {!isArchived && canOrganize ? (
-            <button
-              type="button"
-              onClick={() =>
-                navigate(`/agents/interest-groups/${group.id}/activities/new`)
-              }
-              className="mt-3 w-full rounded-full border border-primary py-2.5 text-sm font-medium text-primary"
-            >
-              发布活动
-            </button>
+            <div className="mt-3 flex gap-2">
+              <GroupOrganizerFooter
+                compact
+                group={group}
+                ownerId={CURRENT_EMPLOYEE_ID}
+                onEdit={() =>
+                  navigate(`/agents/interest-groups/${group.id}/edit`)
+                }
+                onDisbanded={() =>
+                  navigate("/agents/interest-groups/admin/groups")
+                }
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/agents/interest-groups/${group.id}/activities/new`)
+                }
+                className="min-w-0 flex-[1.35] rounded-full border border-primary py-2.5 text-sm font-semibold text-primary active:scale-[0.99]"
+              >
+                发布活动
+              </button>
+            </div>
           ) : !isArchived && !member ? (
             full ? (
               <p className="mt-3 text-center text-sm text-muted-foreground">
@@ -287,7 +301,7 @@ const GroupDetail = () => {
               <div className="mt-3">
                 <GroupMomentsPanel
                   groupId={group.id}
-                  canPost={member}
+                  canPost={canPostMoments}
                   tick={version}
                   onChanged={() => setVersion((n) => n + 1)}
                   onRegisterComposer={(open) => {
@@ -313,26 +327,9 @@ const GroupDetail = () => {
 
       {showBottomBar && (
         <footer className="fixed bottom-0 left-0 right-0 z-20 mx-auto flex max-w-md items-center gap-2 border-t border-border bg-background/95 px-3 py-2.5 backdrop-blur">
-          {showMomentsComposer && (
-            <ActivityCommentComposerInline
-              onOpenComposer={(focus) => openMomentComposerRef.current(focus)}
-            />
-          )}
-
-          {showOwnerFooter && (
-            <div className={cn(showMomentsComposer && "shrink-0")}>
-              <GroupOrganizerFooter
-                group={group}
-                ownerId={CURRENT_EMPLOYEE_ID}
-                onEdit={() =>
-                  navigate(`/agents/interest-groups/${group.id}/edit`)
-                }
-                onDisbanded={() =>
-                  navigate("/agents/interest-groups/admin/groups")
-                }
-              />
-            </div>
-          )}
+          <ActivityCommentComposerInline
+            onOpenComposer={(focus) => openMomentComposerRef.current(focus)}
+          />
         </footer>
       )}
 

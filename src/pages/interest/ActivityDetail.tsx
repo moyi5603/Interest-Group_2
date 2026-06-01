@@ -66,9 +66,10 @@ import {
   isSeriesWholeEnrollmentOpen,
   seriesEnrollmentBlockedReason,
 } from "@/lib/seriesEnrollment";
-import { canOrganizeActivity } from "@/lib/interestGroupAccess";
+import { canOrganizeActivity, canPostInterestComments } from "@/lib/interestGroupAccess";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { toast } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 
 const ActivityDetail = () => {
   const { activityId } = useParams<{ activityId: string }>();
@@ -471,9 +472,16 @@ const ActivityDetail = () => {
       footerPhase !== "已结束" &&
       footerPhase !== "进行中");
 
-  const showCommentComposer = !isEditing;
+  const canPostComments = canPostInterestComments();
+  const showCommentSection = !isEditing;
+  const showCommentComposer = showCommentSection && canPostComments;
   const showBottomBar = showCommentComposer || showFooter;
-  const mainBottomPadding = showBottomBar ? "pb-[4.75rem]" : "pb-6";
+  const footerStacked = showFooter && !showCommentComposer;
+  const mainBottomPadding = showBottomBar
+    ? footerStacked
+      ? "pb-24"
+      : "pb-[4.75rem]"
+    : "pb-6";
 
   const enrollButtonLabel = () => {
     if (hasEnrollment) {
@@ -597,13 +605,14 @@ const ActivityDetail = () => {
           </section>
         )}
 
-        {showCommentComposer && (
+        {showCommentSection && (
           <ActivityCommentSection
             comments={comments}
             commentCount={commentCount}
             onDelete={handleCommentDelete}
             onLike={handleCommentLike}
             onReply={handleCommentReply}
+            canReply={canPostComments}
             scrollToLatest={scrollToLatestComment}
           />
         )}
@@ -611,17 +620,27 @@ const ActivityDetail = () => {
       </main>
 
       {showBottomBar && (
-        <footer className="fixed bottom-0 left-0 right-0 z-20 mx-auto flex max-w-md items-center gap-2 border-t border-border bg-background/95 px-3 py-2.5 backdrop-blur">
+        <footer
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-md border-t border-border bg-background/95 backdrop-blur",
+            showCommentComposer
+              ? "flex items-center gap-2 px-3 py-2.5"
+              : "px-3 py-3",
+          )}
+        >
           {showCommentComposer && (
-            <ActivityCommentComposerInline onOpenComposer={openCommentComposer} />
+            <ActivityCommentComposerInline
+              onOpenComposer={openCommentComposer}
+              className="min-w-0 flex-1"
+            />
           )}
 
           {showFooter && (
-            <div className="shrink-0">
+            <div className={cn(showCommentComposer ? "shrink-0" : "w-full")}>
               {isTerminated ? (
-                <span className="whitespace-nowrap px-1 text-xs text-muted-foreground">
+                <p className="text-center text-sm text-muted-foreground">
                   活动已终止
-                </span>
+                </p>
               ) : isOrganizer ? (
                 <ActivityOrganizerFooter
                   activity={activity}
@@ -639,7 +658,7 @@ const ActivityDetail = () => {
                 <button
                   type="button"
                   onClick={() => setCancelOpen(true)}
-                  className="shrink-0 whitespace-nowrap rounded-full border border-destructive/40 px-3 py-2 text-xs font-medium text-destructive active:scale-[0.99]"
+                  className="w-full rounded-full border border-destructive/40 py-2.5 text-sm font-medium text-destructive active:scale-[0.99]"
                 >
                   取消报名
                   {myEnrollments.length > 1
@@ -657,7 +676,7 @@ const ActivityDetail = () => {
                       doEnroll();
                     }
                   }}
-                  className="min-w-[6.5rem] max-w-[12rem] shrink-0 truncate rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground active:scale-[0.99]"
+                  className="w-full rounded-full bg-primary py-2.5 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground active:scale-[0.99]"
                 >
                   {enrollButtonLabel()}
                 </button>

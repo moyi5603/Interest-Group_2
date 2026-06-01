@@ -19,6 +19,8 @@ type Props = {
   ownerId: string;
   onEdit: () => void;
   onDisbanded: () => void;
+  /** 与「发布活动」等同排时使用 */
+  compact?: boolean;
 };
 
 const GroupOrganizerFooter = ({
@@ -26,6 +28,7 @@ const GroupOrganizerFooter = ({
   ownerId,
   onEdit,
   onDisbanded,
+  compact = false,
 }: Props) => {
   const [disbandOpen, setDisbandOpen] = useState(false);
 
@@ -45,26 +48,42 @@ const GroupOrganizerFooter = ({
     );
   };
 
+  const btnClass = cn(
+    "rounded-full border font-medium active:scale-[0.99]",
+    compact
+      ? "min-w-0 flex-1 py-2.5 text-center text-xs sm:text-sm"
+      : "flex-1 py-3 text-sm",
+  );
+
+  const actions = (
+    <>
+      <button
+        type="button"
+        onClick={() => setDisbandOpen(true)}
+        className={cn(
+          btnClass,
+          "border-destructive/50 text-destructive",
+        )}
+      >
+        解散小组
+      </button>
+      <button
+        type="button"
+        onClick={onEdit}
+        className={cn(btnClass, "border-primary text-primary")}
+      >
+        编辑
+      </button>
+    </>
+  );
+
   return (
     <>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={onEdit}
-          className="flex-1 rounded-full border border-primary py-3 text-sm font-medium text-primary active:scale-[0.99]"
-        >
-          编辑
-        </button>
-        <button
-          type="button"
-          onClick={() => setDisbandOpen(true)}
-          className={cn(
-            "flex-1 rounded-full border border-destructive/50 py-3 text-sm font-medium text-destructive active:scale-[0.99]",
-          )}
-        >
-          解散小组
-        </button>
-      </div>
+      {compact ? (
+        <div className="flex min-w-0 flex-1 gap-2">{actions}</div>
+      ) : (
+        <div className="flex gap-2">{actions}</div>
+      )}
 
       <AlertDialog open={disbandOpen} onOpenChange={setDisbandOpen}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] rounded-2xl">

@@ -15,6 +15,7 @@ type Props = {
   subtitle?: string;
   action?: Action;
   secondaryAction?: Action;
+  tertiaryAction?: Action;
   /** 首页等场景用稍大字号 */
   size?: "default" | "comfortable";
 };
@@ -49,6 +50,7 @@ const SectionHeader = ({
   subtitle,
   action,
   secondaryAction,
+  tertiaryAction,
   size = "comfortable",
 }: Props) => (
   <div className={subtitle ? "mb-2" : "mb-1.5"}>
@@ -69,10 +71,13 @@ const SectionHeader = ({
           {title}
         </h2>
       )}
-      {(secondaryAction || action) && (
+      {(secondaryAction || tertiaryAction || action) && (
         <div className="flex shrink-0 items-center gap-2.5">
           {secondaryAction && (
             <HeaderAction action={secondaryAction} size={size} />
+          )}
+          {tertiaryAction && (
+            <HeaderAction action={tertiaryAction} size={size} />
           )}
           {action && <HeaderAction action={action} size={size} />}
         </div>

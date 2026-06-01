@@ -1,32 +1,22 @@
 import { useMemo, useState } from "react";
-import { ImagePlus, Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CommentImageGrid, {
   COMMENT_IMAGE_GRID_MAX,
 } from "@/components/interest/CommentImageGrid";
-import CommentImagePicker from "@/components/interest/CommentImagePicker";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import GroupHighlightEditorSheet from "@/components/interest/GroupHighlightEditorSheet";
 import { getEmployee } from "@/data/colleagueData";
-import { CURRENT_EMPLOYEE_ID, getActivityById, getOccurrenceById } from "@/data/interestGroups";
+import { getActivityById, getOccurrenceById } from "@/data/interestGroups";
 import {
-  addGroupHighlight,
   deleteGroupHighlight,
+  formatHighlightOccurrenceLabel,
   listGroupHighlights,
   listHighlightOccurrenceOptions,
+  listHighlightUploadOptions,
 } from "@/data/groupHighlights";
 import type { GroupHighlight } from "@/data/interestTypes";
-import {
-  formatOccurrenceLabel,
-  formatTimeRange,
-} from "@/lib/interestOccurrences";
 import { formatCommentTime } from "@/lib/formatCommentTime";
 import { toast } from "@/components/ui/sonner";
-import { cn } from "@/lib/utils";
 
 type Props = {
   groupId: string;
@@ -35,57 +25,59 @@ type Props = {
   onChanged: () => void;
 };
 
-const formatHighlightOccurrenceLabel = (
-  activity: ReturnType<typeof getActivityById>,
-  occurrence: Parameters<typeof formatOccurrenceLabel>[0] | undefined,
-  index?: number,
-) => {
-  if (!activity) return "";
-  if (occurrence) {
-    return `${activity.title} · ${formatOccurrenceLabel(occurrence, index)}`;
-  }
-  return `${activity.title} · ${formatTimeRange(activity.startAt, activity.endAt)}`;
+const getHighlightOccurrenceLabel = (highlight: GroupHighlight) => {
+  const activity = getActivityById(highlight.activityId);
+  const occurrence = getOccurrenceById(highlight.occurrenceId);
+  return formatHighlightOccurrenceLabel(activity, occurrence);
 };
 
 const HighlightCard = ({
   groupId,
   highlight,
-  canDelete,
+  canManage,
+  onEdit,
   onDelete,
 }: {
   groupId: string;
   highlight: GroupHighlight;
-  canDelete: boolean;
+  canManage: boolean;
+  onEdit: (highlight: GroupHighlight) => void;
   onDelete: (id: string) => void;
 }) => {
   const navigate = useNavigate();
-  const activity = getActivityById(highlight.activityId);
-  const occurrence = getOccurrenceById(highlight.occurrenceId);
   const uploader = getEmployee(highlight.uploadedBy);
+  const occurrenceLabel = getHighlightOccurrenceLabel(highlight);
+  const timeLabel = formatCommentTime(highlight.updatedAt ?? highlight.uploadedAt);
 
   return (
     <article className="rounded-2xl bg-card p-4 shadow-soft">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">
-            {activity
-              ? formatHighlightOccurrenceLabel(activity, occurrence)
-              : "活动场次"}
-          </p>
+          <p className="text-sm font-medium text-foreground">{occurrenceLabel}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {uploader?.name ?? "管理员"} ·{" "}
-            {formatCommentTime(highlight.uploadedAt)}
+            {uploader?.name ?? "管理员"} · {timeLabel}
+            {highlight.updatedAt ? " · 已编辑" : ""}
           </p>
         </div>
-        {canDelete && (
-          <button
-            type="button"
-            aria-label="删除精彩瞬间"
-            onClick={() => onDelete(highlight.id)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+        {canManage && (
+          <div className="flex shrink-0 items-center gap-0.5">
+            <button
+              type="button"
+              aria-label="编辑精彩瞬间"
+              onClick={() => onEdit(highlight)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="删除精彩瞬间"
+              onClick={() => onDelete(highlight.id)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
       {highlight.caption && (
@@ -112,10 +104,11 @@ const GroupHighlightsPanel = ({
   tick,
   onChanged,
 }: Props) => {
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [occurrenceId, setOccurrenceId] = useState("");
-  const [caption, setCaption] = useState("");
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
+  const [editingHighlight, setEditingHighlight] = useState<
+    GroupHighlight | undefined
+  >();
 
   const highlights = useMemo(
     () => listGroupHighlights(groupId),
@@ -123,44 +116,25 @@ const GroupHighlightsPanel = ({
   );
 
   const occurrenceOptions = useMemo(
-    () =>
-      listHighlightOccurrenceOptions(groupId, formatHighlightOccurrenceLabel),
+    () => listHighlightOccurrenceOptions(groupId),
     [groupId, tick],
   );
 
-  const selectedOption = occurrenceOptions.find(
-    (o) => o.occurrenceId === occurrenceId,
+  const uploadOptions = useMemo(
+    () => listHighlightUploadOptions(groupId),
+    [groupId, tick],
   );
 
-  const resetUploadForm = () => {
-    setOccurrenceId("");
-    setCaption("");
-    setImageUrls([]);
+  const openCreate = () => {
+    setEditorMode("create");
+    setEditingHighlight(undefined);
+    setEditorOpen(true);
   };
 
-  const handleUpload = () => {
-    if (!selectedOption) {
-      toast.error("请选择活动场次");
-      return;
-    }
-    if (imageUrls.length === 0) {
-      toast.error("请至少上传一张图片");
-      return;
-    }
-    const created = addGroupHighlight(groupId, CURRENT_EMPLOYEE_ID, {
-      activityId: selectedOption.activityId,
-      occurrenceId: selectedOption.occurrenceId,
-      imageUrls,
-      caption,
-    });
-    if (!created) {
-      toast.error("上传失败，请稍后重试");
-      return;
-    }
-    onChanged();
-    setUploadOpen(false);
-    resetUploadForm();
-    toast.success("精彩瞬间已上传");
+  const openEdit = (highlight: GroupHighlight) => {
+    setEditorMode("edit");
+    setEditingHighlight(highlight);
+    setEditorOpen(true);
   };
 
   const handleDelete = (id: string) => {
@@ -174,15 +148,21 @@ const GroupHighlightsPanel = ({
 
   return (
     <div className="space-y-3">
-      {canUpload && (
+      {canUpload && uploadOptions.length > 0 && (
         <button
           type="button"
-          onClick={() => setUploadOpen(true)}
+          onClick={openCreate}
           className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-primary/30 bg-primary/5 py-2.5 text-sm font-medium text-primary active:scale-[0.99]"
         >
           <Plus className="h-4 w-4" />
           上传精彩瞬间
         </button>
+      )}
+
+      {canUpload && uploadOptions.length === 0 && occurrenceOptions.length > 0 && (
+        <p className="rounded-xl bg-secondary/40 px-3 py-2 text-center text-xs text-muted-foreground">
+          已结束场次均已上传精彩瞬间，可点击编辑按钮修改
+        </p>
       )}
 
       {highlights.length === 0 ? (
@@ -193,7 +173,7 @@ const GroupHighlightsPanel = ({
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {canUpload
-              ? "活动结束后，可上传该场次的精彩照片"
+              ? "活动结束后，每个场次可上传一次精彩瞬间"
               : "管理员会在活动结束后上传精彩照片"}
           </p>
         </div>
@@ -204,7 +184,8 @@ const GroupHighlightsPanel = ({
               <HighlightCard
                 groupId={groupId}
                 highlight={highlight}
-                canDelete={canUpload}
+                canManage={canUpload}
+                onEdit={openEdit}
                 onDelete={handleDelete}
               />
             </li>
@@ -212,78 +193,20 @@ const GroupHighlightsPanel = ({
         </ul>
       )}
 
-      <Sheet
-        open={uploadOpen}
-        onOpenChange={(open) => {
-          setUploadOpen(open);
-          if (!open) resetUploadForm();
-        }}
-      >
-        <SheetContent
-          side="bottom"
-          className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl px-0 pb-0 pt-3 [&>button]:hidden"
-        >
-          <div className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-border" />
-          <SheetHeader className="shrink-0 flex-row items-center justify-between space-y-0 px-4 text-left">
-            <SheetTitle className="text-base">上传精彩瞬间</SheetTitle>
-            <button
-              type="button"
-              onClick={handleUpload}
-              className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground active:scale-[0.98]"
-            >
-              保存
-            </button>
-          </SheetHeader>
-
-          <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
-              选择场次
-            </p>
-            {occurrenceOptions.length === 0 ? (
-              <p className="rounded-xl bg-secondary/50 px-3 py-2 text-sm text-muted-foreground">
-                暂无可关联的已结束场次
-              </p>
-            ) : (
-              <div className="space-y-1.5">
-                {occurrenceOptions.map((option) => (
-                  <button
-                    key={option.occurrenceId}
-                    type="button"
-                    onClick={() => setOccurrenceId(option.occurrenceId)}
-                    className={cn(
-                      "w-full rounded-xl border px-3 py-2.5 text-left text-sm active:scale-[0.99]",
-                      occurrenceId === option.occurrenceId
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-card text-foreground",
-                    )}
-                  >
-                    {option.occurrenceLabel}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <label className="mt-4 block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
-                说明（选填）
-              </span>
-              <input
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="例如：结营合影"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
-              />
-            </label>
-
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">
-                活动照片
-              </p>
-              <CommentImagePicker value={imageUrls} onChange={setImageUrls} />
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <GroupHighlightEditorSheet
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        mode={editorMode}
+        groupId={groupId}
+        highlight={editingHighlight}
+        uploadOptions={uploadOptions}
+        occurrenceLabel={
+          editingHighlight
+            ? getHighlightOccurrenceLabel(editingHighlight)
+            : undefined
+        }
+        onSaved={onChanged}
+      />
     </div>
   );
 };

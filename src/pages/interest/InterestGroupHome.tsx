@@ -19,6 +19,7 @@ import InterestHomeStatsCard from "@/components/interest/InterestHomeStatsCard";
 import InterestSection from "@/components/interest/InterestSection";
 import InterestTopicPanel from "@/components/interest/InterestTopicPanel";
 import RecentActivitiesEmptyState from "@/components/interest/RecentActivitiesEmptyState";
+import RecommendedGroupsEmptyState from "@/components/interest/RecommendedGroupsEmptyState";
 import SectionHeader from "@/components/interest/SectionHeader";
 import ChatInputBar from "@/components/agent/ChatInputBar";
 import type { InterestListSection } from "@/data/interestTypes";
@@ -100,6 +101,7 @@ const InterestGroupHome = () => {
   const [recommendOffset, setRecommendOffset] = useState(0);
   const [joinTick, setJoinTick] = useState(0);
   const [previewRecentEmpty, setPreviewRecentEmpty] = useState(false);
+  const [previewGroupsEmpty, setPreviewGroupsEmpty] = useState(false);
   const [feedTab, setFeedTab] = useUrlEnumParam<HomeFeedTab>(
     "feed",
     "activities",
@@ -139,8 +141,12 @@ const InterestGroupHome = () => {
   const showRecentActivitiesEmpty =
     previewRecentEmpty || recentActivities.length === 0;
 
+  const showRecommendedGroupsEmpty =
+    previewGroupsEmpty || recommended.length === 0;
+
   const handleFeedTabChange = (tab: HomeFeedTab) => {
     if (tab === "groups") setPreviewRecentEmpty(false);
+    if (tab === "activities") setPreviewGroupsEmpty(false);
     setFeedTab(tab);
   };
 
@@ -151,6 +157,7 @@ const InterestGroupHome = () => {
 
   const handleRoleChange = (role: typeof appRole) => {
     setPreviewRecentEmpty(false);
+    setPreviewGroupsEmpty(false);
     setAppRole(role);
   };
 
@@ -302,21 +309,36 @@ const InterestGroupHome = () => {
         {!isManager && feedTab === "groups" && (
           <InterestSection variant="plain" className="p-2.5">
             <SectionHeader
-              secondaryAction={{
-                label: "换一批",
-                icon: <RefreshCw className="h-3.5 w-3.5" />,
-                onClick: () => setRecommendOffset((n) => n + 1),
-              }}
+              secondaryAction={
+                recommended.length > 0
+                  ? {
+                      label: previewGroupsEmpty
+                        ? "返回小组列表"
+                        : "查看无小组样式",
+                      onClick: () => setPreviewGroupsEmpty((v) => !v),
+                      subtle: !previewGroupsEmpty,
+                    }
+                  : undefined
+              }
+              tertiaryAction={
+                recommended.length > 0 && !previewGroupsEmpty
+                  ? {
+                      label: "换一批",
+                      icon: <RefreshCw className="h-3.5 w-3.5" />,
+                      onClick: () => setRecommendOffset((n) => n + 1),
+                    }
+                  : undefined
+              }
               action={{
                 label: "查看更多",
                 trailingIcon: <ChevronRight className="h-3.5 w-3.5" />,
                 onClick: () => navigate(DISCOVER_PATH),
               }}
             />
-            {recommended.length === 0 ? (
-              <p className="pb-1 text-sm text-muted-foreground">
-                暂无推荐，可前往小组广场浏览
-              </p>
+            {showRecommendedGroupsEmpty ? (
+              <RecommendedGroupsEmptyState
+                onAction={() => navigate(MY_GROUPS_PATH)}
+              />
             ) : (
               <ul className="space-y-2">
                 {recommended.map(({ group, reasons }) => (

@@ -57,16 +57,16 @@ const ActivityOrganizerFooter = ({
     toast.success("活动已终止，未举办场次已取消");
   };
 
-  const btnClass = compact
-    ? "shrink-0 rounded-full px-3 py-2 text-xs font-medium active:scale-[0.99] whitespace-nowrap"
-    : cn(
-        "rounded-full py-3 text-sm font-medium active:scale-[0.99]",
-        "flex-1",
-      );
+  const btnClass = cn(
+    "rounded-full font-medium active:scale-[0.99]",
+    compact
+      ? "shrink-0 whitespace-nowrap px-3 py-2 text-xs"
+      : "flex-1 py-2.5 text-sm",
+  );
 
   return (
     <>
-      <div className={cn("flex gap-1.5", compact ? "shrink-0" : "gap-2")}>
+      <div className={cn("flex gap-2", compact ? "shrink-0" : "w-full")}>
         {canEdit && (
           <button
             type="button"

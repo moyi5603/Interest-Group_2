@@ -126,7 +126,7 @@ export type GroupMoment = {
   parentId?: string;
 };
 
-/** 精彩瞬间（管理员按场次上传） */
+/** 精彩瞬间（管理员按场次上传，每场次仅一条） */
 export type GroupHighlight = {
   id: string;
   groupId: string;
@@ -136,4 +136,5 @@ export type GroupHighlight = {
   caption?: string;
   uploadedBy: string;
   uploadedAt: string;
+  updatedAt?: string;
 };

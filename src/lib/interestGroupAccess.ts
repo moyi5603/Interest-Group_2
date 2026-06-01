@@ -1,6 +1,9 @@
 import { isGroupOwner, isActivityOrganizer } from "@/data/interestGroups";
 import { canManageInterestGroups } from "@/lib/appRoleStore";
 
+/** 小组圈/活动评论：管理员身份暂仅浏览，不支持发帖与回复 */
+export const canPostInterestComments = () => !canManageInterestGroups();
+
 /** 小组详情页：平台管理员身份下展示与创建者相同的管理能力 */
 export const canOrganizeGroup = (_groupId: string, _viewerId: string) =>
   canManageInterestGroups();

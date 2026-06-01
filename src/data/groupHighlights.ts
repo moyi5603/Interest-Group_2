@@ -5,6 +5,7 @@ import {
   getOccurrencesByActivity,
 } from "./interestGroups";
 import type { GroupHighlight } from "./interestTypes";
+import { formatTimeRange } from "@/lib/interestOccurrences";
 import { canManageInterestGroups } from "@/lib/appRoleStore";
 import act1 from "@/assets/interest/activities/act-1.jpg";
 import act2 from "@/assets/interest/activities/act-2.jpg";
@@ -39,16 +40,6 @@ export let groupHighlights: GroupHighlight[] = [
     uploadedBy: "u2",
     uploadedAt: daysAgo(3),
   },
-  {
-    id: "gh-ig6-2",
-    groupId: "ig6",
-    activityId: "act-e-pt-1",
-    occurrenceId: "occ-e-pt-1-1",
-    imageUrls: [act6, act1],
-    caption: "热身环节",
-    uploadedBy: "u2",
-    uploadedAt: daysAgo(5),
-  },
 ];
 
 export const listGroupHighlights = (groupId: string): GroupHighlight[] =>
@@ -59,11 +50,31 @@ export const listGroupHighlights = (groupId: string): GroupHighlight[] =>
         new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
     );
 
+export const getGroupHighlightByOccurrence = (
+  groupId: string,
+  occurrenceId: string,
+): GroupHighlight | undefined =>
+  groupHighlights.find(
+    (h) => h.groupId === groupId && h.occurrenceId === occurrenceId,
+  );
+
 export type HighlightOccurrenceOption = {
   activityId: string;
   activityTitle: string;
   occurrenceId: string;
   occurrenceLabel: string;
+};
+
+/** 精彩瞬间场次展示：活动名称 + 活动时间 */
+export const formatHighlightOccurrenceLabel = (
+  activity: ReturnType<typeof getActivityById>,
+  occurrence: ReturnType<typeof getOccurrenceById>,
+) => {
+  if (!activity) return "";
+  if (occurrence) {
+    return `${activity.title} · ${formatTimeRange(occurrence.startAt, occurrence.endAt)}`;
+  }
+  return `${activity.title} · ${formatTimeRange(activity.startAt, activity.endAt)}`;
 };
 
 /** 小组内可关联精彩瞬间的场次（已结束或已完成） */
@@ -72,8 +83,7 @@ export const listHighlightOccurrenceOptions = (
   formatLabel: (
     activity: ReturnType<typeof getActivityById>,
     occurrence: ReturnType<typeof getOccurrenceById>,
-    index?: number,
-  ) => string,
+  ) => string = formatHighlightOccurrenceLabel,
 ): HighlightOccurrenceOption[] => {
   const options: HighlightOccurrenceOption[] = [];
   const now = Date.now();
@@ -90,7 +100,7 @@ export const listHighlightOccurrenceOptions = (
           activityId: activity.id,
           activityTitle: activity.title,
           occurrenceId: occ.id,
-          occurrenceLabel: formatLabel(activity, occ, index),
+          occurrenceLabel: formatLabel(activity, occ),
         });
       });
     } else if (
@@ -102,7 +112,7 @@ export const listHighlightOccurrenceOptions = (
         activityId: activity.id,
         activityTitle: activity.title,
         occurrenceId: `virtual-${activity.id}`,
-        occurrenceLabel: formatLabel(activity, undefined, undefined),
+        occurrenceLabel: formatLabel(activity, undefined),
       });
     }
   }
@@ -111,6 +121,15 @@ export const listHighlightOccurrenceOptions = (
     (a, b) => b.occurrenceLabel.localeCompare(a.occurrenceLabel, "zh-CN"),
   );
 };
+
+/** 尚未上传精彩瞬间的场次 */
+export const listHighlightUploadOptions = (
+  groupId: string,
+  formatLabel: Parameters<typeof listHighlightOccurrenceOptions>[1] = formatHighlightOccurrenceLabel,
+): HighlightOccurrenceOption[] =>
+  listHighlightOccurrenceOptions(groupId, formatLabel).filter(
+    (option) => !getGroupHighlightByOccurrence(groupId, option.occurrenceId),
+  );
 
 export const addGroupHighlight = (
   groupId: string,
@@ -128,6 +147,10 @@ export const addGroupHighlight = (
   const activity = getActivityById(input.activityId);
   if (!activity || activity.groupId !== groupId) return null;
 
+  if (getGroupHighlightByOccurrence(groupId, input.occurrenceId)) {
+    return null;
+  }
+
   const highlight: GroupHighlight = {
     id: `gh-${Date.now()}`,
     groupId,
@@ -140,6 +163,33 @@ export const addGroupHighlight = (
   };
   groupHighlights = [highlight, ...groupHighlights];
   return highlight;
+};
+
+export type UpdateGroupHighlightInput = {
+  imageUrls: string[];
+  caption?: string;
+};
+
+export const updateGroupHighlight = (
+  highlightId: string,
+  input: UpdateGroupHighlightInput,
+): GroupHighlight | null => {
+  if (!canManageInterestGroups()) return null;
+  if (input.imageUrls.length === 0) return null;
+
+  const index = groupHighlights.findIndex((h) => h.id === highlightId);
+  if (index < 0) return null;
+
+  const next: GroupHighlight = {
+    ...groupHighlights[index],
+    imageUrls: [...input.imageUrls],
+    caption: input.caption?.trim() || undefined,
+    updatedAt: new Date().toISOString(),
+  };
+  groupHighlights = groupHighlights.map((h) =>
+    h.id === highlightId ? next : h,
+  );
+  return next;
 };
 
 export const deleteGroupHighlight = (highlightId: string): boolean => {

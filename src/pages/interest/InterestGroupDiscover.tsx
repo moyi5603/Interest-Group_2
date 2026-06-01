@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import GroupCard from "@/components/interest/GroupCard";
 import InterestSection from "@/components/interest/InterestSection";
+import RecommendedGroupsEmptyState from "@/components/interest/RecommendedGroupsEmptyState";
 import SectionHeader from "@/components/interest/SectionHeader";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +21,7 @@ import { interestTypography as t } from "@/components/interest/interestTypograph
 import { toast } from "@/components/ui/sonner";
 
 const RECOMMEND_BATCH_SIZE = 10;
+const MY_GROUPS_PATH = "/agents/interest-groups/list/my-groups";
 
 const InterestGroupDiscover = () => {
   const navigate = useNavigate();
@@ -77,7 +79,7 @@ const InterestGroupDiscover = () => {
           </button>
           <div className="min-w-0 flex-1 text-center">
             <h1 className={t.pageTitle}>小组广场</h1>
-            <p className={t.pageSubtitle}>AI 智能推荐 · 按兴趣匹配</p>
+            <p className={t.pageSubtitle}>发现可加入的小组</p>
           </div>
           <div className="w-9" />
         </div>
@@ -116,16 +118,16 @@ const InterestGroupDiscover = () => {
             </div>
           )
         ) : recommended.length === 0 ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            暂无推荐小组
-          </p>
+          <RecommendedGroupsEmptyState
+            onAction={() => navigate(MY_GROUPS_PATH)}
+          />
         ) : (
           <InterestSection variant="ai" className="mb-4 p-2.5">
             <SectionHeader
               title={
                 <span className="inline-flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  AI 为你推荐
+                  为你推荐
                 </span>
               }
               subtitle={recommendSummary}

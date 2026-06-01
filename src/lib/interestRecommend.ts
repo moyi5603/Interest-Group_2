@@ -1,5 +1,4 @@
 import { getEmployee } from "@/data/colleagueData";
-import { getTagsByIds } from "@/data/interestTags";
 import type { GroupActivity, InterestGroupFull } from "@/data/interestTypes";
 import {
   activities,
@@ -13,7 +12,6 @@ import {
   occurrences,
 } from "@/data/interestGroups";
 import type { ActivityOccurrence } from "@/data/interestTypes";
-import { getProfileTagIds } from "@/data/interestProfileStore";
 import {
   formatActivityTime,
   formatRecurringSchedule,
@@ -85,18 +83,9 @@ const finalizeScored = (
     };
   });
 
-export const getRecommendSummary = (viewerId: string, count: number) => {
-  const tagIds = getProfileTagIds();
-
-  if (!tagIds.length) {
-    if (count === 0) return "暂无匹配小组，可前往小组广场浏览";
-    return `先为你推荐 ${count} 个热门小组`;
-  }
-
-  if (count === 0) {
-    return "已根据你的兴趣筛选，暂无更多匹配小组";
-  }
-  return `根据你的兴趣，为你挑选了 ${count} 个还没加入的小组`;
+export const getRecommendSummary = (_viewerId: string, count: number) => {
+  if (count === 0) return "暂无可加入的新小组";
+  return `为你推荐 ${count} 个可加入的小组`;
 };
 
 export const recommendGroups = (
@@ -104,23 +93,16 @@ export const recommendGroups = (
   limit = 5,
   offset = 0,
 ): ScoredGroup[] => {
-  const tagIds = getProfileTagIds();
   const visible = getVisibleGroups(interestGroups, viewerId).filter((g) =>
     canRecommendGroupTo(g, viewerId),
   );
-  const hasProfileTags = tagIds.length > 0;
 
   const scored = visible
     .map((group) => {
-      const matched = group.tagIds.filter((id) => tagIds.includes(id));
-      let score = matched.length * 10;
-      const reasons: string[] = [];
+      let score = group.memberCount;
+      const reasons: string[] = ["热门小组"];
 
-      if (matched.length) {
-        const names = getTagsByIds(matched).map((t) => t.name);
-        reasons.push(`匹配你的兴趣：${names.join("、")}`);
-      }
-      if (group.type === "official") score += 3;
+      if (group.type === "official") score += 100;
       const emp = getEmployee(viewerId);
       if (
         group.visibility === "dept_only" &&
@@ -128,25 +110,13 @@ export const recommendGroups = (
         emp &&
         group.deptIds.includes(emp.deptId)
       ) {
-        score += 5;
-        reasons.push("同部门同事也在参与");
+        score += 50;
+        reasons.unshift("同部门同事也在参与");
       }
 
       return { group, score, reasons };
     })
     .sort((a, b) => b.score - a.score);
-
-  if (!hasProfileTags) {
-    const fallback = visible
-      .filter((g) => g.type === "official")
-      .sort((a, b) => b.memberCount - a.memberCount)
-      .map((group) => ({
-        group,
-        score: 0,
-        reasons: ["热门小组"],
-      }));
-    return sliceWithOffset(finalizeScored(fallback), limit, offset);
-  }
 
   return sliceWithOffset(finalizeScored(scored), limit, offset);
 };
