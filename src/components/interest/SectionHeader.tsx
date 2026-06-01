@@ -11,7 +11,7 @@ type Action = {
 };
 
 type Props = {
-  title: ReactNode;
+  title?: ReactNode;
   subtitle?: string;
   action?: Action;
   secondaryAction?: Action;
@@ -52,16 +52,23 @@ const SectionHeader = ({
   size = "comfortable",
 }: Props) => (
   <div className={subtitle ? "mb-2" : "mb-1.5"}>
-    <div className="flex items-center justify-between gap-2">
-      <h2
-        className={
-          size === "comfortable"
-            ? "text-sm font-semibold text-foreground"
-            : "text-xs font-semibold text-foreground"
-        }
-      >
-        {title}
-      </h2>
+    <div
+      className={cn(
+        "flex items-center gap-2",
+        title ? "justify-between" : "justify-end",
+      )}
+    >
+      {title != null && title !== "" && (
+        <h2
+          className={
+            size === "comfortable"
+              ? "text-sm font-semibold text-foreground"
+              : "text-xs font-semibold text-foreground"
+          }
+        >
+          {title}
+        </h2>
+      )}
       {(secondaryAction || action) && (
         <div className="flex shrink-0 items-center gap-2.5">
           {secondaryAction && (

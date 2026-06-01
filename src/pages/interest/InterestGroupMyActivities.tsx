@@ -18,6 +18,7 @@ import {
   getEnrolledOccurrenceScheduleLabel,
 } from "@/lib/interestOccurrences";
 import { cn } from "@/lib/utils";
+import { useAppRole } from "@/hooks/useAppRole";
 
 type RoleTab = "organized" | "participated";
 type FilterTab = "全部" | "未开始" | "进行中" | "已结束" | "已终止";
@@ -37,13 +38,18 @@ const phaseTabs: FilterTab[] = [
 
 const roleTabValues = ["organized", "participated"] as const satisfies readonly RoleTab[];
 
+const managerRoleTabValues = roleTabValues;
+const employeeRoleTabValues = ["participated"] as const satisfies readonly RoleTab[];
+
 const InterestGroupMyActivities = () => {
   const navigate = useNavigate();
   const goBack = useNavigateBack();
+  const { isManager } = useAppRole();
+  const allowedRoleTabs = isManager ? managerRoleTabValues : employeeRoleTabValues;
   const [roleTab, setRoleTab] = useUrlEnumParam<RoleTab>(
     "role",
-    "organized",
-    roleTabValues,
+    isManager ? "organized" : "participated",
+    allowedRoleTabs,
   );
   const [phaseTab, setPhaseTab] = useUrlEnumParam<FilterTab>(
     "phase",
@@ -153,23 +159,25 @@ const InterestGroupMyActivities = () => {
           <div className="w-9" />
         </div>
 
-        <div className="mt-3 flex rounded-lg bg-secondary/80 p-0.5">
-          {roleTabs.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setRoleTab(key)}
-              className={cn(
-                "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
-                roleTab === key
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {isManager && (
+          <div className="mt-3 flex rounded-lg bg-secondary/80 p-0.5">
+            {roleTabs.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setRoleTab(key)}
+                className={cn(
+                  "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
+                  roleTab === key
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="mt-3 flex gap-3 overflow-x-auto scrollbar-hide">
           {phaseTabs.map((t) => (

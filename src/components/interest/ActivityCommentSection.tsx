@@ -25,6 +25,8 @@ type Props = {
   onReply: (parentId: string, content: string) => void;
   scrollToLatest?: boolean;
   className?: string;
+  isLikedBy?: (commentId: string) => boolean;
+  canReply?: boolean;
 };
 
 const ActivityCommentSection = ({
@@ -35,6 +37,8 @@ const ActivityCommentSection = ({
   onReply,
   scrollToLatest,
   className,
+  isLikedBy,
+  canReply = true,
 }: Props) => {
   const [sort, setSort] = useState<ActivityCommentSort>("latest");
   const topRef = useRef<HTMLDivElement>(null);
@@ -62,7 +66,9 @@ const ActivityCommentSection = ({
   );
 
   const isLiked = (commentId: string) =>
-    isCommentLikedBy(commentId, CURRENT_EMPLOYEE_ID);
+    isLikedBy
+      ? isLikedBy(commentId)
+      : isCommentLikedBy(commentId, CURRENT_EMPLOYEE_ID);
 
   useEffect(() => {
     if (scrollToLatest) {
@@ -136,6 +142,7 @@ const ActivityCommentSection = ({
                 liked={isLiked(comment.id)}
                 isReplyLiked={isLiked}
                 canDelete={comment.authorId === CURRENT_EMPLOYEE_ID}
+                canReply={canReply}
                 onDelete={onDelete}
                 onLike={onLike}
                 onReply={onReply}

@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { resolveGroupCover } from "@/data/interestImages";
+import ActivityCommentComposerInline from "@/components/interest/ActivityCommentComposerInline";
 import ActivityCover from "@/components/interest/ActivityCover";
 import GroupMembersSheet from "@/components/interest/GroupMembersSheet";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import FeaturedActivityCard from "@/components/interest/FeaturedActivityCard";
+import GroupHighlightsPanel from "@/components/interest/GroupHighlightsPanel";
+import GroupMomentsPanel from "@/components/interest/GroupMomentsPanel";
 import GroupOrganizerFooter from "@/components/interest/GroupOrganizerFooter";
 import ReportBanner from "@/components/interest/ReportBanner";
 import {
@@ -19,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getTagsByIds } from "@/data/interestTags";
-import type { ActivityKind } from "@/data/interestTypes";
+import type { ActivityKind, GroupDetailPanel } from "@/data/interestTypes";
 import {
   CURRENT_EMPLOYEE_ID,
   getActivitiesByGroup,
@@ -37,6 +40,7 @@ import { canViewGroup } from "@/lib/interestVisibility";
 import { canOrganizeGroup } from "@/lib/interestGroupAccess";
 import { buildFeaturedActivityListItem } from "@/lib/interestRecommend";
 import { toast } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 
 const kindFilters: { key: "all" | ActivityKind; label: string }[] = [
   { key: "all", label: "全部" },
@@ -47,10 +51,23 @@ const kindFilters: { key: "all" | ActivityKind; label: string }[] = [
 
 const kindTabValues = ["all", "one_off", "recurring", "series"] as const;
 
+const detailPanels: { key: GroupDetailPanel; label: string }[] = [
+  { key: "activities", label: "活动" },
+  { key: "moments", label: "小组圈" },
+  { key: "highlights", label: "精彩瞬间" },
+];
+
+const detailPanelKeys = detailPanels.map((p) => p.key);
+
 const GroupDetail = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const goBack = useNavigateBack();
+  const [panel, setPanel] = useUrlEnumParam<GroupDetailPanel>(
+    "panel",
+    "activities",
+    detailPanelKeys,
+  );
   const [kind, setKind] = useUrlEnumParam<"all" | ActivityKind>(
     "kind",
     "all",
@@ -93,6 +110,11 @@ const GroupDetail = () => {
 
   const tags = getTagsByIds(group.tagIds);
   const showOwnerFooter = canOrganize && !isArchived;
+  const showMomentsComposer = panel === "moments" && member && !isArchived;
+  const showBottomBar = showMomentsComposer || showOwnerFooter;
+  const openMomentComposerRef = useRef<(focusImages?: boolean) => void>(
+    () => {},
+  );
 
   return (
     <div className="mx-auto flex h-screen max-w-md flex-col bg-background">
@@ -108,7 +130,10 @@ const GroupDetail = () => {
       </header>
 
       <main
-        className={`flex-1 overflow-y-auto px-3 scrollbar-hide ${showOwnerFooter ? "pb-24" : "pb-6"}`}
+        className={cn(
+          "flex-1 overflow-y-auto px-3 scrollbar-hide",
+          showBottomBar ? "pb-24" : "pb-6",
+        )}
       >
         <ActivityCover
           coverUrl={resolveGroupCover(group)}
@@ -201,54 +226,113 @@ const GroupDetail = () => {
         </section>
 
         {!isArchived && (
-          <Tabs
-            value={kind}
-            onValueChange={(v) => setKind(v as typeof kind)}
-            className="mt-4"
-          >
-            <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0 scrollbar-hide">
-              {kindFilters.map((f) => (
-                <TabsTrigger
-                  key={f.key}
-                  value={f.key}
-                  className="shrink-0 rounded-full border border-border px-3 py-1.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+          <div className="mt-4">
+            <div className="flex rounded-lg bg-secondary/80 p-0.5">
+              {detailPanels.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setPanel(key)}
+                  className={cn(
+                    "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors active:scale-[0.99]",
+                    panel === key
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground",
+                  )}
                 >
-                  {f.label}
-                </TabsTrigger>
+                  {label}
+                </button>
               ))}
-            </TabsList>
-            <TabsContent value={kind} className="mt-3 space-y-2">
-              {activityItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">暂无活动</p>
-              ) : (
-                activityItems.map((item) => (
-                  <FeaturedActivityCard
-                    key={item.activity.id}
-                    item={item}
-                    hideGroup
-                    onOpen={() =>
-                      navigate(`/agents/interest-groups/activities/${item.activity.id}`)
-                    }
-                  />
-                ))
-              )}
-            </TabsContent>
-          </Tabs>
+            </div>
+
+            {panel === "activities" && (
+              <Tabs
+                value={kind}
+                onValueChange={(v) => setKind(v as typeof kind)}
+                className="mt-3"
+              >
+                <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0 scrollbar-hide">
+                  {kindFilters.map((f) => (
+                    <TabsTrigger
+                      key={f.key}
+                      value={f.key}
+                      className="shrink-0 rounded-full border border-border px-3 py-1.5 text-sm data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                    >
+                      {f.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <TabsContent value={kind} className="mt-3 space-y-2">
+                  {activityItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">暂无活动</p>
+                  ) : (
+                    activityItems.map((item) => (
+                      <FeaturedActivityCard
+                        key={item.activity.id}
+                        item={item}
+                        hideGroup
+                        onOpen={() =>
+                          navigate(
+                            `/agents/interest-groups/activities/${item.activity.id}`,
+                          )
+                        }
+                      />
+                    ))
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
+
+            {panel === "moments" && (
+              <div className="mt-3">
+                <GroupMomentsPanel
+                  groupId={group.id}
+                  canPost={member}
+                  tick={version}
+                  onChanged={() => setVersion((n) => n + 1)}
+                  onRegisterComposer={(open) => {
+                    openMomentComposerRef.current = open;
+                  }}
+                />
+              </div>
+            )}
+
+            {panel === "highlights" && (
+              <div className="mt-3">
+                <GroupHighlightsPanel
+                  groupId={group.id}
+                  canUpload={canOrganize}
+                  tick={version}
+                  onChanged={() => setVersion((n) => n + 1)}
+                />
+              </div>
+            )}
+          </div>
         )}
       </main>
 
-      {showOwnerFooter && (
-        <footer className="fixed bottom-0 left-0 right-0 mx-auto max-w-md border-t border-border bg-background/95 px-3 py-3 backdrop-blur">
-          <GroupOrganizerFooter
-            group={group}
-            ownerId={CURRENT_EMPLOYEE_ID}
-            onEdit={() =>
-              navigate(`/agents/interest-groups/${group.id}/edit`)
-            }
-            onDisbanded={() =>
-              navigate("/agents/interest-groups/admin/groups")
-            }
-          />
+      {showBottomBar && (
+        <footer className="fixed bottom-0 left-0 right-0 z-20 mx-auto flex max-w-md items-center gap-2 border-t border-border bg-background/95 px-3 py-2.5 backdrop-blur">
+          {showMomentsComposer && (
+            <ActivityCommentComposerInline
+              onOpenComposer={(focus) => openMomentComposerRef.current(focus)}
+            />
+          )}
+
+          {showOwnerFooter && (
+            <div className={cn(showMomentsComposer && "shrink-0")}>
+              <GroupOrganizerFooter
+                group={group}
+                ownerId={CURRENT_EMPLOYEE_ID}
+                onEdit={() =>
+                  navigate(`/agents/interest-groups/${group.id}/edit`)
+                }
+                onDisbanded={() =>
+                  navigate("/agents/interest-groups/admin/groups")
+                }
+              />
+            </div>
+          )}
         </footer>
       )}
 

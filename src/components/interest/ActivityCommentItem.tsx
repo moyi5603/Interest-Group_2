@@ -12,7 +12,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getEmployee } from "@/data/colleagueData";
 import { CURRENT_EMPLOYEE_ID } from "@/data/interestGroups";
 import type { ActivityComment } from "@/data/interestTypes";
@@ -61,31 +60,33 @@ const ActivityCommentReplyItem = ({
               </span>
             </p>
             {canDelete && (
-              <button
-                type="button"
-                aria-label="回复操作"
-                onClick={() => setMenuOpen((v) => !v)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
-              >
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </button>
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  aria-label="回复操作"
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full z-10 mt-0.5 overflow-hidden rounded-lg border border-border bg-background shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setDeleteOpen(true);
+                      }}
+                      className="block whitespace-nowrap px-3 py-1.5 text-xs text-destructive active:bg-secondary"
+                    >
+                      删除
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-
-          {menuOpen && canDelete && (
-            <div className="mt-1 inline-flex rounded-lg border border-border bg-background shadow-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setDeleteOpen(true);
-                }}
-                className="px-3 py-1.5 text-xs text-destructive active:bg-secondary"
-              >
-                删除
-              </button>
-            </div>
-          )}
 
           <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
             {reply.content}
@@ -139,6 +140,7 @@ type Props = {
   liked: boolean;
   isReplyLiked: (commentId: string) => boolean;
   canDelete: boolean;
+  canReply?: boolean;
   onDelete: (commentId: string) => void;
   onLike: (commentId: string) => void;
   onReply: (parentId: string, content: string) => void;
@@ -151,6 +153,7 @@ const ActivityCommentItem = ({
   liked,
   isReplyLiked,
   canDelete,
+  canReply = true,
   onDelete,
   onLike,
   onReply,
@@ -158,7 +161,6 @@ const ActivityCommentItem = ({
 }: Props) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
 
@@ -193,31 +195,33 @@ const ActivityCommentItem = ({
               <p className="text-xs text-muted-foreground">{author.deptName}</p>
             </div>
             {canDelete && (
-              <button
-                type="button"
-                aria-label="评论操作"
-                onClick={() => setMenuOpen((v) => !v)}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  aria-label="评论操作"
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full z-10 mt-0.5 overflow-hidden rounded-lg border border-border bg-background shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setDeleteOpen(true);
+                      }}
+                      className="block whitespace-nowrap px-3 py-1.5 text-xs text-destructive active:bg-secondary"
+                    >
+                      删除
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-
-          {menuOpen && canDelete && (
-            <div className="mt-1 inline-flex rounded-lg border border-border bg-background shadow-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setDeleteOpen(true);
-                }}
-                className="px-3 py-1.5 text-xs text-destructive active:bg-secondary"
-              >
-                删除
-              </button>
-            </div>
-          )}
 
           {comment.content ? (
             <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
@@ -225,10 +229,7 @@ const ActivityCommentItem = ({
             </p>
           ) : null}
 
-          <CommentImageGrid
-            imageUrls={comment.imageUrls}
-            onImageClick={setPreviewIndex}
-          />
+          <CommentImageGrid imageUrls={comment.imageUrls} />
 
           <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
             <span>{formatCommentTime(comment.createdAt)}</span>
@@ -245,17 +246,19 @@ const ActivityCommentItem = ({
               />
               {likeCount > 0 ? likeCount : "赞"}
             </button>
-            <button
-              type="button"
-              onClick={() => setReplyOpen((v) => !v)}
-              className="active:text-foreground"
-            >
-              回复
-              {replies.length > 0 ? ` ${replies.length}` : ""}
-            </button>
+            {canReply && (
+              <button
+                type="button"
+                onClick={() => setReplyOpen((v) => !v)}
+                className="active:text-foreground"
+              >
+                回复
+                {replies.length > 0 ? ` ${replies.length}` : ""}
+              </button>
+            )}
           </div>
 
-          {replyOpen && (
+          {canReply && replyOpen && (
             <div className="mt-2 flex gap-2">
               <input
                 type="text"
@@ -319,23 +322,6 @@ const ActivityCommentItem = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Dialog
-        open={previewIndex != null}
-        onOpenChange={(open) => {
-          if (!open) setPreviewIndex(null);
-        }}
-      >
-        <DialogContent className="max-w-[min(100vw-2rem,28rem)] border-0 bg-transparent p-0 shadow-none [&>button]:text-white">
-          {previewIndex != null && comment.imageUrls[previewIndex] ? (
-            <img
-              src={comment.imageUrls[previewIndex]}
-              alt=""
-              className="max-h-[80dvh] w-full rounded-xl object-contain"
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

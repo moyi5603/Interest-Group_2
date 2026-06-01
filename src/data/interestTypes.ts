@@ -109,3 +109,31 @@ export type GroupMembership = {
 
 /** 兴趣小组首页「查看更多」列表分区 */
 export type InterestListSection = "recent" | "my-groups" | "recommend";
+
+/** 小组详情页主 Tab */
+export type GroupDetailPanel = "activities" | "moments" | "highlights";
+
+/** 小组圈动态（成员图文，结构与活动评论一致） */
+export type GroupMoment = {
+  id: string;
+  groupId: string;
+  authorId: string;
+  content: string;
+  imageUrls: string[];
+  createdAt: string;
+  likeCount?: number;
+  /** 回复所归属的顶层动态 ID */
+  parentId?: string;
+};
+
+/** 精彩瞬间（管理员按场次上传） */
+export type GroupHighlight = {
+  id: string;
+  groupId: string;
+  activityId: string;
+  occurrenceId: string;
+  imageUrls: string[];
+  caption?: string;
+  uploadedBy: string;
+  uploadedAt: string;
+};

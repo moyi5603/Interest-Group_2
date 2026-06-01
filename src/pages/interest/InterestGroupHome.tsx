@@ -12,9 +12,9 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
+import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import FeaturedActivityCard from "@/components/interest/FeaturedActivityCard";
 import GroupCard from "@/components/interest/GroupCard";
-import InterestAiHero from "@/components/interest/InterestAiHero";
 import InterestHomeStatsCard from "@/components/interest/InterestHomeStatsCard";
 import InterestSection from "@/components/interest/InterestSection";
 import InterestTopicPanel from "@/components/interest/InterestTopicPanel";
@@ -40,6 +40,7 @@ import { runGrowthEngineScheduledChecks } from "@/lib/growthEngineScheduler";
 import { toast } from "@/components/ui/sonner";
 import RoleIdentitySwitcher from "@/components/interest/RoleIdentitySwitcher";
 import { useAppRole } from "@/hooks/useAppRole";
+import { cn } from "@/lib/utils";
 
 const DISCOVER_PATH = "/agents/interest-groups/discover";
 
@@ -82,6 +83,15 @@ const viewMore = (navigate: ReturnType<typeof useNavigate>, section: InterestLis
   onClick: () => navigate(`/agents/interest-groups/list/${section}`),
 });
 
+type HomeFeedTab = "activities" | "groups";
+
+const homeFeedTabs: { key: HomeFeedTab; label: string }[] = [
+  { key: "activities", label: "活动广场" },
+  { key: "groups", label: "小组广场" },
+];
+
+const homeFeedTabKeys = homeFeedTabs.map((t) => t.key);
+
 const InterestGroupHome = () => {
   const navigate = useNavigate();
   const goBack = useNavigateBack();
@@ -90,6 +100,11 @@ const InterestGroupHome = () => {
   const [recommendOffset, setRecommendOffset] = useState(0);
   const [joinTick, setJoinTick] = useState(0);
   const [previewRecentEmpty, setPreviewRecentEmpty] = useState(false);
+  const [feedTab, setFeedTab] = useUrlEnumParam<HomeFeedTab>(
+    "feed",
+    "activities",
+    homeFeedTabKeys,
+  );
   const visibleShortcuts = useMemo(
     () => (isManager ? managerShortcuts : employeeShortcuts),
     [isManager],
@@ -100,17 +115,16 @@ const InterestGroupHome = () => {
   );
   const recommended = useMemo(
     () =>
-      isManager ? [] : recommendGroups(CURRENT_EMPLOYEE_ID, 3, recommendOffset),
+      isManager ? [] : recommendGroups(CURRENT_EMPLOYEE_ID, 5, recommendOffset),
     [isManager, recommendOffset],
   );
-  const recentActivityPreviewCount = isManager ? 3 : 2;
   const recentActivities = useMemo(
     () =>
       (isManager
         ? getRecentActivitiesForAdmin()
         : getRecentActivities(CURRENT_EMPLOYEE_ID)
-      ).slice(0, recentActivityPreviewCount),
-    [isManager, recentActivityPreviewCount],
+      ).slice(0, 3),
+    [isManager],
   );
   const homeStats = useMemo(
     () =>
@@ -125,8 +139,15 @@ const InterestGroupHome = () => {
   const showRecentActivitiesEmpty =
     previewRecentEmpty || recentActivities.length === 0;
 
+  const handleFeedTabChange = (tab: HomeFeedTab) => {
+    if (tab === "groups") setPreviewRecentEmpty(false);
+    setFeedTab(tab);
+  };
+
   const openRecentEmptyAction = () =>
-    navigate(isManager ? ADMIN_GROUPS_PATH : RECENT_ACTIVITIES_PATH);
+    navigate(isManager ? ADMIN_GROUPS_PATH : DISCOVER_PATH);
+
+  const openEmployeeHomeEmptyAction = () => handleFeedTabChange("groups");
 
   const handleRoleChange = (role: typeof appRole) => {
     setPreviewRecentEmpty(false);
@@ -167,12 +188,6 @@ const InterestGroupHome = () => {
       </header>
 
       <main className="flex-1 space-y-2.5 overflow-y-auto px-3 py-2 scrollbar-hide">
-        {!isManager && (
-          <div className="animate-fade-in-up">
-            <InterestAiHero />
-          </div>
-        )}
-
         <InterestSection variant="plain" className="p-2.5">
           <div
             className={`grid gap-1.5 ${isManager ? "grid-cols-3" : "grid-cols-4"}`}
@@ -199,6 +214,26 @@ const InterestGroupHome = () => {
           </div>
         </InterestSection>
 
+        {!isManager && (
+          <div className="flex rounded-lg bg-secondary/80 p-0.5">
+            {homeFeedTabs.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleFeedTabChange(key)}
+                className={cn(
+                  "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors active:scale-[0.99]",
+                  feedTab === key
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isManager && homeStats && (
           <InterestSection variant="plain" className="p-2.5">
             <InterestHomeStatsCard
@@ -209,13 +244,16 @@ const InterestGroupHome = () => {
           </InterestSection>
         )}
 
+        {(isManager || feedTab === "activities") && (
         <InterestSection variant="hub" className="p-2.5">
           <SectionHeader
             title={
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="h-4 w-4 text-primary" />
-                近期活动
-              </span>
+              isManager ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="h-4 w-4 text-primary" />
+                  近期活动
+                </span>
+              ) : undefined
             }
             action={
               isManager
@@ -227,6 +265,7 @@ const InterestGroupHome = () => {
                 : viewMore(navigate, "recent")
             }
             secondaryAction={
+              (isManager || feedTab === "activities") &&
               recentActivities.length > 0
                 ? {
                     label: previewRecentEmpty
@@ -241,7 +280,9 @@ const InterestGroupHome = () => {
           {showRecentActivitiesEmpty ? (
             <RecentActivitiesEmptyState
               isManager={isManager}
-              onAction={openRecentEmptyAction}
+              onAction={
+                isManager ? openRecentEmptyAction : openEmployeeHomeEmptyAction
+              }
             />
           ) : (
             <ul className="space-y-2 pt-0.5">
@@ -256,16 +297,11 @@ const InterestGroupHome = () => {
             </ul>
           )}
         </InterestSection>
+        )}
 
-        {!isManager && (
+        {!isManager && feedTab === "groups" && (
           <InterestSection variant="plain" className="p-2.5">
             <SectionHeader
-              title={
-                <span className="inline-flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  AI 推荐
-                </span>
-              }
               secondaryAction={{
                 label: "换一批",
                 icon: <RefreshCw className="h-3.5 w-3.5" />,

@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound.tsx";
 import InterestGroupHome from "./pages/interest/InterestGroupHome.tsx";
 import InterestGroupChat from "./pages/interest/InterestGroupChat.tsx";
 import GroupDetail from "./pages/interest/GroupDetail.tsx";
+import GroupHighlightDetail from "./pages/interest/GroupHighlightDetail.tsx";
 import GroupCreate from "./pages/interest/GroupCreate.tsx";
 import GroupEdit from "./pages/interest/GroupEdit.tsx";
 import ActivityDetail from "./pages/interest/ActivityDetail.tsx";
@@ -45,6 +46,10 @@ const App = () => (
         <Route path="/agents/interest-groups/:groupId/activities/new" element={<ActivityCreate />} />
         <Route path="/agents/interest-groups/activities/:activityId/edit" element={<ActivityEdit />} />
         <Route path="/agents/interest-groups/activities/:activityId" element={<ActivityDetail />} />
+        <Route
+          path="/agents/interest-groups/:groupId/highlights/:highlightId"
+          element={<GroupHighlightDetail />}
+        />
         <Route path="/agents/interest-groups/:groupId" element={<GroupDetail />} />
         <Route path="/colleagues" element={<ColleagueAgent />} />
         <Route path="/colleagues/employee/:id" element={<EmployeeDetail />} />
