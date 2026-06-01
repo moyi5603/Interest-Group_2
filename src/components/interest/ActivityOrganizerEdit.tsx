@@ -11,6 +11,7 @@ import type {
 import { getTagsByIds } from "@/data/interestTags";
 import {
   canTerminateActivity,
+  CURRENT_EMPLOYEE_ID,
   getOccurrencesByActivity,
   hasOtherEnrollments,
   terminateActivity,
@@ -240,7 +241,7 @@ const ActivityOrganizerEdit = ({
   };
 
   const handleTerminate = () => {
-    const updated = terminateActivity(activity.id, activity.organizerId);
+    const updated = terminateActivity(activity.id, CURRENT_EMPLOYEE_ID);
     if (!updated) {
       toast.error("终止失败，请稍后重试");
       return;

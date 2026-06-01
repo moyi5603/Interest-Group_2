@@ -28,6 +28,7 @@ import {
   notifyGroupDisbanded,
   notifyGroupMemberJoined,
 } from "@/lib/growthEngineNotify";
+import { canActAsGroupOrganizer, canActAsActivityOrganizer } from "@/lib/interestGroupAccess";
 import { employeesFull, getEmployee } from "@/data/colleagueData";
 import { compareNamePinyin } from "@/lib/chineseNameSort";
 
@@ -1521,14 +1522,14 @@ export const terminatePublishedActivity = (activityId: string): boolean => {
 
 export const updateGroup = (
   groupId: string,
-  ownerId: string,
+  actorId: string,
   patch: Pick<
     InterestGroupFull,
-    "name" | "description" | "category" | "tagIds" | "coverUrl"
+    "name" | "description" | "tagIds" | "coverUrl"
   >,
 ): InterestGroupFull | undefined => {
   const group = getGroupById(groupId);
-  if (!group || !isGroupOwner(groupId, ownerId)) return undefined;
+  if (!group || !canActAsGroupOrganizer(groupId, actorId)) return undefined;
   if (group.status !== "active") return undefined;
 
   const updated: InterestGroupFull = { ...group, ...patch };
@@ -1544,13 +1545,13 @@ export type DisbandGroupResult = {
   terminatedActivityCount: number;
 };
 
-/** 创建人解散小组：下架小组并联动终止组内所有进行中的活动 */
+/** 创建人或平台管理员解散小组：下架小组并联动终止组内所有进行中的活动 */
 export const disbandGroup = (
   groupId: string,
-  ownerId: string,
+  actorId: string,
 ): DisbandGroupResult | undefined => {
   const group = getGroupById(groupId);
-  if (!group || !isGroupOwner(groupId, ownerId)) return undefined;
+  if (!group || !canActAsGroupOrganizer(groupId, actorId)) return undefined;
   if (group.status !== "active") return undefined;
 
   const toTerminate = activities.filter(
@@ -1694,6 +1695,49 @@ export const getOccurrenceEnrollees = (
   return padActivityEnrollees(enrollees, activityId, targetCount).sort(
     (a, b) => compareNamePinyin(a.name, b.name),
   );
+};
+
+/** 活动卡片等：报名人员头像预览（去重、最多 max 个） */
+export const getActivityEnrolleePreview = (
+  activityId: string,
+  max = 4,
+): { enrollees: ActivityEnrolleeInfo[]; total: number } => {
+  const activity = getActivityById(activityId);
+  if (!activity) return { enrollees: [], total: 0 };
+
+  const total = countActivityEnrollments(activityId);
+  if (total === 0) return { enrollees: [], total: 0 };
+
+  const seen = new Set<string>();
+  const enrollees: ActivityEnrolleeInfo[] = [];
+  for (const enrollment of enrollments) {
+    if (
+      enrollment.activityId !== activityId ||
+      enrollment.status !== "enrolled"
+    ) {
+      continue;
+    }
+    if (seen.has(enrollment.employeeId)) continue;
+    seen.add(enrollment.employeeId);
+    const emp = getEmployee(enrollment.employeeId);
+    if (!emp) continue;
+    enrollees.push({
+      employeeId: enrollment.employeeId,
+      name: emp.name,
+      position: emp.position,
+      deptName: emp.deptName,
+      avatarColor: emp.avatarColor,
+      avatarUrl: emp.avatarUrl,
+      badge:
+        enrollment.employeeId === activity.organizerId ? "组织者" : null,
+    });
+  }
+
+  const padded = padActivityEnrollees(enrollees, activityId, total).sort(
+    (a, b) => compareNamePinyin(a.name, b.name),
+  );
+
+  return { enrollees: padded.slice(0, max), total };
 };
 
 /** 除组织者外是否已有他人报名（编辑时锁定场次信息） */
@@ -2066,23 +2110,24 @@ export const canTerminateActivity = (
   ) {
     return true;
   }
-  if (activity.activityKind === "one_off" && organizerId) {
-    return hasOtherEnrollments(activityId, organizerId);
+  const orgId = organizerId ?? activity.organizerId;
+  if (activity.activityKind === "one_off" && orgId) {
+    return hasOtherEnrollments(activityId, orgId);
   }
   return false;
 };
 
 /**
- * 创建人终止周期 / 系列活动：活动下架、未举办场次取消、全员报名作废。
+ * 创建人或平台管理员终止周期 / 系列活动：活动下架、未举办场次取消、全员报名作废。
  */
 export const terminateActivity = (
   activityId: string,
-  organizerId: string,
+  actorId: string,
 ): GroupActivity | undefined => {
   const activity = getActivityById(activityId);
-  if (!activity || activity.organizerId !== organizerId) return undefined;
+  if (!activity || !canActAsActivityOrganizer(activityId, actorId)) return undefined;
   if (activity.status !== "published") return undefined;
-  if (!canTerminateActivity(activityId, organizerId)) return undefined;
+  if (!canTerminateActivity(activityId, activity.organizerId)) return undefined;
 
   if (!terminatePublishedActivity(activityId)) return undefined;
   return getActivityById(activityId);

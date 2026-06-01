@@ -4,7 +4,7 @@ import ActivityCover from "@/components/interest/ActivityCover";
 import GroupMembersSheet from "@/components/interest/GroupMembersSheet";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import ActivityCard from "@/components/interest/ActivityCard";
+import FeaturedActivityCard from "@/components/interest/FeaturedActivityCard";
 import GroupOrganizerFooter from "@/components/interest/GroupOrganizerFooter";
 import ReportBanner from "@/components/interest/ReportBanner";
 import {
@@ -26,7 +26,6 @@ import {
   getGroupById,
   getGroupMembers,
   isGroupFull,
-  isGroupOwner,
   isMember,
   joinGroup,
   leaveGroup,
@@ -35,7 +34,8 @@ import {
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import { canViewGroup } from "@/lib/interestVisibility";
-import { canManageInterestGroups } from "@/lib/appRoleStore";
+import { canOrganizeGroup } from "@/lib/interestGroupAccess";
+import { buildFeaturedActivityListItem } from "@/lib/interestRecommend";
 import { toast } from "@/components/ui/sonner";
 
 const kindFilters: { key: "all" | ActivityKind; label: string }[] = [
@@ -63,16 +63,19 @@ const GroupDetail = () => {
   const group = getGroupById(groupId || "");
   const visible = group && canViewGroup(group, CURRENT_EMPLOYEE_ID);
   const member = group ? isMember(group.id, CURRENT_EMPLOYEE_ID) : false;
-  const owner = group ? isGroupOwner(group.id, CURRENT_EMPLOYEE_ID) : false;
-  const canOrganize = owner && canManageInterestGroups();
+  const canOrganize = group
+    ? canOrganizeGroup(group.id, CURRENT_EMPLOYEE_ID) && group.status === "active"
+    : false;
   const full = group ? isGroupFull(group) : false;
   const isArchived = group?.status === "archived";
 
-  const activities = useMemo(() => {
+  const activityItems = useMemo(() => {
     if (!group) return [];
     const list = getActivitiesByGroup(group.id);
-    if (kind === "all") return list;
-    return list.filter((a) => a.activityKind === kind);
+    const filtered = kind === "all" ? list : list.filter((a) => a.activityKind === kind);
+    return filtered
+      .map((a) => buildFeaturedActivityListItem(a, group))
+      .filter((item): item is NonNullable<typeof item> => item != null);
   }, [group, kind, version]);
 
   const members = useMemo(() => {
@@ -151,7 +154,17 @@ const GroupDetail = () => {
             <span>{group.memberCount} 位成员</span>
             <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
           </button>
-          {!isArchived && !member ? (
+          {!isArchived && canOrganize ? (
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/agents/interest-groups/${group.id}/activities/new`)
+              }
+              className="mt-3 w-full rounded-full border border-primary py-2.5 text-sm font-medium text-primary"
+            >
+              发布活动
+            </button>
+          ) : !isArchived && !member ? (
             full ? (
               <p className="mt-3 text-center text-sm text-muted-foreground">
                 小组已满员
@@ -176,16 +189,6 @@ const GroupDetail = () => {
                 加入小组
               </button>
             )
-          ) : !isArchived && canOrganize ? (
-            <button
-              type="button"
-              onClick={() =>
-                navigate(`/agents/interest-groups/${group.id}/activities/new`)
-              }
-              className="mt-3 w-full rounded-full border border-primary py-2.5 text-sm font-medium text-primary"
-            >
-              发布活动
-            </button>
           ) : !isArchived && member ? (
             <button
               type="button"
@@ -214,17 +217,17 @@ const GroupDetail = () => {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <TabsContent value={kind} className="mt-3 space-y-2.5">
-              {activities.length === 0 ? (
+            <TabsContent value={kind} className="mt-3 space-y-2">
+              {activityItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground">暂无活动</p>
               ) : (
-                activities.map((a) => (
-                  <ActivityCard
-                    key={a.id}
-                    compact
-                    activity={a}
+                activityItems.map((item) => (
+                  <FeaturedActivityCard
+                    key={item.activity.id}
+                    item={item}
+                    hideGroup
                     onOpen={() =>
-                      navigate(`/agents/interest-groups/activities/${a.id}`)
+                      navigate(`/agents/interest-groups/activities/${item.activity.id}`)
                     }
                   />
                 ))
@@ -243,7 +246,7 @@ const GroupDetail = () => {
               navigate(`/agents/interest-groups/${group.id}/edit`)
             }
             onDisbanded={() =>
-              navigate("/agents/interest-groups/list/my-groups?role=created")
+              navigate("/agents/interest-groups/admin/groups")
             }
           />
         </footer>

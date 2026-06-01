@@ -4,17 +4,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import ActivityCoverUpload from "@/components/interest/ActivityCoverUpload";
 import GroupTagField from "@/components/interest/GroupTagField";
 import { GROUP_TAG_MAX } from "@/components/interest/groupFormConstants";
-import GroupCategoryPicker from "@/components/interest/GroupCategoryPicker";
 import { resolveGroupCover } from "@/data/interestImages";
 import {
   CURRENT_EMPLOYEE_ID,
   getGroupById,
-  isGroupOwner,
   updateGroup,
 } from "@/data/interestGroups";
 import GroupDescriptionField from "@/components/interest/GroupDescriptionField";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
-import { canManageInterestGroups } from "@/lib/appRoleStore";
+import { canOrganizeGroup } from "@/lib/interestGroupAccess";
 import { interestTypography as t } from "@/components/interest/interestTypography";
 import { toast } from "@/components/ui/sonner";
 
@@ -26,12 +24,10 @@ const GroupEdit = () => {
   const canEdit =
     group &&
     group.status === "active" &&
-    isGroupOwner(group.id, CURRENT_EMPLOYEE_ID) &&
-    canManageInterestGroups();
+    canOrganizeGroup(group.id, CURRENT_EMPLOYEE_ID);
 
   const [name, setName] = useState(group?.name ?? "");
   const [description, setDescription] = useState(group?.description ?? "");
-  const [category, setCategory] = useState(group?.category);
   const [tagIds, setTagIds] = useState<string[]>(group?.tagIds ?? []);
   const [coverUrl, setCoverUrl] = useState<string | undefined>(group?.coverUrl);
 
@@ -48,10 +44,6 @@ const GroupEdit = () => {
       toast.error("请填写小组名称");
       return;
     }
-    if (!category) {
-      toast.error("请选择小组分类");
-      return;
-    }
     if (tagIds.length > GROUP_TAG_MAX) {
       toast.error(`最多选择 ${GROUP_TAG_MAX} 个标签`);
       return;
@@ -59,7 +51,6 @@ const GroupEdit = () => {
     const updated = updateGroup(group.id, CURRENT_EMPLOYEE_ID, {
       name: name.trim(),
       description: description.trim() || "欢迎加入我们的兴趣小组！",
-      category,
       tagIds,
       coverUrl: coverUrl ?? resolveGroupCover(group),
     });
@@ -106,23 +97,13 @@ const GroupEdit = () => {
           />
         </label>
 
-        <div className="space-y-1">
-          <span className={t.formLabel}>
-            <span className={t.requiredMark} aria-hidden>
-              *
-            </span>
-            分类
-          </span>
-          <GroupCategoryPicker value={category} onChange={setCategory} />
-        </div>
-
         <GroupTagField value={tagIds} onChange={setTagIds} />
 
         <GroupDescriptionField
           value={description}
           onChange={setDescription}
           groupName={name}
-          category={category}
+          category={group.category}
           tagIds={tagIds}
         />
       </main>

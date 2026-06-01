@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 type Action = {
   label: string;
   onClick: () => void;
   icon?: ReactNode;
   trailingIcon?: ReactNode;
+  /** 更浅的灰色文案（预览入口等） */
+  subtle?: boolean;
 };
 
 type Props = {
@@ -26,11 +29,14 @@ const HeaderAction = ({
   <button
     type="button"
     onClick={action.onClick}
-    className={
+    className={cn(
       size === "comfortable"
-        ? "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-base active:scale-95 active:text-foreground"
-        : "inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground transition-base active:scale-95 active:text-foreground"
-    }
+        ? "inline-flex items-center gap-1 text-xs font-medium transition-base active:scale-95"
+        : "inline-flex items-center gap-0.5 text-[11px] font-medium transition-base active:scale-95",
+      action.subtle
+        ? "text-muted-foreground/55 active:text-muted-foreground/75"
+        : "text-muted-foreground active:text-foreground",
+    )}
   >
     {action.icon}
     {action.label}

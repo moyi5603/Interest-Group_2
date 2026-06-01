@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
-import ActivityCard from "@/components/interest/ActivityCard";
+import FeaturedActivityCard, {
+  toFeaturedActivityItem,
+} from "@/components/interest/FeaturedActivityCard";
 import {
   CURRENT_EMPLOYEE_ID,
   getMyEnrolledOccurrences,
@@ -15,7 +17,6 @@ import {
   getActivityScheduleLabel,
   getEnrolledOccurrenceScheduleLabel,
 } from "@/lib/interestOccurrences";
-import { interestTypography as t } from "@/components/interest/interestTypography";
 import { cn } from "@/lib/utils";
 
 type RoleTab = "organized" | "participated";
@@ -49,11 +50,10 @@ const InterestGroupMyActivities = () => {
     "全部",
     phaseTabs,
   );
-  const [tick, setTick] = useState(0);
 
   const organizedAll = useMemo(
     () => getMyOrganizedActivities(CURRENT_EMPLOYEE_ID),
-    [tick],
+    [],
   );
 
   const participatedAll = useMemo(
@@ -61,7 +61,7 @@ const InterestGroupMyActivities = () => {
       getMyEnrolledOccurrences(CURRENT_EMPLOYEE_ID, {
         excludeOrganized: true,
       }),
-    [tick],
+    [],
   );
 
   const filterOrganizedByPhase = (
@@ -207,15 +207,15 @@ const InterestGroupMyActivities = () => {
                   seriesSessionTotal: activity.activityKind === "series",
                 },
               );
+              const item = toFeaturedActivityItem(activity, group, {
+                occurrence,
+                scheduleLabel,
+              });
 
               return (
                 <li key={activity.id}>
-                  <ActivityCard
-                    compact
-                    activity={activity}
-                    occurrence={occurrence}
-                    groupName={group.name}
-                    scheduleLabel={scheduleLabel}
+                  <FeaturedActivityCard
+                    item={item}
                     meta="我发起"
                     onOpen={() => openOrganizedActivity(activity.id)}
                   />
@@ -230,21 +230,19 @@ const InterestGroupMyActivities = () => {
                 activity,
                 occurrence,
                 group,
-                occurrenceIndex,
                 terminated,
                 enrollment,
               }) => {
                 const scheduleLabel =
                   getEnrolledOccurrenceScheduleLabel(occurrence);
+                const item = toFeaturedActivityItem(activity, group, {
+                  occurrence,
+                  scheduleLabel,
+                });
                 return (
                   <li key={`${enrollment.id}:${occurrence.id}`}>
-                    <ActivityCard
-                      compact
-                      activity={activity}
-                      occurrence={occurrence}
-                      groupName={group.name}
-                      scheduleLabel={scheduleLabel}
-                      enrolled={!terminated}
+                    <FeaturedActivityCard
+                      item={item}
                       onOpen={() => {
                         const params = new URLSearchParams({
                           occurrenceId: occurrence.id,

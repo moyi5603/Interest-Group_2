@@ -45,7 +45,6 @@ import {
   getGroupById,
   getOccurrenceEnrollees,
   getOccurrencesByActivity,
-  isActivityOrganizer,
 } from "@/data/interestGroups";
 import type { GroupActivity } from "@/data/interestTypes";
 import { activityToFormValues } from "@/lib/activityFormState";
@@ -67,6 +66,7 @@ import {
   isSeriesWholeEnrollmentOpen,
   seriesEnrollmentBlockedReason,
 } from "@/lib/seriesEnrollment";
+import { canOrganizeActivity } from "@/lib/interestGroupAccess";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { toast } from "@/components/ui/sonner";
 
@@ -197,10 +197,7 @@ const ActivityDetail = () => {
         )
       : getActivityPhase(activity.startAt, activity.endAt);
 
-  const isOrganizer = isActivityOrganizer(
-    activity.id,
-    CURRENT_EMPLOYEE_ID,
-  );
+  const isOrganizer = canOrganizeActivity(activity.id, CURRENT_EMPLOYEE_ID);
 
   const focusOccurrenceId = searchParams.get("occurrenceId") ?? undefined;
   const focusOccurrencePhase = (() => {
@@ -555,7 +552,7 @@ const ActivityDetail = () => {
           monthDay={formValues.monthDay}
           recurringTime={formValues.recurringTime}
           recurringEndTime={formValues.recurringEndTime}
-          onViewOccurrenceEnrollees={openEnrollees}
+          onViewOccurrenceEnrollees={isOrganizer ? openEnrollees : undefined}
         />
 
         {(organizer || participates) && (
@@ -628,7 +625,7 @@ const ActivityDetail = () => {
               ) : isOrganizer ? (
                 <ActivityOrganizerFooter
                   activity={activity}
-                  organizerId={CURRENT_EMPLOYEE_ID}
+                  actorId={CURRENT_EMPLOYEE_ID}
                   canEdit={phase !== "已结束"}
                   compact={showCommentComposer}
                   onEdit={() => {

@@ -1,11 +1,13 @@
 import { getEmployee } from "@/data/colleagueData";
 import type { InterestGroupFull } from "@/data/interestTypes";
 import { isGroupOwner, isMember } from "@/data/interestGroups";
+import { canManageInterestGroups } from "@/lib/appRoleStore";
 
 export const canViewGroup = (
   group: InterestGroupFull,
   viewerId: string,
 ): boolean => {
+  if (canManageInterestGroups()) return true;
   if (group.status === "archived") {
     return isGroupOwner(group.id, viewerId);
   }

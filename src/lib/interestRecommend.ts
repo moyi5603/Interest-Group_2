@@ -307,6 +307,18 @@ const buildAdminActivityItem = (
   };
 };
 
+/** 列表卡片：优先即将开始维度，否则展示已发布活动（小组详情等） */
+export const buildFeaturedActivityListItem = (
+  activity: GroupActivity,
+  group: InterestGroupFull,
+): RecentActivityItem | null => {
+  if (activity.status !== "published") return null;
+  return (
+    buildRecentActivityItem(activity, group) ??
+    buildAdminActivityItem(activity, group)
+  );
+};
+
 export const getAllPublishedActivities = (): RecentActivityItem[] => {
   const items: RecentActivityItem[] = [];
   for (const activity of activities) {
@@ -331,6 +343,25 @@ export const getRecentActivities = (viewerId: string): RecentActivityItem[] => {
     const group = interestGroups.find((g) => g.id === activity.groupId);
     if (!group || !canViewGroup(group, viewerId)) continue;
     if (!joinedIds.has(group.id) && group.visibility !== "public") continue;
+
+    const item = buildRecentActivityItem(activity, group);
+    if (item) items.push(item);
+  }
+
+  return items.sort(
+    (a, b) =>
+      new Date(a.sortStartAt).getTime() - new Date(b.sortStartAt).getTime(),
+  );
+};
+
+/** 管理员活动管理：与活动广场相同维度（即将开始的活动，按开始时间升序） */
+export const getRecentActivitiesForAdmin = (): RecentActivityItem[] => {
+  const items: RecentActivityItem[] = [];
+
+  for (const activity of activities) {
+    if (activity.status !== "published") continue;
+    const group = getGroupById(activity.groupId);
+    if (!group || group.status !== "active") continue;
 
     const item = buildRecentActivityItem(activity, group);
     if (item) items.push(item);

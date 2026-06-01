@@ -2,7 +2,6 @@ import {
   ArrowLeft,
   CalendarCheck,
   CalendarDays,
-  CalendarPlus,
   ChevronRight,
   Plus,
   RefreshCw,
@@ -13,22 +12,29 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
-import ActivityCard from "@/components/interest/ActivityCard";
+import FeaturedActivityCard from "@/components/interest/FeaturedActivityCard";
 import GroupCard from "@/components/interest/GroupCard";
 import InterestAiHero from "@/components/interest/InterestAiHero";
 import InterestHomeStatsCard from "@/components/interest/InterestHomeStatsCard";
 import InterestSection from "@/components/interest/InterestSection";
 import InterestTopicPanel from "@/components/interest/InterestTopicPanel";
+import RecentActivitiesEmptyState from "@/components/interest/RecentActivitiesEmptyState";
 import SectionHeader from "@/components/interest/SectionHeader";
 import ChatInputBar from "@/components/agent/ChatInputBar";
 import type { InterestListSection } from "@/data/interestTypes";
 import {
   CURRENT_EMPLOYEE_ID,
-  getMyCreatedGroups,
   joinGroup,
 } from "@/data/interestGroups";
-import { getRecentActivities, recommendGroups } from "@/lib/interestRecommend";
-import { getInterestHomeStats } from "@/lib/interestHomeStats";
+import {
+  getRecentActivities,
+  getRecentActivitiesForAdmin,
+  recommendGroups,
+} from "@/lib/interestRecommend";
+import {
+  getHomeStats,
+  type HomeStatsPeriod,
+} from "@/lib/interestHomeStats";
 import { HOME_SUGGESTED_QUESTIONS } from "@/lib/interestAgent";
 import { runGrowthEngineScheduledChecks } from "@/lib/growthEngineScheduler";
 import { toast } from "@/components/ui/sonner";
@@ -64,16 +70,6 @@ const managerShortcuts: HomeShortcut[] = [
   { label: "小组管理", icon: Users, to: ADMIN_GROUPS_PATH },
   { label: "活动管理", icon: CalendarCheck, to: ADMIN_ACTIVITIES_PATH },
   {
-    label: "发布活动",
-    icon: CalendarPlus,
-    getTo: () => {
-      const created = getMyCreatedGroups(CURRENT_EMPLOYEE_ID);
-      return created.length > 0
-        ? `/agents/interest-groups/${created[0].id}/activities/new`
-        : ADMIN_GROUPS_PATH;
-    },
-  },
-  {
     label: "创建小组",
     icon: Plus,
     to: "/agents/interest-groups/new",
@@ -90,7 +86,10 @@ const InterestGroupHome = () => {
   const navigate = useNavigate();
   const goBack = useNavigateBack();
   const { role: appRole, setRole: setAppRole, isManager } = useAppRole();
+  const [statsPeriod, setStatsPeriod] = useState<HomeStatsPeriod>("week");
   const [recommendOffset, setRecommendOffset] = useState(0);
+  const [joinTick, setJoinTick] = useState(0);
+  const [previewRecentEmpty, setPreviewRecentEmpty] = useState(false);
   const visibleShortcuts = useMemo(
     () => (isManager ? managerShortcuts : employeeShortcuts),
     [isManager],
@@ -104,20 +103,33 @@ const InterestGroupHome = () => {
       isManager ? [] : recommendGroups(CURRENT_EMPLOYEE_ID, 3, recommendOffset),
     [isManager, recommendOffset],
   );
+  const recentActivityPreviewCount = isManager ? 3 : 2;
   const recentActivities = useMemo(
-    () => getRecentActivities(CURRENT_EMPLOYEE_ID).slice(0, 2),
-    [],
+    () =>
+      (isManager
+        ? getRecentActivitiesForAdmin()
+        : getRecentActivities(CURRENT_EMPLOYEE_ID)
+      ).slice(0, recentActivityPreviewCount),
+    [isManager, recentActivityPreviewCount],
   );
   const homeStats = useMemo(
-    () => getInterestHomeStats(CURRENT_EMPLOYEE_ID),
-    [],
+    () =>
+      isManager ? getHomeStats(CURRENT_EMPLOYEE_ID, true, statsPeriod) : null,
+    [isManager, statsPeriod],
   );
 
   useEffect(() => {
     runGrowthEngineScheduledChecks();
   }, []);
 
+  const showRecentActivitiesEmpty =
+    previewRecentEmpty || recentActivities.length === 0;
+
+  const openRecentEmptyAction = () =>
+    navigate(isManager ? ADMIN_GROUPS_PATH : RECENT_ACTIVITIES_PATH);
+
   const handleRoleChange = (role: typeof appRole) => {
+    setPreviewRecentEmpty(false);
     setAppRole(role);
   };
 
@@ -162,7 +174,9 @@ const InterestGroupHome = () => {
         )}
 
         <InterestSection variant="plain" className="p-2.5">
-          <div className="grid grid-cols-4 gap-1.5">
+          <div
+            className={`grid gap-1.5 ${isManager ? "grid-cols-3" : "grid-cols-4"}`}
+          >
             {visibleShortcuts.map((s) => {
               const Icon = s.icon;
               const target = s.getTo?.() ?? s.to ?? "/agents/interest-groups";
@@ -185,11 +199,17 @@ const InterestGroupHome = () => {
           </div>
         </InterestSection>
 
-        <InterestSection variant="plain" className="p-2.5">
-          <InterestHomeStatsCard stats={homeStats} />
-        </InterestSection>
+        {isManager && homeStats && (
+          <InterestSection variant="plain" className="p-2.5">
+            <InterestHomeStatsCard
+              stats={homeStats}
+              period={statsPeriod}
+              onPeriodChange={setStatsPeriod}
+            />
+          </InterestSection>
+        )}
 
-        <InterestSection variant="plain" className="p-2.5">
+        <InterestSection variant="hub" className="p-2.5">
           <SectionHeader
             title={
               <span className="inline-flex items-center gap-1.5">
@@ -197,23 +217,38 @@ const InterestGroupHome = () => {
                 近期活动
               </span>
             }
-            action={viewMore(navigate, "recent")}
+            action={
+              isManager
+                ? {
+                    label: "查看更多",
+                    trailingIcon: <ChevronRight className="h-3.5 w-3.5" />,
+                    onClick: () => navigate(ADMIN_ACTIVITIES_PATH),
+                  }
+                : viewMore(navigate, "recent")
+            }
+            secondaryAction={
+              recentActivities.length > 0
+                ? {
+                    label: previewRecentEmpty
+                      ? "返回活动列表"
+                      : "查看无活动样式",
+                    onClick: () => setPreviewRecentEmpty((v) => !v),
+                    subtle: !previewRecentEmpty,
+                  }
+                : undefined
+            }
           />
-          {recentActivities.length === 0 ? (
-            <p className="py-1 text-center text-xs text-muted-foreground">
-              暂无即将开始的活动
-            </p>
+          {showRecentActivitiesEmpty ? (
+            <RecentActivitiesEmptyState
+              isManager={isManager}
+              onAction={openRecentEmptyAction}
+            />
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-2 pt-0.5">
               {recentActivities.map((item) => (
                 <li key={item.activity.id}>
-                  <ActivityCard
-                    compact
-                    flat
-                    activity={item.activity}
-                    groupName={item.group.name}
-                    occurrence={item.statusOccurrence}
-                    scheduleLabel={item.timeLabel}
+                  <FeaturedActivityCard
+                    item={item}
                     onOpen={() => openActivity(item.activity.id)}
                   />
                 </li>
@@ -249,7 +284,7 @@ const InterestGroupHome = () => {
             ) : (
               <ul className="space-y-2">
                 {recommended.map(({ group, reasons }) => (
-                  <li key={group.id}>
+                  <li key={`${group.id}-${joinTick}`}>
                     <GroupCard
                       compact
                       flat
@@ -261,6 +296,7 @@ const InterestGroupHome = () => {
                           toast.error("小组已满");
                           return;
                         }
+                        setJoinTick((n) => n + 1);
                         toast.success(`已加入「${group.name}」`);
                       }}
                     />

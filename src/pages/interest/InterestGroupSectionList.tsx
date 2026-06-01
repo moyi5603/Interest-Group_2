@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
-import ActivityCard from "@/components/interest/ActivityCard";
+import FeaturedActivityCard from "@/components/interest/FeaturedActivityCard";
 import GroupCard from "@/components/interest/GroupCard";
 import {
   CURRENT_EMPLOYEE_ID,
@@ -110,12 +110,8 @@ const InterestGroupSectionList = () => {
           <ul className="space-y-2">
             {recentFiltered.map((item) => (
               <li key={item.activity.id}>
-                <ActivityCard
-                  compact
-                  activity={item.activity}
-                  groupName={item.group.name}
-                  occurrence={item.statusOccurrence}
-                  scheduleLabel={item.timeLabel}
+                <FeaturedActivityCard
+                  item={item}
                   onOpen={() => openActivity(item.activity.id)}
                 />
               </li>

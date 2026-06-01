@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ChevronRight } from "lucide-react";
-import ActivityCard from "@/components/interest/ActivityCard";
+import FeaturedActivityCard from "@/components/interest/FeaturedActivityCard";
 import GroupCard from "@/components/interest/GroupCard";
 import {
   CURRENT_EMPLOYEE_ID,
@@ -148,23 +148,18 @@ const InterestAgentReply = ({
               <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                 近期活动
               </p>
-              <ul className="space-y-1.5">
+              <ul className="space-y-2">
                 {reply.groupDetail.recentActivities.map((item) => (
                   <li key={item.activity.id}>
-                    <button
-                      type="button"
-                      onClick={() =>
+                    <FeaturedActivityCard
+                      item={item}
+                      hideGroup
+                      onOpen={() =>
                         navigate(
                           `/agents/interest-groups/activities/${item.activity.id}`,
                         )
                       }
-                      className="flex w-full items-center justify-between rounded-lg bg-secondary/40 px-2.5 py-2 text-left text-xs active:scale-[0.99]"
-                    >
-                      <span className="line-clamp-1 text-foreground">
-                        {item.group.name}：{item.activity.title}
-                      </span>
-                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    </button>
+                    />
                   </li>
                 ))}
               </ul>
@@ -217,12 +212,8 @@ const InterestAgentReply = ({
           <ul className="w-full space-y-2">
             {previewActivities.map((item) => (
               <li key={item.activity.id}>
-                <ActivityCard
-                  compact
-                  activity={item.activity}
-                  groupName={item.group.name}
-                  occurrence={item.statusOccurrence}
-                  scheduleLabel={item.timeLabel}
+                <FeaturedActivityCard
+                  item={item}
                   showEnroll
                   enrolled={isEnrolled(item.activity.id, CURRENT_EMPLOYEE_ID)}
                   onOpen={() =>

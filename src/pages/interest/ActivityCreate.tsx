@@ -14,7 +14,6 @@ import {
   enrollOrganizerAsParticipant,
   getActivityById,
   getGroupById,
-  isGroupOwner,
 } from "@/data/interestGroups";
 import { emptySchedule } from "@/lib/activityFormState";
 import {
@@ -85,23 +84,6 @@ const ActivityCreate = () => {
         backLabel="返回小组"
         onBack={() => navigate(`/agents/interest-groups/${group.id}`)}
       />
-    );
-  }
-
-  if (!isGroupOwner(group.id, CURRENT_EMPLOYEE_ID)) {
-    return (
-      <div className="mx-auto flex h-screen max-w-md flex-col items-center justify-center gap-3 px-6">
-        <p className="text-center text-sm text-muted-foreground">
-          仅小组创建者可发布活动
-        </p>
-        <button
-          type="button"
-          onClick={() => navigate(`/agents/interest-groups/${group.id}`)}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-        >
-          返回小组
-        </button>
-      </div>
     );
   }
 

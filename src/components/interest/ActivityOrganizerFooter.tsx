@@ -20,7 +20,8 @@ import { toast } from "@/components/ui/sonner";
 
 type Props = {
   activity: GroupActivity;
-  organizerId: string;
+  /** 当前操作者（创建人或平台管理员） */
+  actorId: string;
   onEdit: () => void;
   onTerminated: (activity: GroupActivity) => void;
   /** 未结束时可编辑 */
@@ -31,7 +32,7 @@ type Props = {
 
 const ActivityOrganizerFooter = ({
   activity,
-  organizerId,
+  actorId,
   onEdit,
   onTerminated,
   canEdit = true,
@@ -41,12 +42,12 @@ const ActivityOrganizerFooter = ({
 
   const showTerminate =
     activity.status === "published" &&
-    canTerminateActivity(activity.id, organizerId);
+    canTerminateActivity(activity.id, activity.organizerId);
 
   const enrollCount = countActivityEnrollments(activity.id);
 
   const handleTerminate = () => {
-    const updated = terminateActivity(activity.id, organizerId);
+    const updated = terminateActivity(activity.id, actorId);
     if (!updated) {
       toast.error("终止失败，请稍后重试");
       return;

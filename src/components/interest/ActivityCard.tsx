@@ -1,8 +1,11 @@
 import { resolveActivityCover } from "@/data/interestImages";
 import ActivityCover from "@/components/interest/ActivityCover";
-import { MapPin, Pencil } from "lucide-react";
+import GroupAvatar from "@/components/interest/GroupAvatar";
+import EnrolleeAvatarStack from "@/components/interest/EnrolleeAvatarStack";
+import { MapPin, Pencil, CalendarDays } from "lucide-react";
 import type { GroupActivity } from "@/data/interestTypes";
 import type { ActivityOccurrence } from "@/data/interestTypes";
+import type { ActivityEnrolleeInfo } from "@/data/interestGroups";
 import {
   formatTimeRange,
   getActivityPhase,
@@ -28,8 +31,17 @@ type Props = {
   /** 覆盖标题；未传 title 时若提供 groupName 则为「小组名：活动名」 */
   title?: string;
   groupName?: string;
+  /** 氛围卡片：小组头像 */
+  groupAvatarUrl?: string;
   /** 覆盖时间行展示（周期/系列活动用活动级文案，不展示各场次日期） */
   scheduleLabel?: string;
+  /** 首页等：封面主导、标题叠在封面上的氛围卡片 */
+  featured?: boolean;
+  /** 氛围卡片：报名人员头像预览 */
+  enrolleePreview?: {
+    enrollees: ActivityEnrolleeInfo[];
+    total: number;
+  };
 };
 
 const ActivityCard = ({
@@ -46,11 +58,14 @@ const ActivityCard = ({
   meta,
   title,
   groupName,
+  groupAvatarUrl,
   scheduleLabel,
+  featured = false,
+  enrolleePreview,
 }: Props) => {
   const displayTitle =
     title ??
-    (groupName ? `${groupName}：${activity.title}` : activity.title);
+    (groupName && !featured ? `${groupName}：${activity.title}` : activity.title);
   const start = occurrence?.startAt ?? activity.startAt;
   const end = occurrence?.endAt ?? activity.endAt;
   const terminated = activity.status === "cancelled";
@@ -68,6 +83,99 @@ const ActivityCard = ({
   );
 
   const cover = resolveActivityCover(activity);
+
+  if (featured) {
+    const timeText =
+      scheduleLabel ?? (start ? formatTimeRange(start, end) : null);
+    const metaParts = [
+      timeText,
+      activity.location ? activity.location : null,
+    ].filter(Boolean);
+
+    return (
+      <article className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-base active:scale-[0.99]">
+        {meta && (
+          <p className="border-b border-border/40 px-2.5 py-1.5 text-xs text-muted-foreground">
+            {meta}
+          </p>
+        )}
+        <button type="button" onClick={onOpen} className="w-full text-left">
+          <ActivityCover coverUrl={cover} className="relative h-24">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            {(phase === "已结束" || terminated) && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/45 text-sm font-medium text-white">
+                {terminated ? "已终止" : "已结束"}
+              </div>
+            )}
+            <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2.5">
+              {groupName && (
+                <div className="flex min-w-0 max-w-[70%] items-center gap-1.5">
+                  <GroupAvatar
+                    avatarUrl={groupAvatarUrl}
+                    name={groupName}
+                    className="h-5 w-5 text-[10px] ring-1 ring-white/40"
+                  />
+                  <span className="truncate text-xs font-medium text-white drop-shadow-sm">
+                    {groupName}
+                  </span>
+                </div>
+              )}
+              <span
+                className={cn(
+                  phaseClass,
+                  "shrink-0 border border-white/20 bg-black/30 text-white backdrop-blur-sm",
+                  phase === "进行中" && "bg-emerald-500/80 text-white",
+                  phase === "未开始" && "bg-primary/80 text-primary-foreground",
+                )}
+              >
+                {phase}
+              </span>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6">
+              <h3 className="line-clamp-1 text-sm font-semibold text-white drop-shadow-sm">
+                {displayTitle}
+              </h3>
+            </div>
+          </ActivityCover>
+
+          <div className="space-y-1.5 px-2.5 py-2">
+            {metaParts.length > 0 && (
+              <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                <CalendarDays className="h-3 w-3 shrink-0 text-primary" />
+                <span className="min-w-0 truncate">{metaParts.join(" · ")}</span>
+              </p>
+            )}
+            {enrolleePreview && enrolleePreview.total > 0 && (
+              <EnrolleeAvatarStack
+                enrollees={enrolleePreview.enrollees}
+                total={enrolleePreview.total}
+              />
+            )}
+          </div>
+        </button>
+        {showEnroll && (
+          <div className="border-t border-border/40 px-2.5 py-1.5">
+            <button
+              type="button"
+              disabled={enrolled || phase === "已结束" || terminated}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEnroll?.();
+              }}
+              className={cn(
+                "w-full rounded-full py-2 text-xs font-medium",
+                enrolled || phase === "已结束" || terminated
+                  ? "bg-secondary text-muted-foreground"
+                  : "bg-primary text-primary-foreground",
+              )}
+            >
+              {enrolled ? "已报名" : terminated ? "已终止" : "报名"}
+            </button>
+          </div>
+        )}
+      </article>
+    );
+  }
 
   if (compact) {
     const metaText = comfortable ? "text-xs" : "text-[10px]";
