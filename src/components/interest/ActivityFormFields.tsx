@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import ActivityCover from "@/components/interest/ActivityCover";
 import ActivityCoverUpload from "@/components/interest/ActivityCoverUpload";
 import ActivityDescriptionField from "@/components/interest/ActivityDescriptionField";
+import EnrollDeadlineField from "@/components/interest/EnrollDeadlineField";
 import {
   ACTIVITY_KIND_LABEL,
   ACTIVITY_KIND_OPTIONS,
@@ -31,6 +33,11 @@ import {
   SERIES_ENROLLMENT_MODE_LABEL,
   SERIES_ENROLLMENT_MODE_OPTIONS,
 } from "@/lib/seriesEnrollment";
+import {
+  formatEnrollDeadlineLabel,
+  getEnrollDeadlineReferenceStartAt,
+  type EnrollDeadlineFormValue,
+} from "@/lib/enrollDeadline";
 import { cn } from "@/lib/utils";
 
 export type SeriesSessionDraft = MobileDateTimeRangeValue & {
@@ -52,6 +59,7 @@ type BaseProps = {
   monthDay: number | null;
   recurringTime: string;
   recurringEndTime: string;
+  enrollDeadline: EnrollDeadlineFormValue;
 };
 
 type EditProps = BaseProps & {
@@ -78,6 +86,7 @@ type EditProps = BaseProps & {
   onWeeklyDayChange: (v: number) => void;
   onMonthDayChange: (v: number) => void;
   onRecurringTimeChange: (start: string, end: string) => void;
+  onEnrollDeadlineChange: (v: EnrollDeadlineFormValue) => void;
   groupName?: string;
   groupTagNames?: string[];
 };
@@ -221,6 +230,27 @@ const ActivityFormFields = (props: Props) => {
   const scheduleLocked =
     mode === "edit" && Boolean(props.scheduleLocked);
   const scheduleReadOnly = isView || scheduleLocked;
+  const referenceStartAt = useMemo(
+    () =>
+      getEnrollDeadlineReferenceStartAt({
+        activityKind: kind,
+        oneOffSchedule: props.oneOffSchedule,
+        seriesSessions: props.seriesSessions,
+        recurrence: props.recurrence,
+        weeklyDay: props.weeklyDay,
+        monthDay: props.monthDay,
+        recurringTime: props.recurringTime,
+      }),
+    [
+      kind,
+      props.oneOffSchedule,
+      props.seriesSessions,
+      props.recurrence,
+      props.weeklyDay,
+      props.monthDay,
+      props.recurringTime,
+    ],
+  );
   const seriesOccurrences =
     isView && props.mode === "view"
       ? props.occurrences
@@ -590,6 +620,19 @@ const ActivityFormFields = (props: Props) => {
             className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
           />
         </label>
+      )}
+
+      {isView ? (
+        <ViewInlineRow
+          label="报名截止"
+          value={formatEnrollDeadlineLabel(props.activity)}
+        />
+      ) : (
+        <EnrollDeadlineField
+          value={props.enrollDeadline}
+          onChange={props.onEnrollDeadlineChange}
+          referenceStartAt={referenceStartAt}
+        />
       )}
     </div>
   );

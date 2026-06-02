@@ -24,6 +24,7 @@ import {
   emptySchedule,
   scheduleToIso,
 } from "@/lib/activityFormState";
+import { buildEnrollDeadlinePatch } from "@/lib/enrollDeadline";
 import {
   WEEKDAY_OPTIONS,
   buildMonthlyRrule,
@@ -89,6 +90,17 @@ const ActivityOrganizerEdit = ({
   );
   const [seriesEnrollmentMode, setSeriesEnrollmentMode] =
     useState<SeriesEnrollmentMode>(initial.seriesEnrollmentMode);
+  const [enrollDeadline, setEnrollDeadline] = useState(initial.enrollDeadline);
+
+  const deadlineContext = () => ({
+    activityKind: activity.activityKind,
+    oneOffSchedule,
+    seriesSessions,
+    recurrence,
+    weeklyDay,
+    monthDay,
+    recurringTime,
+  });
 
   const updateSession = (
     key: string,
@@ -137,6 +149,14 @@ const ActivityOrganizerEdit = ({
       capacity: cap,
       coverUrl,
     };
+
+    const { patch: deadlinePatch, error: deadlineError } =
+      buildEnrollDeadlinePatch(enrollDeadline, deadlineContext());
+    if (deadlineError) {
+      toast.error(deadlineError);
+      return;
+    }
+    Object.assign(patch, deadlinePatch);
 
     if (!scheduleLocked) {
       if (activity.activityKind === "one_off") {
@@ -299,6 +319,8 @@ const ActivityOrganizerEdit = ({
             setRecurringTime(start);
             setRecurringEndTime(end);
           }}
+          enrollDeadline={enrollDeadline}
+          onEnrollDeadlineChange={setEnrollDeadline}
           groupName={group.name}
           groupTagNames={getTagsByIds(group.tagIds).map((tag) => tag.name)}
         />

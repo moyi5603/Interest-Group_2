@@ -62,6 +62,13 @@ const addHours = (iso: string, hours: number) => {
 
 const now = new Date();
 
+/** 演示「报名即将截止」：2 小时后截止报名，8 小时后活动开始 */
+const closingSoonDemo = {
+  enrollDeadline: addHours(now.toISOString(), 2),
+  startAt: addHours(now.toISOString(), 8),
+  endAt: addHours(now.toISOString(), 10),
+};
+
 /** 生成未来若干场「每周固定星期几、固定时刻」的场次时间 */
 const upcomingWeeklySlots = (
   weekdays: number[],
@@ -491,6 +498,26 @@ export let activities: GroupActivity[] = [
     favoriteCount: 9,
   },
   {
+    id: "act-demo-closing",
+    groupId: "ig15",
+    organizerId: "u2",
+    title: "周末娱乐内战",
+    description:
+      "王者荣耀 5v5 娱乐赛，含新手教学局。报名截止临近时会出现在活动广场「报名即将截止」标签。",
+    coverUrl: ACTIVITY_COVERS["act-3"],
+    activityKind: "one_off",
+    location: "3F 电竞室",
+    capacity: 20,
+    startAt: closingSoonDemo.startAt,
+    endAt: closingSoonDemo.endAt,
+    enrollDeadline: closingSoonDemo.enrollDeadline,
+    enrollDeadlineMode: "fixed",
+    status: "published",
+    likeCount: 24,
+    commentCount: 3,
+    favoriteCount: 8,
+  },
+  {
     id: "act-4",
     groupId: "ig3",
     organizerId: "u3",
@@ -715,6 +742,15 @@ export let occurrences: ActivityOccurrence[] = [
     endAt: addHours(addDays(now, 10), 2),
     capacity: 20,
     enrollCount: 0,
+    status: "scheduled",
+  },
+  {
+    id: "occ-demo-closing-1",
+    activityId: "act-demo-closing",
+    startAt: closingSoonDemo.startAt,
+    endAt: closingSoonDemo.endAt,
+    capacity: 20,
+    enrollCount: 6,
     status: "scheduled",
   },
   {
@@ -2389,6 +2425,8 @@ export const updateActivity = (
       | "startAt"
       | "endAt"
       | "enrollDeadline"
+      | "enrollDeadlineMode"
+      | "enrollDeadlineHoursBefore"
       | "rrule"
       | "seriesEnrollmentMode"
     >

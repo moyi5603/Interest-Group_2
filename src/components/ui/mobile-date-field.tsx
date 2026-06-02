@@ -1101,3 +1101,72 @@ export const MobileDateTimeRangeField = ({
     </div>
   );
 };
+
+export type MobileDateTimeValue = {
+  date: string;
+  time: string;
+};
+
+type MobileDateTimeFieldProps = {
+  label: string;
+  value: MobileDateTimeValue;
+  onChange: (value: MobileDateTimeValue) => void;
+  minDate?: string;
+  maxDate?: string;
+  className?: string;
+  required?: boolean;
+};
+
+export const MobileDateTimeField = ({
+  label,
+  value,
+  onChange,
+  minDate,
+  maxDate,
+  className,
+  required,
+}: MobileDateTimeFieldProps) => {
+  const [dateOpen, setDateOpen] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
+
+  const patch = (partial: Partial<MobileDateTimeValue>) =>
+    onChange({ ...value, ...partial });
+
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <MobileFieldLabel label={label} required={required} />
+      <div className={PICKER_LIST_CLASS}>
+        <CompactPickerRow
+          label="日期"
+          value={formatMobileDate(value.date)}
+          placeholder="选择日期"
+          filled={!!value.date}
+          onClick={() => setDateOpen(true)}
+        />
+        <CompactPickerRow
+          label="时间"
+          value={formatMobileTime(value.time)}
+          placeholder="选择时间"
+          filled={!!value.time}
+          onClick={() => setTimeOpen(true)}
+        />
+      </div>
+      <DatePickerSheet
+        open={dateOpen}
+        title={`${label} · 日期`}
+        value={value.date}
+        min={minDate}
+        max={maxDate}
+        onOpenChange={setDateOpen}
+        onConfirm={(date) => patch({ date })}
+      />
+      <TimePickerSheet
+        open={timeOpen}
+        title={`${label} · 时间`}
+        value={value.time}
+        onOpenChange={setTimeOpen}
+        onConfirm={(time) => patch({ time })}
+      />
+    </div>
+  );
+};

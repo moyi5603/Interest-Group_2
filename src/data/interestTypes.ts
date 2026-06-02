@@ -8,6 +8,9 @@ export type ActivityKind = "one_off" | "recurring" | "series";
 
 /** 系列活动报名方式：整场一次报名 vs 每场单独报名 */
 export type SeriesEnrollmentMode = "once_before_first" | "per_occurrence";
+
+/** 报名截止：固定时间 vs 开始前 N 小时 */
+export type EnrollDeadlineMode = "fixed" | "hours_before_start";
 export type OccurrenceStatus = "scheduled" | "cancelled" | "completed";
 
 export type InterestTag = {
@@ -59,6 +62,10 @@ export type GroupActivity = {
   location?: string;
   capacity?: number;
   enrollDeadline?: string;
+  /** 报名截止配置方式；未设置表示不限制 */
+  enrollDeadlineMode?: EnrollDeadlineMode;
+  /** mode 为 hours_before_start 时的小时数 */
+  enrollDeadlineHoursBefore?: number;
   startAt?: string;
   endAt?: string;
   rrule?: string;

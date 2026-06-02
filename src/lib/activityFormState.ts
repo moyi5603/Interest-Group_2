@@ -10,6 +10,7 @@ import type {
   SeriesEnrollmentMode,
 } from "@/data/interestTypes";
 import { parseRecurringFormState } from "@/lib/interestOccurrences";
+import { enrollDeadlineFormFromActivity } from "@/lib/enrollDeadline";
 
 const toDatetimeLocal = (iso?: string) => {
   if (!iso) return "";
@@ -70,6 +71,7 @@ export const activityToFormValues = (
         : [],
     seriesEnrollmentMode:
       (activity.seriesEnrollmentMode ?? "per_occurrence") as SeriesEnrollmentMode,
+    enrollDeadline: enrollDeadlineFormFromActivity(activity),
     ...recurring,
   };
 };

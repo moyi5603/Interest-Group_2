@@ -3,6 +3,7 @@ import ActivityCover from "@/components/interest/ActivityCover";
 import GroupAvatar from "@/components/interest/GroupAvatar";
 import EnrolleeAvatarStack from "@/components/interest/EnrolleeAvatarStack";
 import LikeCountBadge from "@/components/interest/LikeCountBadge";
+import EnrollDeadlineMeta from "@/components/interest/EnrollDeadlineMeta";
 import { MapPin, Pencil, CalendarDays } from "lucide-react";
 import type { GroupActivity } from "@/data/interestTypes";
 import type { ActivityOccurrence } from "@/data/interestTypes";
@@ -11,6 +12,7 @@ import {
   formatTimeRange,
   getActivityPhase,
 } from "@/lib/interestOccurrences";
+import { isEnrollClosingSoon } from "@/lib/enrollDeadline";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -43,6 +45,8 @@ type Props = {
     enrollees: ActivityEnrolleeInfo[];
     total: number;
   };
+  /** 展示「报名即将截止」标签（活动状态标签前） */
+  showEnrollClosingSoon?: boolean;
 };
 
 const ActivityCard = ({
@@ -63,6 +67,7 @@ const ActivityCard = ({
   scheduleLabel,
   featured = false,
   enrolleePreview,
+  showEnrollClosingSoon = false,
 }: Props) => {
   const displayTitle =
     title ??
@@ -71,7 +76,11 @@ const ActivityCard = ({
   const end = occurrence?.endAt ?? activity.endAt;
   const terminated = activity.status === "cancelled";
   const phase = terminated ? "已终止" : getActivityPhase(start, end);
+  const enrollClosingSoon =
+    showEnrollClosingSoon && isEnrollClosingSoon(activity);
 
+  const closingSoonClass =
+    "shrink-0 rounded border border-amber-200/60 bg-amber-500/95 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm";
   const phaseClass = cn(
     "shrink-0 rounded font-medium",
     compact && comfortable
@@ -121,16 +130,21 @@ const ActivityCard = ({
                   </span>
                 </div>
               )}
-              <span
-                className={cn(
-                  phaseClass,
-                  "shrink-0 border border-white/20 bg-black/30 text-white backdrop-blur-sm",
-                  phase === "进行中" && "bg-emerald-500/80 text-white",
-                  phase === "未开始" && "bg-primary/80 text-primary-foreground",
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                {enrollClosingSoon && (
+                  <span className={closingSoonClass}>报名即将截止</span>
                 )}
-              >
-                {phase}
-              </span>
+                <span
+                  className={cn(
+                    phaseClass,
+                    "border border-white/20 bg-black/30 text-white backdrop-blur-sm",
+                    phase === "进行中" && "bg-emerald-500/80 text-white",
+                    phase === "未开始" && "bg-primary/80 text-primary-foreground",
+                  )}
+                >
+                  {phase}
+                </span>
+              </div>
             </div>
             <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6">
               <h3 className="line-clamp-1 text-sm font-semibold text-white drop-shadow-sm">
@@ -146,6 +160,7 @@ const ActivityCard = ({
                 <span className="min-w-0 truncate">{metaParts.join(" · ")}</span>
               </p>
             )}
+            <EnrollDeadlineMeta activity={activity} className="text-xs" />
             <div className="flex items-center justify-between gap-2">
               {enrolleePreview && enrolleePreview.total > 0 ? (
                 <EnrolleeAvatarStack
@@ -263,6 +278,11 @@ const ActivityCard = ({
                 </span>
               </div>
             )}
+            <EnrollDeadlineMeta
+              activity={activity}
+              className={cn("mt-0.5", metaText)}
+              iconClassName={comfortable ? "h-3.5 w-3.5" : "h-3 w-3"}
+            />
             <LikeCountBadge
               count={activity.likeCount}
               className={cn("mt-1", metaText)}
@@ -352,6 +372,11 @@ const ActivityCard = ({
               </span>
             </div>
           )}
+          <EnrollDeadlineMeta
+            activity={activity}
+            className={comfortable ? "text-xs" : "text-[11px]"}
+            iconClassName={comfortable ? "h-3.5 w-3.5" : "h-3 w-3"}
+          />
           <LikeCountBadge
             count={activity.likeCount}
             className={comfortable ? "text-xs" : "text-[11px]"}

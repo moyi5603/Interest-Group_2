@@ -16,6 +16,8 @@ type Props = {
   showEnroll?: boolean;
   enrolled?: boolean;
   onEnroll?: () => void;
+  /** 员工活动广场：临近截止时展示标签 */
+  showEnrollClosingSoon?: boolean;
 };
 
 export const toFeaturedActivityItem = (
@@ -52,6 +54,7 @@ const FeaturedActivityCard = ({
   showEnroll,
   enrolled,
   onEnroll,
+  showEnrollClosingSoon,
 }: Props) => (
   <ActivityCard
     featured
@@ -66,6 +69,7 @@ const FeaturedActivityCard = ({
     showEnroll={showEnroll}
     enrolled={enrolled}
     onEnroll={onEnroll}
+    showEnrollClosingSoon={showEnrollClosingSoon}
     onOpen={onOpen}
   />
 );

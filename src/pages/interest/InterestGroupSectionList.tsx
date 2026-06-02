@@ -174,6 +174,7 @@ const InterestGroupSectionList = () => {
               <li key={item.activity.id}>
                 <FeaturedActivityCard
                   item={item}
+                  showEnrollClosingSoon={!isManager}
                   onOpen={() => openActivity(item.activity.id)}
                 />
               </li>

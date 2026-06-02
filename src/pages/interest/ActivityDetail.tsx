@@ -572,6 +572,7 @@ const ActivityDetail = () => {
           monthDay={formValues.monthDay}
           recurringTime={formValues.recurringTime}
           recurringEndTime={formValues.recurringEndTime}
+          enrollDeadline={formValues.enrollDeadline}
           onViewOccurrenceEnrollees={isOrganizer ? openEnrollees : undefined}
         />
 

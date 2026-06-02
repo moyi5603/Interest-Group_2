@@ -17,6 +17,10 @@ import {
 } from "@/data/interestGroups";
 import { emptySchedule } from "@/lib/activityFormState";
 import {
+  buildEnrollDeadlinePatch,
+  emptyEnrollDeadlineForm,
+} from "@/lib/enrollDeadline";
+import {
   WEEKDAY_OPTIONS,
   buildMonthlyRrule,
   buildRecurringEndAt,
@@ -68,6 +72,29 @@ const ActivityCreate = () => {
   );
   const [seriesEnrollmentMode, setSeriesEnrollmentMode] =
     useState<SeriesEnrollmentMode>("per_occurrence");
+  const [enrollDeadline, setEnrollDeadline] = useState(emptyEnrollDeadlineForm());
+
+  const deadlineContext = () => ({
+    activityKind: kind,
+    oneOffSchedule,
+    seriesSessions,
+    recurrence,
+    weeklyDay,
+    monthDay,
+    recurringTime,
+  });
+
+  const mergeEnrollDeadline = (activity: GroupActivity): GroupActivity | null => {
+    const { patch, error } = buildEnrollDeadlinePatch(
+      enrollDeadline,
+      deadlineContext(),
+    );
+    if (error) {
+      toast.error(error);
+      return null;
+    }
+    return { ...activity, ...patch };
+  };
 
   if (!group) {
     return (
@@ -198,8 +225,10 @@ const ActivityCreate = () => {
         recurrence === "monthly"
           ? buildMonthlyRrule(monthDay!)
           : buildWeeklyRrule(weekdayOpt!.rrule);
-      addActivity(base);
-      addOccurrences(expandRecurringOccurrences(base, 4));
+      const withDeadline = mergeEnrollDeadline(base);
+      if (!withDeadline) return;
+      addActivity(withDeadline);
+      addOccurrences(expandRecurringOccurrences(withDeadline, 4));
     } else if (kind === "series") {
       if (seriesSessions.length < 1) {
         toast.error("请至少添加 1 个场次");
@@ -231,11 +260,13 @@ const ActivityCreate = () => {
       );
       base.startAt = sorted[0].startAt;
       base.endAt = sorted[0].endAt;
-      addActivity({
+      const withDeadline = mergeEnrollDeadline({
         ...base,
         activityKind: "series",
         seriesEnrollmentMode,
       });
+      if (!withDeadline) return;
+      addActivity(withDeadline);
       addOccurrences(buildSeriesOccurrences(id, sessions, cap));
     } else {
       if (
@@ -258,7 +289,9 @@ const ActivityCreate = () => {
       }
       base.startAt = startIso;
       base.endAt = endIso;
-      addActivity(base);
+      const withDeadline = mergeEnrollDeadline(base);
+      if (!withDeadline) return;
+      addActivity(withDeadline);
       enrollOrganizerAsParticipant(getActivityById(id)!);
     }
 
@@ -314,6 +347,8 @@ const ActivityCreate = () => {
             setRecurringTime(start);
             setRecurringEndTime(end);
           }}
+          enrollDeadline={enrollDeadline}
+          onEnrollDeadlineChange={setEnrollDeadline}
           groupName={group.name}
           groupTagNames={getTagsByIds(group.tagIds).map((tag) => tag.name)}
         />

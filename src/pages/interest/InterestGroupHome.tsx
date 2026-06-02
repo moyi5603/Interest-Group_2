@@ -87,8 +87,8 @@ const viewMore = (navigate: ReturnType<typeof useNavigate>, section: InterestLis
 type HomeFeedTab = "activities" | "groups";
 
 const homeFeedTabs: { key: HomeFeedTab; label: string }[] = [
-  { key: "activities", label: "活动广场" },
-  { key: "groups", label: "小组广场" },
+  { key: "activities", label: "近期活动" },
+  { key: "groups", label: "小组推荐" },
 ];
 
 const homeFeedTabKeys = homeFeedTabs.map((t) => t.key);
@@ -297,6 +297,7 @@ const InterestGroupHome = () => {
                 <li key={item.activity.id}>
                   <FeaturedActivityCard
                     item={item}
+                    showEnrollClosingSoon={!isManager}
                     onOpen={() => openActivity(item.activity.id)}
                   />
                 </li>
