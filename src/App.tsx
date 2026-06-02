@@ -33,7 +33,14 @@ const App = () => (
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/manager" element={<ManagerMessages />} />
-        <Route path="/manager/growth-engine" element={<GrowthEngineMessages />} />
+        <Route
+          path="/manager/growth-engine"
+          element={<Navigate to="/manager/communication-engine" replace />}
+        />
+        <Route
+          path="/manager/communication-engine"
+          element={<GrowthEngineMessages />}
+        />
         <Route path="/agents" element={<MoreAgents />} />
         <Route path="/agents/interest-groups" element={<InterestGroupHome />} />
         <Route path="/agents/interest-groups/chat" element={<InterestGroupChat />} />

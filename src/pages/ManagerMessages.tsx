@@ -2,7 +2,6 @@ import {
   Award,
   BellOff,
   CreditCard,
-  Gift,
   Megaphone,
   Pin,
   Plus,
@@ -41,17 +40,17 @@ type ChatItem = {
 
 const FILTER_TABS: FilterTab[] = ["全部", "未读", "@我", "群聊", "私聊"];
 
-const growthEngineAvatar = (
-  <Gift className="h-6 w-6 text-[#8B7CF6]" strokeWidth={1.8} />
+const communicationEngineAvatar = (
+  <Megaphone className="h-6 w-6 text-[#8B7CF6]" strokeWidth={1.8} />
 );
 
-const GROWTH_ENGINE_CHAT_ITEM: ChatItem = {
-  id: "growth-engine",
-  name: "成长引擎",
+const COMMUNICATION_ENGINE_CHAT_ITEM: ChatItem = {
+  id: "communication-engine",
+  name: "沟通引擎",
   preview: GROWTH_ENGINE_DEMO_NOTIFICATIONS[0].preview,
   time: GROWTH_ENGINE_DEMO_NOTIFICATIONS[0].time,
   avatarBg: "#EDE8FF",
-  avatarContent: growthEngineAvatar,
+  avatarContent: communicationEngineAvatar,
   official: true,
   prefixes: [{ text: "[提醒]", color: "purple" }],
   pinned: true,
@@ -217,8 +216,8 @@ const ManagerMessages = () => {
 
   const chatItems: ChatItem[] = [
     {
-      ...GROWTH_ENGINE_CHAT_ITEM,
-      onClick: () => navigate("/manager/growth-engine"),
+      ...COMMUNICATION_ENGINE_CHAT_ITEM,
+      onClick: () => navigate("/manager/communication-engine"),
     },
     ...STATIC_CHAT_ITEMS,
   ];

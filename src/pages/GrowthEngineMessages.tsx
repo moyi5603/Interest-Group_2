@@ -1,4 +1,4 @@
-import { ArrowLeft, Gift } from "lucide-react";
+import { ArrowLeft, Megaphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { GROWTH_ENGINE_DEMO_NOTIFICATIONS } from "@/data/growthEngineDemo";
@@ -20,10 +20,10 @@ const GrowthEngineMessages = () => {
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#EDE8FF]">
-            <Gift className="h-5 w-5 text-[#8B7CF6]" strokeWidth={1.8} />
+            <Megaphone className="h-5 w-5 text-[#8B7CF6]" strokeWidth={1.8} />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base font-semibold text-[#1A1A1A]">成长引擎</h1>
+            <h1 className="text-base font-semibold text-[#1A1A1A]">沟通引擎</h1>
           </div>
         </div>
       </header>

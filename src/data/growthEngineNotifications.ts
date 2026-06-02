@@ -30,7 +30,7 @@ const hoursAgo = (hours: number) =>
 const daysAgo = (days: number) =>
   new Date(Date.now() - days * 86_400_000).toISOString();
 
-/** 成长引擎默认 mock：每个通知场景各一条（当前用户 u1） */
+/** 沟通引擎默认 mock：兴趣小组等通知场景（当前用户 u1） */
 const createMockGrowthEngineNotifications = (): GrowthEngineNotification[] => [
   {
     id: "gen-mock-published",
@@ -156,7 +156,7 @@ export const getGrowthEngineNotifications = (employeeId: string) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
-/** 消息列表「成长引擎」会话的预览：优先最新未读，否则最新一条 */
+/** 消息列表「沟通引擎」会话的预览：优先最新未读，否则最新一条 */
 export const getGrowthEngineListPreview = (employeeId: string) => {
   const list = getGrowthEngineNotifications(employeeId);
   if (list.length === 0) return undefined;

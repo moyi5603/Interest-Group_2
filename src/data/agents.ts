@@ -68,7 +68,7 @@ export const agents: Agent[] = [
   {
     id: "develop",
     name: "谋发展",
-    description: "课程、考试、晋升、导师、兴趣小组一站式",
+    description: "课程、考试、晋升、导师一站式",
     example: "推荐一门管理类课程",
     icon: TrendingUp,
     colorVar: "--cat-5",
@@ -81,7 +81,7 @@ export const agents: Agent[] = [
     example: "推荐一个跑步小组",
     icon: Users,
     colorVar: "--cat-1",
-    category: "development",
+    category: "communication",
   },
   {
     id: "dev-course",

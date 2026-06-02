@@ -8,7 +8,7 @@ export type GrowthEngineDemoNotification = {
   link?: string;
 };
 
-/** 成长引擎 demo：7 种场景各一条（静态展示，不区分用户） */
+/** 沟通引擎 demo：兴趣小组通知场景（静态展示，不区分用户） */
 export const GROWTH_ENGINE_DEMO_NOTIFICATIONS: GrowthEngineDemoNotification[] =
   [
     {
