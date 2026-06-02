@@ -1,6 +1,7 @@
 import { resolveGroupCover, resolveGroupAvatar } from "@/data/interestImages";
 import ActivityCover from "@/components/interest/ActivityCover";
 import GroupAvatar from "@/components/interest/GroupAvatar";
+import LikeCountBadge from "@/components/interest/LikeCountBadge";
 import { ChevronRight, Sparkles, Users } from "lucide-react";
 import { getTagsByIds } from "@/data/interestTags";
 import type { InterestGroupFull } from "@/data/interestTypes";
@@ -84,6 +85,12 @@ const GroupCard = ({
                 {memberLabel}
                 {tags.length > 0 &&
                   ` · ${tags.map((t) => `#${t.name}`).join(" ")}`}
+                <span className="mx-1">·</span>
+                <LikeCountBadge
+                  count={group.likeCount}
+                  className="inline-flex align-middle"
+                  iconClassName={iconSm}
+                />
               </p>
               {reasons?.[0] && (
                 <p
@@ -176,6 +183,10 @@ const GroupCard = ({
                 <Users className={comfortable ? "h-3.5 w-3.5" : "h-3 w-3"} />
                 {memberLabel}
               </span>
+              <LikeCountBadge
+                count={group.likeCount}
+                iconClassName={comfortable ? "h-3.5 w-3.5" : "h-3 w-3"}
+              />
               {tags.map((t) => (
                 <span
                   key={t.id}

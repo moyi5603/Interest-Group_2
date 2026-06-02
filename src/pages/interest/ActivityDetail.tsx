@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import ActivityCommentComposerInline from "@/components/interest/ActivityCommentComposerInline";
 import ActivityCommentComposerSheet from "@/components/interest/ActivityCommentComposerSheet";
 import ActivityCommentSection from "@/components/interest/ActivityCommentSection";
+import EntityLikeButton from "@/components/interest/EntityLikeButton";
 import ActivityEnrolleesSheet from "@/components/interest/ActivityEnrolleesSheet";
 import ActivityOrganizerEdit from "@/components/interest/ActivityOrganizerEdit";
 import ActivityFormFields from "@/components/interest/ActivityFormFields";
@@ -66,7 +67,11 @@ import {
   isSeriesWholeEnrollmentOpen,
   seriesEnrollmentBlockedReason,
 } from "@/lib/seriesEnrollment";
-import { canOrganizeActivity, canPostInterestComments } from "@/lib/interestGroupAccess";
+import {
+  isActivityLikedBy,
+  toggleActivityLike,
+} from "@/data/entityLikes";
+import { canOrganizeActivity, canLikeInterestEntities, canPostInterestComments } from "@/lib/interestGroupAccess";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
@@ -475,13 +480,20 @@ const ActivityDetail = () => {
   const canPostComments = canPostInterestComments();
   const showCommentSection = !isEditing;
   const showCommentComposer = showCommentSection && canPostComments;
-  const showBottomBar = showCommentComposer || showFooter;
-  const footerStacked = showFooter && !showCommentComposer;
-  const mainBottomPadding = showBottomBar
-    ? footerStacked
-      ? "pb-24"
-      : "pb-[4.75rem]"
-    : "pb-6";
+  const showBottomBar = !isEditing;
+  const mainBottomPadding = showBottomBar ? "pb-20" : "pb-6";
+
+  const handleActivityLikeToggle = () => {
+    toggleActivityLike(activity.id, CURRENT_EMPLOYEE_ID);
+    setTick((n) => n + 1);
+  };
+
+  const enrollActionBtnClass = cn(
+    "rounded-full font-medium active:scale-[0.99]",
+    showCommentComposer
+      ? "shrink-0 whitespace-nowrap px-5 py-3 text-sm"
+      : "w-full py-3.5 text-base",
+  );
 
   const enrollButtonLabel = () => {
     if (hasEnrollment) {
@@ -620,14 +632,15 @@ const ActivityDetail = () => {
       </main>
 
       {showBottomBar && (
-        <footer
-          className={cn(
-            "fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-md border-t border-border bg-background/95 backdrop-blur",
-            showCommentComposer
-              ? "flex items-center gap-2 px-3 py-2.5"
-              : "px-3 py-3",
-          )}
-        >
+        <footer className="fixed bottom-0 left-0 right-0 z-20 mx-auto flex max-w-md items-center gap-2 border-t border-border bg-background/95 px-3 py-2.5 backdrop-blur">
+          <EntityLikeButton
+            liked={isActivityLikedBy(activity.id, CURRENT_EMPLOYEE_ID)}
+            count={activity.likeCount ?? 0}
+            canLike={canLikeInterestEntities()}
+            onToggle={handleActivityLikeToggle}
+            className="shrink-0 px-2.5 py-2 text-xs"
+          />
+
           {showCommentComposer && (
             <ActivityCommentComposerInline
               onOpenComposer={openCommentComposer}
@@ -636,7 +649,12 @@ const ActivityDetail = () => {
           )}
 
           {showFooter && (
-            <div className={cn(showCommentComposer ? "shrink-0" : "w-full")}>
+            <div
+              className={cn(
+                "min-w-0",
+                showCommentComposer ? "shrink-0" : "flex-1",
+              )}
+            >
               {isTerminated ? (
                 <p className="text-center text-sm text-muted-foreground">
                   活动已终止
@@ -658,7 +676,10 @@ const ActivityDetail = () => {
                 <button
                   type="button"
                   onClick={() => setCancelOpen(true)}
-                  className="w-full rounded-full border border-destructive/40 py-2.5 text-sm font-medium text-destructive active:scale-[0.99]"
+                  className={cn(
+                    enrollActionBtnClass,
+                    "border border-destructive/40 text-destructive",
+                  )}
                 >
                   取消报名
                   {myEnrollments.length > 1
@@ -676,7 +697,10 @@ const ActivityDetail = () => {
                       doEnroll();
                     }
                   }}
-                  className="w-full rounded-full bg-primary py-2.5 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground active:scale-[0.99]"
+                  className={cn(
+                    enrollActionBtnClass,
+                    "bg-primary text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground",
+                  )}
                 >
                   {enrollButtonLabel()}
                 </button>

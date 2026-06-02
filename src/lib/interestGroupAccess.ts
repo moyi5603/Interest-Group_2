@@ -4,6 +4,9 @@ import { canManageInterestGroups } from "@/lib/appRoleStore";
 /** 小组圈/活动评论：管理员身份暂仅浏览，不支持发帖与回复 */
 export const canPostInterestComments = () => !canManageInterestGroups();
 
+/** 活动/小组点赞：管理员身份仅可查看数量，不可操作 */
+export const canLikeInterestEntities = () => !canManageInterestGroups();
+
 /** 小组详情页：平台管理员身份下展示与创建者相同的管理能力 */
 export const canOrganizeGroup = (_groupId: string, _viewerId: string) =>
   canManageInterestGroups();

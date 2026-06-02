@@ -2,6 +2,7 @@ import { resolveActivityCover } from "@/data/interestImages";
 import ActivityCover from "@/components/interest/ActivityCover";
 import GroupAvatar from "@/components/interest/GroupAvatar";
 import EnrolleeAvatarStack from "@/components/interest/EnrolleeAvatarStack";
+import LikeCountBadge from "@/components/interest/LikeCountBadge";
 import { MapPin, Pencil, CalendarDays } from "lucide-react";
 import type { GroupActivity } from "@/data/interestTypes";
 import type { ActivityOccurrence } from "@/data/interestTypes";
@@ -145,12 +146,17 @@ const ActivityCard = ({
                 <span className="min-w-0 truncate">{metaParts.join(" · ")}</span>
               </p>
             )}
-            {enrolleePreview && enrolleePreview.total > 0 && (
-              <EnrolleeAvatarStack
-                enrollees={enrolleePreview.enrollees}
-                total={enrolleePreview.total}
-              />
-            )}
+            <div className="flex items-center justify-between gap-2">
+              {enrolleePreview && enrolleePreview.total > 0 ? (
+                <EnrolleeAvatarStack
+                  enrollees={enrolleePreview.enrollees}
+                  total={enrolleePreview.total}
+                />
+              ) : (
+                <span />
+              )}
+              <LikeCountBadge count={activity.likeCount} className="text-xs" />
+            </div>
           </div>
         </button>
         {showEnroll && (
@@ -257,6 +263,10 @@ const ActivityCard = ({
                 </span>
               </div>
             )}
+            <LikeCountBadge
+              count={activity.likeCount}
+              className={cn("mt-1", metaText)}
+            />
           </div>
           {editable && phase !== "已结束" && !terminated && (
             <span
@@ -342,6 +352,10 @@ const ActivityCard = ({
               </span>
             </div>
           )}
+          <LikeCountBadge
+            count={activity.likeCount}
+            className={comfortable ? "text-xs" : "text-[11px]"}
+          />
         </div>
       </button>
       {showEnroll && (

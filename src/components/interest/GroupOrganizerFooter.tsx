@@ -49,9 +49,9 @@ const GroupOrganizerFooter = ({
   };
 
   const btnClass = cn(
-    "rounded-full border font-medium active:scale-[0.99]",
+    "flex items-center justify-center rounded-full border font-medium active:scale-[0.99]",
     compact
-      ? "min-w-0 flex-1 py-2.5 text-center text-xs sm:text-sm"
+      ? "min-w-0 flex-1 text-center text-xs sm:text-sm"
       : "flex-1 py-3 text-sm",
   );
 
@@ -80,7 +80,7 @@ const GroupOrganizerFooter = ({
   return (
     <>
       {compact ? (
-        <div className="flex min-w-0 flex-1 gap-2">{actions}</div>
+        <div className="flex min-w-0 flex-1 items-stretch gap-2">{actions}</div>
       ) : (
         <div className="flex gap-2">{actions}</div>
       )}

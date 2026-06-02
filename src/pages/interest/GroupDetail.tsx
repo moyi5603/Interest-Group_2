@@ -5,6 +5,7 @@ import ActivityCover from "@/components/interest/ActivityCover";
 import GroupMembersSheet from "@/components/interest/GroupMembersSheet";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import EntityLikeButton from "@/components/interest/EntityLikeButton";
 import FeaturedActivityCard from "@/components/interest/FeaturedActivityCard";
 import GroupHighlightsPanel from "@/components/interest/GroupHighlightsPanel";
 import GroupMomentsPanel from "@/components/interest/GroupMomentsPanel";
@@ -34,10 +35,14 @@ import {
   leaveGroup,
   markGroupReported,
 } from "@/data/interestGroups";
+import {
+  isGroupLikedBy,
+  toggleGroupLike,
+} from "@/data/entityLikes";
 import { useNavigateBack } from "@/hooks/useNavigateBack";
 import { useUrlEnumParam } from "@/hooks/useUrlEnumParam";
 import { canViewGroup } from "@/lib/interestVisibility";
-import { canOrganizeGroup, canPostInterestComments } from "@/lib/interestGroupAccess";
+import { canOrganizeGroup, canLikeInterestEntities, canPostInterestComments } from "@/lib/interestGroupAccess";
 import { buildFeaturedActivityListItem } from "@/lib/interestRecommend";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
@@ -172,71 +177,94 @@ const GroupDetail = () => {
               </span>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setMembersOpen(true)}
-            className="mt-2 flex w-full items-center gap-0.5 text-sm text-primary active:opacity-70"
-          >
-            <span>{group.memberCount} 位成员</span>
-            <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
-          </button>
-          {!isArchived && canOrganize ? (
-            <div className="mt-3 flex gap-2">
-              <GroupOrganizerFooter
-                compact
-                group={group}
-                ownerId={CURRENT_EMPLOYEE_ID}
-                onEdit={() =>
-                  navigate(`/agents/interest-groups/${group.id}/edit`)
-                }
-                onDisbanded={() =>
-                  navigate("/agents/interest-groups/admin/groups")
-                }
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(`/agents/interest-groups/${group.id}/activities/new`)
-                }
-                className="min-w-0 flex-[1.35] rounded-full border border-primary py-2.5 text-sm font-semibold text-primary active:scale-[0.99]"
-              >
-                发布活动
-              </button>
-            </div>
-          ) : !isArchived && !member ? (
-            full ? (
-              <p className="mt-3 text-center text-sm text-muted-foreground">
-                小组已满员
-              </p>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  if (group.visibility === "invite_only") {
-                    toast.message("邀请制小组，请联系组长");
-                    return;
-                  }
-                  if (!joinGroup(group.id, CURRENT_EMPLOYEE_ID)) {
-                    toast.error("小组已满");
-                    return;
-                  }
-                  setVersion((n) => n + 1);
-                  toast.success("已加入小组");
-                }}
-                className="mt-3 w-full rounded-full bg-primary py-2.5 text-sm font-medium text-primary-foreground"
-              >
-                加入小组
-              </button>
-            )
-          ) : !isArchived && member ? (
+          <div className="mt-3 flex items-stretch gap-2">
             <button
               type="button"
-              onClick={() => setLeaveOpen(true)}
-              className="mt-3 w-full rounded-full border border-destructive/40 py-2.5 text-sm font-medium text-destructive active:scale-[0.99]"
+              onClick={() => setMembersOpen(true)}
+              className={cn(
+                "flex h-12 min-w-0 items-center gap-0.5 rounded-full px-3 text-sm text-primary active:opacity-70",
+                isArchived && "w-full justify-center bg-secondary/60",
+              )}
             >
-              退出小组
+              <span>{group.memberCount} 位成员</span>
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
             </button>
-          ) : null}
+            {!isArchived && (
+              <EntityLikeButton
+                liked={isGroupLikedBy(group.id, CURRENT_EMPLOYEE_ID)}
+                count={group.likeCount ?? 0}
+                canLike={canLikeInterestEntities()}
+                onToggle={() => {
+                  toggleGroupLike(group.id, CURRENT_EMPLOYEE_ID);
+                  setVersion((n) => n + 1);
+                }}
+                className="ml-auto h-12 shrink-0 px-4 py-0 text-sm"
+              />
+            )}
+          </div>
+          {!isArchived && (
+            <div className="mt-2 flex min-h-12 items-stretch gap-2">
+              {canOrganize ? (
+                <div className="flex min-w-0 flex-1 items-stretch gap-2">
+                  <GroupOrganizerFooter
+                    compact
+                    group={group}
+                    ownerId={CURRENT_EMPLOYEE_ID}
+                    onEdit={() =>
+                      navigate(`/agents/interest-groups/${group.id}/edit`)
+                    }
+                    onDisbanded={() =>
+                      navigate("/agents/interest-groups/admin/groups")
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/agents/interest-groups/${group.id}/activities/new`,
+                      )
+                    }
+                    className="flex min-w-0 flex-[1.35] items-center justify-center rounded-full border border-primary text-sm font-semibold text-primary active:scale-[0.99]"
+                  >
+                    发布活动
+                  </button>
+                </div>
+              ) : !member ? (
+                full ? (
+                  <p className="flex min-h-12 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+                    小组已满员
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (group.visibility === "invite_only") {
+                        toast.message("邀请制小组，请联系组长");
+                        return;
+                      }
+                      if (!joinGroup(group.id, CURRENT_EMPLOYEE_ID)) {
+                        toast.error("小组已满");
+                        return;
+                      }
+                      setVersion((n) => n + 1);
+                      toast.success("已加入小组");
+                    }}
+                    className="min-h-12 min-w-0 flex-1 rounded-full bg-primary text-sm font-medium text-primary-foreground active:scale-[0.99]"
+                  >
+                    加入小组
+                  </button>
+                )
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setLeaveOpen(true)}
+                  className="min-h-12 min-w-0 flex-1 rounded-full border border-destructive/40 text-sm font-medium text-destructive active:scale-[0.99]"
+                >
+                  退出小组
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         {!isArchived && (
