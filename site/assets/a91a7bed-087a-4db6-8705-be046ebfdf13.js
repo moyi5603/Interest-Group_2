@@ -59,6 +59,14 @@
   }
 
   const actsRaw = [
+    // ── Mock 样例：无人报名（置顶便于 PC/移动端验收）──
+    { id: 'a16', gid: 'g4', title: '初夏滨江摄影 Walk · 试点场', type: 'once', cat: 'movie',
+      date: '06月18日 周三', time: '17:30 - 19:00', loc: '滨江步道 · 南门集合', host: '许墨',
+      cap: 15, signed: 0, liked: false, likes: 0, joinedByMe: false, status: 'upcoming',
+      desc: '<p>沿滨江步道拍摄日落与街景,<b>零基础可报名</b>,现场提供构图小贴士。</p><ul><li>自备手机或相机即可,无需专业设备</li><li>活动结束后可选交片参与内部评选</li><li><b>当前暂无人报名</b>,管理端可删除或继续招募</li></ul>',
+      tags: ['摄影','试点场','无人报名'], ai: false,
+      deadlineIso: '2026-06-18T16:00:00+08:00' },
+
     // ── 周期活动（按场次独立报名，sessions[] 内各场 signed 不同）──
     { id: 'a1', gid: 'g1', title: '滨江 8K 夜跑 · 江风配速团', type: 'recurring', cat: 'sport',
       date: '每周四', time: '19:30 - 21:00', repeatMode: 'weekly', repeatWeekdays: [4],
@@ -166,13 +174,7 @@
       tags: ['主题共读','提供茶点'], ai: false,
       deadlineIso: '2026-06-12T17:00:00+08:00' },
 
-    // ── Mock 样例：无人报名 / 已终止 ──
-    { id: 'a16', gid: 'g4', title: '初夏滨江摄影 Walk · 试点场', type: 'once', cat: 'movie',
-      date: '06月18日 周三', time: '17:30 - 19:00', loc: '滨江步道 · 南门集合', host: '许墨',
-      cap: 15, signed: 0, liked: false, likes: 0, joinedByMe: false, status: 'upcoming',
-      desc: '<p>沿滨江步道拍摄日落与街景,<b>零基础可报名</b>,现场提供构图小贴士。</p><ul><li>自备手机或相机即可,无需专业设备</li><li>活动结束后可选交片参与内部评选</li><li><b>当前暂无人报名</b>,管理端可删除或继续招募</li></ul>',
-      tags: ['摄影','试点场','无人报名'], ai: false,
-      deadlineIso: '2026-06-18T16:00:00+08:00' },
+    // ── Mock 样例：已终止 ──
     { id: 'a17', gid: 'g7', title: '六一亲子义卖 · 志愿者专场', type: 'once', cat: 'volunteer',
       date: '06月01日 周日', time: '09:00 - 16:00', loc: '滨江社区广场', host: '顾乔',
       cap: 30, signed: 18, liked: false, likes: 45, joinedByMe: true, status: 'cancelled',
