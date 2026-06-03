@@ -358,16 +358,6 @@ const ActivityDetail = () => {
     setEnrolleesOpen(true);
   };
 
-  const enrolledOccurrenceIds = useMemo(
-    () =>
-      new Set(
-        myEnrollments
-          .map((e) => e.occurrenceId)
-          .filter((id): id is string => !!id),
-      ),
-    [myEnrollments],
-  );
-
   const cancelSingleOccurrence = () => {
     const occurrenceId = [...enrolledOccurrenceIds][0];
     if (

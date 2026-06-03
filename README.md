@@ -32,14 +32,14 @@ cd site && python3 -m http.server 8080
 
 ## GitHub Pages
 
-站点地址：<https://moyi5603.github.io/Interest-Group_2/>
+兴趣小组离线原型站点（`site/`）部署地址：<https://moyi5603.github.io/Interest-Group_2/>
 
-推送 `main` 分支后，GitHub Actions（`.github/workflows/deploy-pages.yml`）会自动构建并部署。首次使用前请在仓库设置中启用 Pages：
+推送 `main` 分支后，GitHub Actions（`.github/workflows/deploy-pages.yml`）会自动将 `site/` 目录部署到 Pages。首次使用前请在仓库设置中启用 Pages：
 
 1. 打开 **Settings → Pages**
 2. **Build and deployment → Source** 选择 **GitHub Actions**
 
-本地预览生产构建（需带仓库子路径）：
+本地预览 Vite 生产构建（完整 React 应用，需带仓库子路径）：
 
 ```bash
 npm run build
