@@ -79,7 +79,7 @@ function HomeTab() {
       </div>
 
       {/* my shortcuts */}
-      <div style={{ display: 'flex', gap: 12, padding: '12px 16px 4px' }}>
+      <div style={{ display: 'flex', gap: 10, padding: '10px 16px 2px' }}>
         {[
           { key: 'myActivities', label: '我的活动', icon: 'ticket' },
           { key: 'myGroups',     label: '我的小组', icon: 'star'   },
@@ -90,19 +90,19 @@ function HomeTab() {
           return (
             <button key={key} onClick={() => nav.go(key)}
               style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                gap: 8, padding: '14px 16px', borderRadius: 16, background: 'var(--surface)',
+                gap: 5, padding: '10px 12px', borderRadius: 14, background: 'var(--surface)',
                 boxShadow: 'var(--shadow-sm)', cursor: 'pointer', position: 'relative',
                 border: 'none' }}>
               <div style={{ position: 'relative' }}>
-                <Icon name={icon} size={24} stroke={2} style={{ color: 'var(--brand)' }} />
+                <Icon name={icon} size={20} stroke={2} style={{ color: 'var(--brand)' }} />
                 {count > 0 && (
-                  <span style={{ position: 'absolute', top: -4, right: -8, minWidth: 17, height: 17,
-                    padding: '0 4px', borderRadius: 99, background: 'var(--brand)', color: '#fff',
-                    fontSize: 10.5, fontWeight: 800, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', boxShadow: '0 0 0 2px #fff' }}>{count}</span>
+                  <span style={{ position: 'absolute', top: -6, right: -6, minWidth: 16, height: 16,
+                    padding: '0 3px', borderRadius: 99, background: 'var(--brand)', color: '#fff',
+                    fontSize: 9.5, fontWeight: 800, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', boxShadow: '0 0 0 1.5px #fff' }}>{count}</span>
                 )}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', lineHeight: 1 }}>{label}</span>
             </button>
           );
         })}
