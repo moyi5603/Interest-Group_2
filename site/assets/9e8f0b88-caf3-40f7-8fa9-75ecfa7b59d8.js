@@ -342,6 +342,55 @@ function isOpenActivity(a) {
   return a.status === 'upcoming';
 }
 
+function MyActivities() {
+  const { nav, store } = useM();
+  const [tab, setTab] = React.useState('all');
+  const myActs = store.acts.filter(a => a.joinedByMe);
+  const filtered = tab === 'all'     ? myActs
+    : tab === 'upcoming' ? myActs.filter(a => a.status === 'upcoming')
+    :                      myActs.filter(a => a.status === 'ended');
+  const tabDefs = [
+    { key: 'all',      label: '全部' },
+    { key: 'upcoming', label: '未开始' },
+    { key: 'ended',    label: '已结束' },
+  ];
+  return (
+    <ScreenScroll>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(255,247,241,0.92)',
+        backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 14px 10px' }}>
+          <button onClick={nav.back} style={{ display: 'flex' }}><Icon name="back" size={24} /></button>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>我的活动</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, padding: '0 14px 12px' }}>
+          {tabDefs.map(({ key, label }) => (
+            <button key={key} onClick={() => setTab(key)} style={{
+              padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 700, border: 'none',
+              cursor: 'pointer',
+              background: tab === key ? 'var(--brand)' : 'var(--surface-2)',
+              color:      tab === key ? '#fff'         : 'var(--ink-3)',
+            }}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ padding: '12px 14px 40px', display: 'flex', flexDirection: 'column', gap: 15 }}>
+        {filtered.length === 0 ? (
+          <div style={{ paddingTop: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            <Empty text={tab === 'all' ? '还没有报名任何活动' : '该状态下暂无活动'} />
+            {tab === 'all' && (
+              <Btn variant="soft" size="sm" onClick={() => nav.go('allActs')}>去看看</Btn>
+            )}
+          </div>
+        ) : (
+          filtered.map(a => (
+            <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />
+          ))
+        )}
+      </div>
+    </ScreenScroll>
+  );
+}
+
 function AllActivities() {
   const { nav, store } = useM();
   const [q, setQ] = React.useState('');
