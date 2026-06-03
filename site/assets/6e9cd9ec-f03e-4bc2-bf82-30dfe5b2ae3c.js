@@ -49,12 +49,13 @@ function MomentCard({ m }) {
   const [lb, setLb] = React.useState({ open: false, i: 0 });
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: 15 }}>
-      <div style={{ display: 'flex', gap: 11, marginBottom: 11 }}>
+      <div style={{ display: 'flex', gap: 11, marginBottom: 11, alignItems: 'flex-start' }}>
         <Avatar name={m.author} size={42} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14.5, fontWeight: 700 }}>{m.author}</div>
           <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{m.time}</div>
         </div>
+        <LikeButton liked={cur._liked} count={cur.likes} onToggle={() => actions.toggleMomentLike(m.id)} size={20} />
       </div>
       <div style={{ fontSize: 14.5, lineHeight: 1.6, marginBottom: 11 }}>{m.text}</div>
       {m.imgs && m.imgs.length > 0 && <>
@@ -66,11 +67,6 @@ function MomentCard({ m }) {
         fontWeight: 600, color: 'var(--ink-2)' }}>
         <Icon name={CATS[act.cat].icon} size={14} stroke={2.2} style={{ color: CATS[act.cat].color }} />
         来自 · {act.title}<Icon name="chevR" size={14} /></button>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 13, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
-        <LikeButton liked={cur._liked} count={cur.likes} onToggle={() => actions.toggleMomentLike(m.id)} size={20} />
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--ink-3)', fontWeight: 700, fontSize: 14 }}>
-          <Icon name="comment" size={20} stroke={2} />赞赏</span>
-      </div>
     </div>
   );
 }
