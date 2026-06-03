@@ -38,6 +38,7 @@ import {
 import {
   CURRENT_EMPLOYEE_ID,
   cancelAllEnrollments,
+  cancelEnrollment,
   countActivityEnrollments,
   enrollActivity,
   enrollOccurrences,
@@ -82,6 +83,9 @@ const ActivityDetail = () => {
   const goBack = useNavigateBack();
   const [searchParams, setSearchParams] = useSearchParams();
   const [enrollOpen, setEnrollOpen] = useState(false);
+  const [enrollSheetMode, setEnrollSheetMode] = useState<"enroll" | "cancel">(
+    "enroll",
+  );
   const [cancelOpen, setCancelOpen] = useState(false);
   const [enrolleesOpen, setEnrolleesOpen] = useState(false);
   const [enrolleesContext, setEnrolleesContext] = useState<{
@@ -354,10 +358,55 @@ const ActivityDetail = () => {
     setEnrolleesOpen(true);
   };
 
-  const openEnrollDialog = () => {
-    setPickOccIds(new Set());
+  const enrolledOccurrenceIds = useMemo(
+    () =>
+      new Set(
+        myEnrollments
+          .map((e) => e.occurrenceId)
+          .filter((id): id is string => !!id),
+      ),
+    [myEnrollments],
+  );
+
+  const cancelSingleOccurrence = () => {
+    const occurrenceId = [...enrolledOccurrenceIds][0];
+    if (
+      !occurrenceId ||
+      !cancelEnrollment(activity.id, CURRENT_EMPLOYEE_ID, occurrenceId)
+    ) {
+      toast.error("取消失败");
+      return;
+    }
+    refresh();
+    toast.success("已取消报名");
+  };
+
+  const openEnrollDialog = (mode: "enroll" | "cancel" = "enroll") => {
+    if (mode === "cancel" && enrolledOccurrenceIds.size === 1) {
+      cancelSingleOccurrence();
+      return;
+    }
+    setEnrollSheetMode(mode);
+    if (mode === "cancel") {
+      setPickOccIds(new Set(enrolledOccurrenceIds));
+    } else {
+      setPickOccIds(new Set());
+    }
     setEnrollOpen(true);
   };
+
+  const sheetPickerRows = useMemo(
+    () =>
+      enrollSheetMode === "cancel"
+        ? pickerRows.filter((r) => r.state === "enrolled")
+        : pickerRows,
+    [pickerRows, enrollSheetMode],
+  );
+
+  const cancelPickCount =
+    enrollSheetMode === "cancel"
+      ? enrolledOccurrenceIds.size - pickOccIds.size
+      : 0;
 
   const togglePick = (occurrenceId: string, checked: boolean) => {
     setPickOccIds((prev) => {
@@ -386,6 +435,41 @@ const ActivityDetail = () => {
     }
 
     if (multiOccMode) {
+      if (enrollSheetMode === "cancel") {
+        const toCancel = [...enrolledOccurrenceIds].filter(
+          (id) => !pickOccIds.has(id),
+        );
+        if (toCancel.length === 0) {
+          toast.error("请至少选择一个要取消的场次");
+          return;
+        }
+        let cancelled = 0;
+        for (const occurrenceId of toCancel) {
+          if (
+            cancelEnrollment(
+              activity.id,
+              CURRENT_EMPLOYEE_ID,
+              occurrenceId,
+            )
+          ) {
+            cancelled += 1;
+          }
+        }
+        if (cancelled === 0) {
+          toast.error("取消失败");
+          return;
+        }
+        refresh();
+        setEnrollOpen(false);
+        setPickOccIds(new Set());
+        toast.success(
+          cancelled > 1
+            ? `已取消 ${cancelled} 个场次`
+            : "已取消报名",
+        );
+        return;
+      }
+
       if (pickOccIds.size === 0) {
         toast.error("请至少选择一个场次");
         return;
@@ -497,9 +581,9 @@ const ActivityDetail = () => {
 
   const enrollButtonLabel = () => {
     if (hasEnrollment) {
+      if (multiOccMode) return "取消报名";
       if (seriesWholeMode) return "已报名系列活动";
-      if (canPickMore) return `继续报名（已报 ${myEnrollments.length} 场）`;
-      return `已报名 ${myEnrollments.length} 场`;
+      return "取消报名";
     }
     if (isTerminated) return "活动已终止";
     if (enrollBlockedReason) return "报名已截止";
@@ -673,6 +757,23 @@ const ActivityDetail = () => {
                   }}
                   onTerminated={handleTerminated}
                 />
+              ) : hasEnrollment && multiOccMode ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (enrolledOccurrenceIds.size === 1) {
+                      cancelSingleOccurrence();
+                    } else {
+                      openEnrollDialog("cancel");
+                    }
+                  }}
+                  className={cn(
+                    enrollActionBtnClass,
+                    "border border-destructive/40 text-destructive",
+                  )}
+                >
+                  取消报名
+                </button>
               ) : canCancel ? (
                 <button
                   type="button"
@@ -683,9 +784,6 @@ const ActivityDetail = () => {
                   )}
                 >
                   取消报名
-                  {myEnrollments.length > 1
-                    ? ` ${myEnrollments.length}场`
-                    : ""}
                 </button>
               ) : (
                 <button
@@ -693,7 +791,7 @@ const ActivityDetail = () => {
                   disabled={!canEnroll && !hasEnrollment}
                   onClick={() => {
                     if (multiOccMode) {
-                      openEnrollDialog();
+                      openEnrollDialog("enroll");
                     } else {
                       doEnroll();
                     }
@@ -734,37 +832,57 @@ const ActivityDetail = () => {
           >
             <div className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-border" />
             <SheetHeader className="shrink-0 space-y-1 px-4 text-left">
-              <SheetTitle className="text-base">选择场次</SheetTitle>
+              <SheetTitle className="text-base">
+                {enrollSheetMode === "cancel" ? "取消报名" : "选择场次"}
+              </SheetTitle>
               <SheetDescription className="line-clamp-2 text-sm">
-                {activity.title}
+                {enrollSheetMode === "cancel"
+                  ? "仅显示已报名场次，取消勾选即取消该场报名"
+                  : activity.title}
               </SheetDescription>
             </SheetHeader>
             <div className="mt-3 min-h-0 flex-1 overflow-hidden px-4">
               <OccurrenceMultiPicker
                 activity={activity}
-                rows={pickerRows}
+                rows={sheetPickerRows}
                 selectedIds={pickOccIds}
-                beyondCount={pickerBeyondCount}
+                beyondCount={
+                  enrollSheetMode === "cancel" ? 0 : pickerBeyondCount
+                }
+                cancelMode={enrollSheetMode === "cancel"}
                 onToggle={togglePick}
               />
             </div>
-            <div className="mt-3 flex shrink-0 gap-2 border-t border-border px-4 py-3">
+            <div className="mt-2 flex shrink-0 gap-2 border-t border-border px-4 py-2.5">
               <button
                 type="button"
                 onClick={() => setEnrollOpen(false)}
-                className="flex-1 rounded-full border border-border py-3 text-sm font-medium text-foreground active:scale-[0.99]"
+                className="flex-1 rounded-full border border-border py-2.5 text-sm font-medium text-foreground active:scale-[0.99]"
               >
                 返回
               </button>
               <button
                 type="button"
-                disabled={pickOccIds.size === 0}
+                disabled={
+                  enrollSheetMode === "cancel"
+                    ? cancelPickCount === 0
+                    : pickOccIds.size === 0
+                }
                 onClick={doEnroll}
-                className="flex-1 rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground active:scale-[0.99]"
+                className={cn(
+                  "flex-1 rounded-full py-2.5 text-sm font-medium active:scale-[0.99]",
+                  enrollSheetMode === "cancel"
+                    ? "border border-destructive/40 text-destructive disabled:text-muted-foreground"
+                    : "bg-primary text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground",
+                )}
               >
-                {pickOccIds.size > 0
-                  ? `确认报名 · ${pickOccIds.size} 场`
-                  : "请选择场次"}
+                {enrollSheetMode === "cancel"
+                  ? cancelPickCount > 0
+                    ? `确认取消 · ${cancelPickCount} 场`
+                    : "请选择要取消的场次"
+                  : pickOccIds.size > 0
+                    ? `确认报名 · ${pickOccIds.size} 场`
+                    : "请选择场次"}
               </button>
             </div>
           </SheetContent>
