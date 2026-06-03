@@ -175,7 +175,7 @@
       deadlineIso: '2026-06-18T16:00:00+08:00' },
     { id: 'a17', gid: 'g7', title: '六一亲子义卖 · 志愿者专场', type: 'once', cat: 'volunteer',
       date: '06月01日 周日', time: '09:00 - 16:00', loc: '滨江社区广场', host: '顾乔',
-      cap: 30, signed: 18, liked: false, likes: 45, joinedByMe: false, status: 'cancelled',
+      cap: 30, signed: 18, liked: false, likes: 45, joinedByMe: true, status: 'cancelled',
       desc: '<p>因天气原因活动已<b>终止</b>,已报名同事将收到通知。</p><ul><li>原定协助布置摊位、引导人流、清点物资</li><li>工会将为已报名同学生成志愿时长说明</li><li>后续将择机重新发布,敬请关注小组动态</li></ul>',
       tags: ['已终止','亲子义卖','有人报名'], ai: false },
 

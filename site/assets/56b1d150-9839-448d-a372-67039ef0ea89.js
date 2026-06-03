@@ -67,7 +67,8 @@ function ActivityCard({ a, onClick }) {
   const cur = store.acts.find(x => x.id === a.id) || a;
   const g = store.groups.find(x => x.id === a.gid);
   const moms = DB.moments.filter(m => m.aid === a.id);
-  const ended = cur.status === 'ended';
+  const cancelled = cur.status === 'cancelled';
+  const ended = cur.status === 'ended' || cancelled;
   const enrollViaDetail = needsDetailEnroll(cur.type);
   const cardTitle = a.type === 'series' && a.series
     ? (a.seriesIdx ? `${a.series} · 第${a.seriesIdx}期` : a.series)
@@ -93,7 +94,7 @@ function ActivityCard({ a, onClick }) {
           <div style={{ fontSize: 15.5, fontWeight: 800, lineHeight: 1.3, letterSpacing: -0.2, color: '#fff', paddingRight: ended ? 0 : 52 }} className="clamp1">{cardTitle}</div>
           {ended && (
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 4 }}>
-              已结束{moms.length ? ` · ${moms.length} 条精彩瞬间` : ''}
+              {cancelled ? '已终止' : `已结束${moms.length ? ` · ${moms.length} 条精彩瞬间` : ''}`}
             </div>
           )}
         </div>

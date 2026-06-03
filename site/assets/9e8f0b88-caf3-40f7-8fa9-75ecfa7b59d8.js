@@ -348,7 +348,7 @@ function MyActivities() {
   const myActs = store.acts.filter(a => a.joinedByMe);
   const filtered = tab === 'all'     ? myActs
     : tab === 'upcoming' ? myActs.filter(a => a.status === 'upcoming')
-    :                      myActs.filter(a => a.status === 'ended');
+    :                      myActs.filter(a => a.status === 'ended' || a.status === 'cancelled');
   const tabDefs = [
     { key: 'all',      label: '全部' },
     { key: 'upcoming', label: '未开始' },
