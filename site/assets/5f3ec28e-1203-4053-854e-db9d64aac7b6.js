@@ -432,6 +432,7 @@ function AdminActDetail({ aid, back }) {
     ? (isSeries && mode === 'all' ? activeEp.cap : signupBlocksDisplay.reduce((t, s) => t + s.cap, 0))
     : aIn.cap;
   const full = !signupBlocksDisplay && signed >= cap;
+  const canDelete = signed === 0;
   const title = isSeries ? a.series : aIn.title;
   const dateLabel = isSeries
     ? (episodes.length > 1
@@ -527,7 +528,9 @@ function AdminActDetail({ aid, back }) {
             {canTerminate && (
               <Btn variant="danger" icon="flag" onClick={() => { if (confirm('确认终止该活动？终止后状态不可恢复。')) { actions.terminateAct(aIn.id); } }}>终止</Btn>
             )}
-            <Btn variant="ghost" icon="trash" onClick={() => { if (confirm('确认删除该活动?')) { actions.delAct(aIn.id); setView(backTo); } }} />
+            {canDelete && (
+              <Btn variant="ghost" icon="trash" onClick={() => { if (confirm('确认删除该活动?')) { actions.delAct(aIn.id); setView(backTo); } }} />
+            )}
           </div>
         </div>
       </div>
