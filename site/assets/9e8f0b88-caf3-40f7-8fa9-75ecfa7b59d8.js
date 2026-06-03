@@ -540,6 +540,8 @@ function MobileApp() {
       case 'aichat': return <AIChat />;
       case 'notify': return <NotifyThread />;
       case 'groupchat': return <GroupChat cid={p.cid} />;
+      case 'myActivities': return <MyActivities />;
+      case 'myGroups': return <MyGroups />;
       case 'allActs': return <AllActivities />;
       case 'allGroups': return <AllGroups />;
       default: return null;
@@ -570,4 +572,4 @@ function MobileApp() {
   );
 }
 
-Object.assign(window, { MobileApp, ScreenScroll, HomeTab, MomentsFeed, PostMoment, AllActivities, AllGroups, NavBar });
+Object.assign(window, { MobileApp, ScreenScroll, HomeTab, MomentsFeed, PostMoment, AllActivities, AllGroups, MyActivities, MyGroups, NavBar });
