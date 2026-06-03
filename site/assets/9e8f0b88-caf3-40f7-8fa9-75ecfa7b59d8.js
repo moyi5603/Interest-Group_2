@@ -406,6 +406,33 @@ function AllActivities() {
   );
 }
 
+function MyGroups() {
+  const { nav, store } = useM();
+  const myGroups = store.groups.filter(g => g.joined);
+  return (
+    <ScreenScroll>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center',
+        gap: 11, padding: '14px', background: 'rgba(255,247,241,0.92)',
+        backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
+        <button onClick={nav.back} style={{ display: 'flex' }}><Icon name="back" size={24} /></button>
+        <div style={{ fontSize: 17, fontWeight: 800 }}>我的小组</div>
+      </div>
+      <div style={{ padding: '12px 14px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {myGroups.length === 0 ? (
+          <div style={{ paddingTop: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            <Empty text="还没有加入任何小组" />
+            <Btn variant="soft" size="sm" onClick={() => nav.go('allGroups')}>去探索</Btn>
+          </div>
+        ) : (
+          myGroups.map(g => (
+            <GroupCard key={g.id} g={g} wide onClick={() => nav.go('group', { gid: g.id })} />
+          ))
+        )}
+      </div>
+    </ScreenScroll>
+  );
+}
+
 function AllGroups() {
   const { nav, store } = useM();
   const [q, setQ] = React.useState('');
