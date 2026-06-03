@@ -6,8 +6,15 @@ function ScreenScroll({ children, insetBottom = 0 }) {
 
 function PostMomentPhotos({ imgs, onChange }) {
   const [lb, setLb] = React.useState({ open: false, i: 0 });
+  const MAX = 9;
   return (
     <>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)' }}>
+          照片 <span style={{ color: imgs.length >= MAX ? 'var(--brand)' : 'var(--ink-2)' }}>{imgs.length}/{MAX}</span>
+        </span>
+        {imgs.length >= MAX && <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>已达上限</span>}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
         {imgs.map((s, i) => (
           <div key={i} style={{ aspectRatio: '1', borderRadius: 14, overflow: 'hidden', position: 'relative' }}>
@@ -18,9 +25,11 @@ function PostMomentPhotos({ imgs, onChange }) {
               borderRadius: '50%', background: 'rgba(0,0,0,0.5)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={15} /></button>
           </div>
         ))}
-        <button type="button" onClick={() => onChange([...imgs, 'add' + imgs.length])} style={{ aspectRatio: '1', borderRadius: 14, border: '2px dashed var(--line-2)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, color: 'var(--ink-3)' }}>
-          <Icon name="camera" size={24} /><span style={{ fontSize: 11.5 }}>添加照片</span></button>
+        {imgs.length < MAX && (
+          <button type="button" onClick={() => onChange([...imgs, 'add' + imgs.length])} style={{ aspectRatio: '1', borderRadius: 14, border: '2px dashed var(--line-2)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, color: 'var(--ink-3)' }}>
+            <Icon name="camera" size={24} /><span style={{ fontSize: 11.5 }}>添加照片</span></button>
+        )}
       </div>
       <PhotoLightbox open={lb.open} seeds={imgs} index={lb.i} onClose={() => setLb({ open: false, i: 0 })} />
     </>

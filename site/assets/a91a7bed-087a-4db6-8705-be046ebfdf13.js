@@ -218,6 +218,11 @@
       imgs: ['sunrise-trail','sunrise-dawn'], likes: 19, time: '5月25日 06:58' },
     { id: 'm9', aid: 'a8', gid: 'g2', author: '黎川', text: '首期满员打卡!全程 9 公里没掉队的都是真·战友,系列②装备清单已收藏。',
       imgs: ['sunrise-team'], likes: 15, time: '5月25日 14:20' },
+    // ── Mock 样例：9张图（移动端 3×3 宫格 + PC 管理端多图验收）──
+    { id: 'm10', aid: 'a8', gid: 'g2', author: '叶蓁',
+      text: '整理了 9 张大合照与沿途风景,从凌晨出发到云海翻涌,每一张都舍不得删。这期活动值得一整本相册 📷',
+      imgs: ['sunrise-1','sunrise-2','sunrise-3','sunrise-4','sunrise-cloud','sunrise-group','sunrise-creek','sunrise-trail','sunrise-dawn'],
+      likes: 54, time: '5月25日 20:10' },
     { id: 'm5', aid: 'a9', gid: 'g5', author: '沈星', text: '七连胜截图来了,这波指挥我可以吹一年。',
       imgs: ['game-win'], likes: 28, time: '5月28日 23:18' },
   ];
