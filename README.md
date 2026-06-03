@@ -1,4 +1,4 @@
-# Interest-Group
+# Interest-Group_2
 
 企业 AI 工作助手前端原型，包含兴趣小组、同事查询等模块。
 
@@ -21,9 +21,18 @@ npm run dev
 node node_modules/vite/bin/vite.js
 ```
 
+## 离线原型站点
+
+`site/` 目录包含兴趣小组 C 端与 PC 管理端的离线还原原型，详见 [site/README.md](site/README.md)。
+
+```bash
+cd site && python3 -m http.server 8080
+# 或 cd site && node serve.mjs
+```
+
 ## GitHub Pages
 
-站点地址：<https://moyi5603.github.io/Interest-Group/>
+站点地址：<https://moyi5603.github.io/Interest-Group_2/>
 
 推送 `main` 分支后，GitHub Actions（`.github/workflows/deploy-pages.yml`）会自动构建并部署。首次使用前请在仓库设置中启用 Pages：
 
@@ -37,4 +46,4 @@ npm run build
 npm run preview
 ```
 
-浏览器访问预览地址时路径需包含 `/Interest-Group/`（与 `vite.config.ts` 中 `base` 一致）。
+浏览器访问预览地址时路径需包含 `/Interest-Group_2/`（与 `vite.config.ts` 中 `base` 一致）。
