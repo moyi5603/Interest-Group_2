@@ -1,49 +1,45 @@
 # Interest-Group_2
 
-企业 AI 工作助手前端原型，包含兴趣小组、同事查询等模块。
+兴趣小组产品原型：**移动员工端** + **PC 管理端**，源码与演示均在 `site/` 目录。
 
-## 本地开发
+## 本地预览
 
-```bash
-npm install
-npm run dev
-```
-
-浏览器访问：**http://127.0.0.1:5174/**（不要用 8080，该端口常被其他程序占用）
-
-兴趣小组直达：**http://127.0.0.1:5174/agents/interest-groups**
-
-若 `npm run dev` 报 `uv_interface_addresses` 错误，请用 `bash scripts/dev.sh` 或 `node node_modules/vite/bin/vite.js --host 127.0.0.1`。
-
-若 `npm` 命令不可用，可先安装 [Node.js LTS](https://nodejs.org/)，或在本项目目录执行：
-
-```bash
-node node_modules/vite/bin/vite.js
-```
-
-## 离线原型站点
-
-`site/` 目录包含兴趣小组 C 端与 PC 管理端的离线还原原型，详见 [site/README.md](site/README.md)。
+页面在浏览器内用 Babel 编译 JSX，需通过 HTTP 访问（不要 `file://` 打开）。
 
 ```bash
 cd site && python3 -m http.server 8080
-# 或 cd site && node serve.mjs
+# 或
+cd site && node serve.mjs
 ```
+
+浏览器打开 **http://127.0.0.1:8080/**，顶部可切换：
+
+- **移动员工端**：首页、全部活动、小组圈、AI 对话等
+- **PC 管理端**：工作台、小组/活动/报名/评论管理
+
+详见 [site/README.md](site/README.md)。
 
 ## GitHub Pages
 
-兴趣小组离线原型站点（`site/`）部署地址：<https://moyi5603.github.io/Interest-Group_2/>
+部署地址：<https://moyi5603.github.io/Interest-Group_2/>
 
-推送 `main` 分支后，GitHub Actions（`.github/workflows/deploy-pages.yml`）会自动将 `site/` 目录部署到 Pages。首次使用前请在仓库设置中启用 Pages：
+推送 `main` 后，`.github/workflows/deploy-pages.yml` 会将 `site/` 发布到 Pages。
 
-1. 打开 **Settings → Pages**
-2. **Build and deployment → Source** 选择 **GitHub Actions**
+## 文档
 
-本地预览 Vite 生产构建（完整 React 应用，需带仓库子路径）：
+| 文档 | 说明 |
+|------|------|
+| [docs/PRD-兴趣小组.md](docs/PRD-兴趣小组.md) | 产品需求（部分条目仍引用旧 Vite 实现，以 `site/` 为准） |
+| [docs/PRD-兴趣小组-代码逆向.md](docs/PRD-兴趣小组-代码逆向.md) | 从原型梳理的验收清单 |
+| [docs/superpowers/specs/](docs/superpowers/specs/) | 设计规格 |
 
-```bash
-npm run build
-npm run preview
-```
+## 源码位置（`site/assets/`）
 
-浏览器访问预览地址时路径需包含 `/Interest-Group_2/`（与 `vite.config.ts` 中 `base` 一致）。
+| 模块 | 主要文件 |
+|------|----------|
+| 移动员工端 | `9e8f0b88-…js`（`mobile.jsx`：首页、`AllActivities`、`AllGroups`） |
+| 活动/小组卡片 | `56b1d150-…js` |
+| Mock 数据 | `a91a7bed-…js` |
+| PC 管理端 | `191074b9-…js`、`5f3ec28e-…js` 等 |
+
+> 曾有的 Vite + `src/` React 应用已移除，避免与 `site/` 双轨维护。

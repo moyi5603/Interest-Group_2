@@ -5,10 +5,12 @@ description: EXP 兴趣小组 C 端业务规则与信息架构。在设计或实
 
 # EXP Interest Group UX
 
+**实现载体**：`site/` 离线原型（移动员工端 + PC 管理端）。改功能请编辑 `site/assets/` 下对应 JS，勿再维护已删除的 `src/`。
+
 ## 核心产品原则
 
 1. **报名 ≠ 加入**：员工可直接报名活动，不必先加入小组。
-2. **自发组先上线后报备**：创建即 `active`；C 端显示报备 Banner，不自动下架。
+2. **自发组先上线后报备**：创建即上线；C 端显示报备 Banner，不自动下架。
 3. **MVP 推荐**：规则引擎 + 可解释理由，非向量检索。
 4. **积分**：兴趣小组模块内不发积分卡（荣誉引擎负责）。
 
@@ -16,68 +18,47 @@ description: EXP 兴趣小组 C 端业务规则与信息架构。在设计或实
 
 | 身份 | 切换 | 能力 |
 |------|------|------|
-| 员工 | `RoleIdentitySwitcher` | 浏览、加入、报名、创建自发组 |
-| 管理员 | 同上 | + 小组/活动管理入口、PC 后台 |
+| 员工 | 顶栏身份切换 | 浏览、加入、报名、发帖 |
+| 管理员 | 同上 | + PC 管理端入口 |
 
-存储：`appRoleStore`（`employee` | `manager`）。
+## 主要导航（移动员工端 `nav.go`）
 
-## 主要路由
+| 路由键 | 页面 |
+|--------|------|
+| `home` | 首页（AI、本周活动、往期精彩回顾） |
+| `allActs` | **全部活动**（仅 `status === 'upcoming'`） |
+| `allGroups` | 全部小组 |
+| `group` | 小组详情 |
+| `activity` | 活动详情 |
+| `moments` | 小组圈 |
+| `aichat` | AI 对话 |
 
-| 路径 | 页面 |
-|------|------|
-| `/agents/interest-groups` | 首页（AI + 推荐 + 快捷入口） |
-| `/agents/interest-groups/discover` | 小组广场 |
-| `/agents/interest-groups/list/:section` | 近期活动 / 我的小组等 |
-| `/agents/interest-groups/my-activities` | 我的活动 |
-| `/agents/interest-groups/:groupId` | 小组详情 |
-| `/agents/interest-groups/activities/:activityId` | 活动详情 |
-| `/agents/interest-groups/new` | 创建自发组 |
-| `/agents/interest-groups/admin/:kind` | 移动端管理列表 |
-| `/admin/interest-groups/*` | PC 管理后台 |
+源码：`site/assets/9e8f0b88-caf3-40f7-8fa9-75ecfa7b59d8.js`（`AllActivities`、`HomeTab` 等）。
 
-## 活动类型（`activityKind`）
+## 活动类型
 
-| 类型 | 说明 |
-|------|------|
-| `one_off` | 单次，需 startAt/endAt |
-| `recurring` | 固定周期，rrule |
-| `series` | 系列场次，配合 `seriesEnrollmentMode` |
+| 类型 | 字段 `type` | 说明 |
+|------|-------------|------|
+| 单次 | `once` | 单场时间地点 |
+| 周期 | `recurring` | `sessions[]` 多场次 |
+| 系列 | `series` | `seriesSignupMode`: `all`（整场）/ `independent`（按场） |
 
-系列报名：`once_before_first`（整场） vs `per_occurrence`（按场）；近 3 个月场次可选。
+活动状态 Mock：`upcoming` | `ended`；列表页不展示 `ended`。
 
-## 报名截止
+## 关键 UI 组件（`site/assets/56b1d150-…js`）
 
-- 模式：`fixed` 指定时间 / `hours_before_start` 开始前 N 小时
-- **C 端展示**：实时倒计时（`useEnrollDeadlineCountdown`），非静态日期
-- 组件：`EnrollDeadlineMeta`, `EnrollDeadlineField`
+- `ActivityCard`、`GroupCard`、`RecCard`
+- `EndedActsStrip`（首页往期回顾，与「全部活动」分离）
+- `SectionHeader`、`ListScreen`
 
-## 小组类型
+## 数据 Mock
 
-- `official` 官方精品组（运营创建）
-- `spontaneous` 自发组（员工创建，可有 `reportStatus` / `reportDueAt`）
+- `site/assets/a91a7bed-087a-4db6-8705-be046ebfdf13.js`：`DB.acts`、`DB.groups`、`DB.moments`
 
-可见性：`public` | `dept_only` | `invite_only`
+## PC 管理端
 
-## 关键组件（复用优先）
-
-- 列表：`GroupCard`, `FeaturedActivityCard`, `ActivityCard`
-- 区块：`InterestSection`, `SectionHeader`
-- 推荐：`InterestAgentReply`, `InterestTopicPanel`
-- 报备：`ReportBanner`
-- 点赞：`EntityLikeButton`, `LikeCountBadge`
-- 表单：`ActivityFormFields`, `EnrollDeadlineField`
-
-## 数据与 Mock
-
-- 类型：`src/data/interestTypes.ts`
-- Store：`src/data/interestGroups.ts`
-- 推荐：`src/lib/interestRecommend.ts`
-- 当前用户：`CURRENT_EMPLOYEE_ID`
+见 `exp-admin-pc` skill；源码在 `site/assets/191074b9-…js`、`5f3ec28e-…js` 等。
 
 ## 设计前必读
 
-重大新功能：先 `brainstorming` → 更新/引用 `docs/superpowers/specs/` → 再 `writing-plans` 实现。
-
-## PC 后台边界
-
-PC 后台（`/admin/*`）使用 **Ant Design**，与 C 端 Tailwind 移动端完全分离；所有运营操作在 PC 路由内闭环，详见 `exp-admin-pc` skill。
+重大新功能：先 `brainstorming` → 更新 `docs/superpowers/specs/` → 再改 `site/`。

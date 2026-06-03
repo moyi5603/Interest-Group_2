@@ -127,10 +127,11 @@ function ActTable({ acts, onRow }) {
   const units = groupActs(acts);
 
   const StatusPill = ({ a }) => {
+    const terminated = a.status === 'cancelled';
     const full = a.signed >= a.cap;
     const ended = a.status === 'ended';
-    const label = ended ? '已结束' : full ? '已满员' : '报名中';
-    const st = signupStatusStyle(ended, full);
+    const label = terminated ? '已终止' : ended ? '已结束' : full ? '已满员' : '报名中';
+    const st = terminated ? { background: 'oklch(0.96 0.04 25)', color: 'oklch(0.55 0.2 25)' } : signupStatusStyle(ended, full);
     return <span style={{ padding: '4px 10px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, ...st }}>{label}</span>;
   };
 
@@ -416,7 +417,13 @@ function AdminActDetail({ aid, back }) {
   const sessions = (!isSeries && aIn.type === 'recurring' && aIn.sessions) ? aIn.sessions : null;
   const recentSessions = DBH.recentSessions(sessions);
   const signupBlocksDisplay = recentSessions || (isSeries ? episodes : null);
+  const terminated = isSeries
+    ? episodes.every(e => e.status === 'cancelled')
+    : aIn.status === 'cancelled';
   const ended = isSeries ? episodes.every(e => e.status === 'ended') : aIn.status === 'ended';
+  const canTerminate = !terminated && (
+    isSeries ? episodes.some(e => e.status === 'upcoming') : aIn.status === 'upcoming'
+  );
   const activeEp = isSeries ? (episodes.find(e => e.status !== 'ended') || episodes[episodes.length - 1]) : aIn;
   const signed = signupBlocksDisplay
     ? (isSeries && mode === 'all' ? activeEp.signed : signupBlocksDisplay.reduce((t, s) => t + s.signed, 0))
@@ -493,7 +500,7 @@ function AdminActDetail({ aid, back }) {
         <button onClick={() => setView(backTo)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 14 }}><Icon name="back" size={17} />返回</button>
       </div>
       <div style={{ background: 'var(--surface)', padding: '0 28px 22px', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ display: 'flex', gap: 20 }}>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div style={{ width: 200, height: 112, borderRadius: 16, overflow: 'hidden', flexShrink: 0, boxShadow: 'var(--shadow-sm)' }}>
             <Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} dim /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -504,7 +511,7 @@ function AdminActDetail({ aid, back }) {
                   {mode === 'all' ? '整场报名' : '按场次报名'}
                 </span>
               )}
-              <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, ...signupStatusStyle(ended, full) }}>{ended ? '已结束' : full ? '已满员' : '报名中'}</span>
+              <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 11.5, fontWeight: 700, ...(terminated ? { background: 'oklch(0.96 0.04 25)', color: 'oklch(0.55 0.2 25)' } : signupStatusStyle(ended, full)) }}>{terminated ? '已终止' : ended ? '已结束' : full ? '已满员' : '报名中'}</span>
             </div>
             <div style={{ fontSize: 23, fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: 8 }}>{title}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', fontSize: 13, color: 'var(--ink-2)' }}>
@@ -515,9 +522,12 @@ function AdminActDetail({ aid, back }) {
               {a.signupDeadline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'oklch(0.55 0.13 70)' }}><Icon name="clock" size={15} />报名截止 {a.signupDeadline}</span>}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexShrink: 0 }}>
-            <Btn variant="ghost" icon="edit" onClick={() => openActForm(a.gid, a)}>编辑</Btn>
-            <Btn variant="ghost" icon="trash" onClick={() => { if (confirm('确认删除该活动?')) { actions.delAct(a.id); setView(backTo); } }} />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+            {!terminated && <Btn variant="ghost" icon="edit" onClick={() => openActForm(aIn.gid, aIn)}>编辑</Btn>}
+            {canTerminate && (
+              <Btn variant="danger" icon="flag" onClick={() => { if (confirm('确认终止该活动？终止后状态不可恢复。')) { actions.terminateAct(aIn.id); } }}>终止</Btn>
+            )}
+            <Btn variant="ghost" icon="trash" onClick={() => { if (confirm('确认删除该活动?')) { actions.delAct(aIn.id); setView(backTo); } }} />
           </div>
         </div>
       </div>

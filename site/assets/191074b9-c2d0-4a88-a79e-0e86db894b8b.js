@@ -1059,6 +1059,19 @@ function AdminApp() {
       toast('活动已更新', { icon: 'check' });
     },
     delAct: (id) => { setActs(s => s.filter(x => x.id !== id)); toast('活动已删除', { icon: 'trash' }); },
+    terminateAct: (id) => {
+      setActs(s => {
+        const act = s.find(x => x.id === id);
+        if (!act) return s;
+        return s.map(x => {
+          if (x.id === id) return { ...x, status: 'cancelled' };
+          if (act.type === 'series' && act.series && x.type === 'series' && x.series === act.series && x.gid === act.gid)
+            return { ...x, status: 'cancelled' };
+          return x;
+        });
+      });
+      toast('活动已终止', { icon: 'flag' });
+    },
     approveJoin: (id) => {
       const req = joinRequests.find(r => r.id === id && r.status === 'pending');
       if (!req) return;

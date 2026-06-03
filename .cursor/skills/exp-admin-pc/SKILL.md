@@ -1,48 +1,39 @@
 ---
 name: exp-admin-pc
-description: EXP 兴趣小组 PC 管理后台规范。Ant Design 风格、路由前缀 /admin/interest-groups、所有运营交互在 PC 端完成，不跳转 C 端 mobile 页面。在修改 src/pages/admin、src/admin、AdminLayout 或 PC 后台功能时使用。
+description: EXP 兴趣小组 PC 管理后台规范。在修改 site/ 内 PC 管理端、活动/小组 CRUD、报名与评论管理时使用。
 ---
 
 # EXP PC 管理后台
 
+**载体**：`site/` 内 PC 视角（`AdminApp`），源码分散在 `site/assets/191074b9-…js`、`5f3ec28e-…js`、`06091f2a-…js` 等。已删除的 `src/admin` 不再使用。
+
 ## 独立性
 
-- **路由**：`/admin/interest-groups/*`，与 C 端 `/agents/interest-groups/*` 分离
-- **UI**：Ant Design 5（`antd` + `@ant-design/icons`），包裹于 `AdminAntdRoot`
-- **样式**：`admin-antd-overrides.css`，**不要**使用 C 端 `max-w-md` / `interestTypography`
-- **交互闭环**：列表 → 详情 → 编辑/创建均在 PC 路由内完成，**禁止** `target="_blank"` 跳转 C 端
+- **UI**：桌面表格 + 表单 + Modal，外层 macOS `ChromeWindow` 装饰
+- **交互闭环**：列表 → 详情 → 编辑均在 PC 区块内完成
+- **与 C 端分离**：不依赖 `/agents/interest-groups` Vite 路由
 
-## 路由表
+## 主要视图（`section`）
 
-| 路径 | 页面 |
-|------|------|
-| `/admin/interest-groups` | 仪表盘 |
-| `…/groups` | 小组列表 |
-| `…/groups/create` | 创建小组 |
-| `…/groups/:groupId` | 小组详情（成员/活动 Tab） |
-| `…/groups/:groupId/edit` | 编辑小组 |
-| `…/activities` | 活动列表 |
-| `…/activities/new?groupId=` | 发布活动 |
-| `…/activities/:activityId` | 活动详情（报名记录） |
-| `…/activities/:activityId/edit` | 编辑活动 |
+| section | 说明 |
+|---------|------|
+| `dashboard` | 工作台 |
+| `groups` | 小组管理 |
+| `activities` | 活动管理 |
+| `signups` | 报名记录 |
+| `comments` / `moments` | 评论与小组圈 |
 
-路径常量：`src/admin/adminPaths.ts`
+导航：`site/assets/06091f2a-16af-41e1-9ea2-396272d1f95c.js`。
 
-## 组件约定
+## 活动状态（管理列表）
 
-- 布局：`Layout` + `Sider` + `Header` + `Content`（`exp-admin-content` 白卡片）
-- 列表：`Table` + 内联 `Form` 筛选 + `Modal` 确认
-- 反馈：`App.useApp()` 的 `message` / `Modal.confirm`
-- 权限：`adminRoleStore` + `AdminGate`（需 C 端 manager 身份）
+- `published` / `upcoming` / `ended` / `cancelled`（已终止）
+- 列表展示含已结束；与 C 端「全部活动」仅 upcoming 不同
 
-## 数据写操作
+## 数据
 
-- 创建官方组：`createOfficialGroup`
-- 更新小组：`adminUpdateGroup`（不校验组长）
-- 下架：`adminDeactivateGroup`
-- 取消活动：`terminatePublishedActivity`
+与 C 端共用 `site/assets/a91a7bed-…js` 中 `DB` store（`store.acts`、`store.groups`）。
 
-## 与 C 端关系
+## 参考截图
 
-- 共用 Mock store（`interestGroups.ts`），改动同步到 C 端
-- 侧栏底部可保留「返回员工端预览」链接，仅用于演示 C 端效果
+`site/preview/02-pc.png`、`03-admin-acts.png` 等。

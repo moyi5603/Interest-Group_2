@@ -12,7 +12,7 @@
 
 ### 1.1 成功标准（MVP）
 
-- 员工可维护兴趣标签，系统能基于标签推荐未加入的小组与可报名活动；**报名活动不必先加入小组**（§7.10）。
+- 员工可浏览推荐小组与可报名活动；**报名活动不必先加入小组**（§7.10）。
 - 支持官方精品组与员工自发组；自发组**先上线后报备**。
 - 活动支持四种时间形态：单次、长期开放、固定周期、系列场次。
 - AI 提供：智能推荐、活动文案生成、自然语言对话查询（不含搭子匹配）。
@@ -29,12 +29,11 @@
 
 | 议题 | 决策 |
 |------|------|
-| 兴趣标签来源 | 自填为主 + AI 后台补全（员工确认/忽略），默认不对同事展示；**与员工管理档案同源同步**（§7.6） |
 | 小组治理 | 官方精品组 + 员工自发组；自发组**先上线后报备** |
 | 活动形态 | A 单次 + B 长期开放 + C 固定周期 + D 系列场次 |
 | AI 能力 | A 推荐 + C 文案生成 + D 对话助手（**不含 E 搭子匹配**） |
 | 积分卡 | **本期不在兴趣小组模块发放**；由 **荣誉引擎** 按荣誉/赛事等场景配置（§7.7） |
-| 可见性 | 全站仅登录员工；标签默认仅用于推荐；小组分 public / dept_only / invite_only |
+| 可见性 | 全站仅登录员工；小组分 public / dept_only / invite_only |
 
 ---
 
@@ -44,7 +43,7 @@
 
 | 角色 | 能力 |
 |------|------|
-| 普通员工 | 维护标签、浏览/加入小组、**报名活动（无需先加入小组，§7.10）**；**可创建员工自发组**（§7.4） |
+| 普通员工 | 浏览/加入小组、**报名活动（无需先加入小组，§7.10）**；**可创建员工自发组**（§7.4） |
 | 小组创建人（组长） | 自发组创建人即 owner；发布活动（§7.5）、编辑小组信息（MVP 暂不含成员管理） |
 | 官方运营 | 创建官方精品组（无客户端入口）、标记推荐位、事后审阅自发组报备 |
 
@@ -52,7 +51,7 @@
 
 ```mermaid
 flowchart LR
-  T[维护兴趣标签] --> R[查看推荐]
+  R[查看推荐]
   R --> J[加入小组]
   R --> A[浏览/报名活动]
   J -.->|可选| A
@@ -77,9 +76,6 @@ flowchart LR
 ### 4.1 实体关系
 
 ```
-Employee ──1:1── EmployeeInterestProfile
-EmployeeInterestProfile ──*:*── InterestTag
-
 InterestGroup ──*:*── InterestTag
 InterestGroup ──1:*── GroupMembership ──*── Employee
 
@@ -89,19 +85,6 @@ ActivityOccurrence ──1:*── ActivityEnrollment
 ```
 
 ### 4.2 实体字段（逻辑层）
-
-#### EmployeeInterestProfile
-
-| 字段 | 说明 |
-|------|------|
-| employeeId | 员工 ID |
-| tags | `{ tagId, source, confidence?, confirmedAt? }[]` |
-| source | `manual` \| `ai_suggested` \| `inferred` |
-| updatedAt | 最后更新时间 |
-
-- `manual`：员工主动选择，最高优先级。
-- `ai_suggested`：AI 建议，需用户确认后才视为 manual。
-- `inferred`：仅用于推荐，不在 UI 对他人展示。
 
 #### InterestTag
 
@@ -219,19 +202,15 @@ ActivityOccurrence ──1:*── ActivityEnrollment
 
 #### 5.1.3 打分与排序
 
-员工兴趣标签来源：**「我的兴趣」/ 员工档案**中的 `tagIds`（`getProfileTagIds`）。
-
 对每个候选小组计算 `score`（越高越靠前）：
 
 | 因子 | 分值（原型） | 说明 |
 |------|-------------|------|
-| 标签匹配 | 每个重合标签 **+10** | `employeeTags ∩ group.tagIds` |
-| 官方精品组 | **+3** | `group.type === official` |
-| 部门小组 + 同部门 | **+5** | `visibility === dept_only` 且员工 `deptId` 在 `group.deptIds` 内 |
+| 成员数 | 基准分 = `memberCount` | 人气越高越靠前 |
+| 官方精品组 | **+100** | `group.type === official` |
+| 部门小组 + 同部门 | **+50** | `visibility === dept_only` 且员工 `deptId` 在 `group.deptIds` 内 |
 
-按 `score` 降序排列后取 Top N。标签重合越多，排序越靠前。
-
-**无兴趣标签时的降级**：不跑标签打分，改为在可见且可推荐的候选中，筛选 **官方精品组**，按**成员数**降序，作为「热门小组」推荐，并引导员工完善标签。
+按 `score` 降序排列后取 Top N。主理由文案为「热门小组」，命中部门组时前置「同部门同事也在参与」。
 
 #### 5.1.4 推荐理由（可解释文案）
 
@@ -239,9 +218,8 @@ ActivityOccurrence ──1:*── ActivityEnrollment
 
 | 触发条件 | 理由示例 |
 |----------|----------|
-| 标签重合 ≥ 1 | `匹配你的兴趣：跑步、摄影` |
+| 默认 | `热门小组` |
 | 部门组且同部门 | `同部门同事也在参与` |
-| 无标签降级 | `热门小组` |
 
 排序确定后，对每条结果**追加社交向理由**（不改变 score，仅丰富文案池；卡片默认展示第一条）：
 
@@ -250,7 +228,7 @@ ActivityOccurrence ──1:*── ActivityEnrollment
 | 成员数 ≥ 15 | `28 位同事已加入` |
 | 该小组有未开始且未过期的场次 | `近期有 2 场活动可报名` |
 
-产品原则：**先解释「为什么推荐给你」**（标签/部门），再补充「为什么值得加入」（人气/活动）。
+产品原则：**先解释「为什么推荐给你」**（部门等），再补充「为什么值得加入」（人气/活动）。
 
 #### 5.1.5 「换一批」
 
@@ -264,13 +242,13 @@ ActivityOccurrence ──1:*── ActivityEnrollment
 
 ```
 score(group) =
-  10 × |employeeTags ∩ group.tagIds|
-  + 5  if dept_only && sameDept
-  + 3  if type == official
+  memberCount
+  + 100 if type == official
+  + 50  if dept_only && sameDept
 
 候选排除：已加入 | 本人创建 | 不可见 | 非 active
 
-理由 = 标签匹配文案 + 部门文案 + [成员数文案] + [近期活动文案]
+理由 = 热门小组 + [部门文案] + [成员数文案] + [近期活动文案]
 ```
 
 返回 Top N + `reasons[]`；MVP 卡片展示 `reasons[0]`。
@@ -278,14 +256,8 @@ score(group) =
 ### 5.2 活动推荐
 
 - 已加入小组的即将开始 Occurrence（按 startAt 升序）。
-- 未加入但小组标签匹配且活动 `public` 可见的 Occurrence。
+- 未加入但活动 `public` 可见的 Occurrence（按小组可见性过滤）。
 - 长期开放活动单独区块展示。
-
-### 5.3 AI 标签补全（非独立 AI 功能）
-
-- 触发：标签为空或少于 2 个时，在「我的兴趣」页展示建议 chips。
-- 数据来源（原型 mock）：部门、已加入小组、skills 字段映射。
-- 用户点击「添加」→ `source` 变为 `manual`；点击「忽略」→ 不再提示该 tag。
 
 ---
 
@@ -311,34 +283,6 @@ score(group) =
 ---
 
 ## 7. 权限与可见性
-
-### 7.1 标签
-
-- 仅本人与推荐服务可读写完整标签列表。
-- 他人查看员工主页时：**不展示**兴趣标签，仅展示已加入的小组名称（与现 `EmployeeProfile` 一致）。
-
-### 7.6 兴趣标签同步（我的兴趣 ↔ 员工管理）
-
-**决策（2026-05-27，MVP）**：同一员工的兴趣标签在 **「我的兴趣」**（`/profile/interests`）与 **员工管理 / 员工档案**（`EmployeeFull.interestTagIds`）之间**保持双向同步**，共用一套读写 API。
-
-| 入口 | 路径 / 字段 | 说明 |
-|------|-------------|------|
-| 我的兴趣 | `/profile/interests`、`interestProfileStore` | 员工自助维护标签 |
-| 员工管理 / 档案 | `colleagueData` → `EmployeeFull.interestTagIds` | HR 或档案侧维护（原型为 mock 字段） |
-
-**同步规则**：
-
-| 规则 | 说明 |
-|------|------|
-| 单一事实来源 | `getProfileTags(employeeId)` / `setProfileTags(tags, employeeId)` |
-| 读取顺序 | `localStorage`（`exp-interest-profile-{id}`）→ 员工档案 `interestTagIds` → 启发式默认 |
-| 写入 | 同时更新 `localStorage` 与 `setEmployeeInterestTagIds()` |
-| 可见性 | 同步不改变 §7.1：他人主页仍不展示标签，仅内部推荐使用 |
-| 二期 | 对接 HR/员工主数据 API 后，由服务端保证一致性，前端去掉双写 |
-
-**当前原型实现**：`interestProfileStore.ts` + `colleagueData.get/setEmployeeInterestTagIds`。
-
-**记录日期**：2026-05-27
 
 ### 7.2 小组
 
@@ -459,7 +403,6 @@ score(group) =
 | 创建小组 | `/agents/interest-groups/new` |
 | 活动详情 | `/agents/interest-groups/activities/:activityId` |
 | 创建活动 | `/agents/interest-groups/:groupId/activities/new` |
-| 我的兴趣标签 | `/profile/interests`（或 `EmployeeProfile` 内嵌入口） |
 
 **入口**：
 
@@ -474,7 +417,6 @@ score(group) =
 | 模块 | 说明 |
 |------|------|
 | InterestGroupHome | 推荐小组、我的小组（随机 2 个）、近期活动；见 §9.1 |
-| InterestTagEditor | 标签选择 + AI 建议 chips |
 | GroupDetail | 介绍、成员数、活动 Tab、加入按钮；**仅创建人**可见「发布活动」 |
 | GroupCreateForm | 任意登录员工可建自发组；标签（含自定义输入）、报备提示条；可见范围 MVP 已去掉 |
 | ActivityList | 按 kind 筛选 |
@@ -506,8 +448,7 @@ score(group) =
 ## 10. 数据与存储（原型）
 
 - 新建 `src/data/interestGroups.ts`：小组池、活动、Occurrence、标签词典。
-- 新建 `src/data/interestProfileStore.ts`：按 `employeeId` 读写标签；`localStorage` 与员工档案 `interestTagIds` 双写同步（§7.6）。
-- 扩展 `EmployeeFull`：`interestTagIds` 与「我的兴趣」同源；他人视角仍不展示标签；`interestGroups` 保留为已加入列表。
+- 扩展 `EmployeeFull`：`interestGroups` 为已加入列表（员工个人兴趣标签维护页本期不做）。
 - 推荐与对话逻辑放 `src/lib/interestRecommend.ts`、`src/lib/interestAgent.ts`。
 
 ---
@@ -532,20 +473,17 @@ MVP 不实现运营后台，仅员工侧 Banner + 状态字段。
 | 活动已满 | 报名按钮禁用，提示已满 |
 | 周期场次已取消 | Occurrence `cancelled`，列表灰显 |
 | 加入 invite_only 无邀请 | 提示联系组长 |
-| 标签为空 | 推荐降级为「热门官方组」，并引导完善标签 |
 | AI 文案生成失败 | Toast + 可手动输入 |
 
 ---
 
 ## 13. 测试要点（实现阶段）
 
-- [ ] 标签增删改后推荐列表变化符合打分逻辑。
 - [ ] 四种 activityKind 创建表单字段互斥正确。
 - [ ] 周期活动生成至少 4 条未来 Occurrence。
 - [ ] 自发组创建后立即可搜，报备 Banner 显示/消失正确。
 - [ ] 对话 mock 覆盖 recommend_group、list_activity。
 - [ ] dept_only 小组对非同部门员工不可见。
-- [ ] 他人主页不展示兴趣标签。
 
 ---
 
@@ -595,7 +533,7 @@ MVP 不在兴趣小组模块内实现 IM；后续可对接 EXP **IM 沟通引擎
 | 2026-05-27 | §7.5 定稿：仅小组创建人可发布活动；原型增加 `isGroupOwner` 与页面校验 |
 | 2026-05-27 | §7.4 定稿：登录员工可建自发组；官方组仅运营、无客户端创建入口 |
 | 2026-05-27 | 本期 UI 不展示官方/自发标签；数据层 `type` 字段保留供二期与报备逻辑使用 |
-| 2026-05-27 | §7.6 定稿：我的兴趣标签与员工档案 `interestTagIds` 双向同步 |
+| 2026-06-03 | 移除员工「我的兴趣」页、`interestProfileStore` 与 §7.6 标签同步；推荐改为成员数 + 官方组 + 部门组 |
 | 2026-05-27 | §9.1：首页「我的小组」每次进入随机展示 2 个已加入小组 |
 | 2026-05-27 | §9.1：近期活动按活动维度去重，过滤已结束场次，周期/系列不重复卡片 |
 | 2026-05-27 | §7.7：本期不做兴趣小组内积分卡发放；积分由荣誉引擎按荣誉/赛事等场景发放（如篮球赛冠军队每人 100 分） |
