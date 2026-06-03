@@ -394,15 +394,71 @@ function MyActivities() {
 function AllActivities() {
   const { nav, store } = useM();
   const [q, setQ] = React.useState('');
-  const list = filterActs(store.acts.filter(isOpenActivity), store.groups, q);
+  const [dateFilter, setDateFilter] = React.useState('all');
+  
+  const filterByDate = (acts) => {
+    if (dateFilter === 'all') return acts;
+    
+    // 简单的本周/本月判断（原型中 today 假定为 06月03日 周一）
+    const today = new Date(2026, 5, 3); // 06月03日
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay() + 1); // 本周一
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6); // 本周日
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    return acts.filter(a => {
+      const match = a.date.match(/(\d+)月(\d+)日/);
+      if (!match) return false;
+      const month = parseInt(match[1]);
+      const day = parseInt(match[2]);
+      const aDate = new Date(2026, month - 1, day);
+      
+      if (dateFilter === 'week') {
+        return aDate >= weekStart && aDate <= weekEnd;
+      } else if (dateFilter === 'month') {
+        return aDate >= monthStart && aDate <= monthEnd;
+      }
+      return true;
+    });
+  };
+  
+  const allActs = filterActs(filterByDate(store.acts.filter(isOpenActivity)), store.groups, q);
+  const list = q.trim() ? allActs : filterByDate(store.acts.filter(isOpenActivity));
+  
+  const dateFilterOptions = [
+    { key: 'all', label: '全部' },
+    { key: 'week', label: '本周' },
+    { key: 'month', label: '本月' },
+  ];
+  
   return (
-    <ListScreen title="全部活动" onBack={nav.back} search={q} onSearchChange={setQ} searchPlaceholder="搜索活动、小组">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+    <ScreenScroll>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(255,247,241,0.92)',
+        backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 14px 10px' }}>
+          <button onClick={nav.back} style={{ display: 'flex' }}><Icon name="back" size={24} /></button>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>全部活动</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, padding: '0 14px 10px' }}>
+          {dateFilterOptions.map(({ key, label }) => (
+            <button key={key} onClick={() => setDateFilter(key)} style={{
+              padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 700, border: 'none',
+              cursor: 'pointer',
+              background: dateFilter === key ? 'var(--brand)' : 'var(--surface-2)',
+              color:      dateFilter === key ? '#fff'         : 'var(--ink-3)',
+            }}>{label}</button>
+          ))}
+        </div>
+        <ListSearchBar value={q} onChange={setQ} placeholder="搜索活动、小组" />
+      </div>
+      <div style={{ padding: '16px 14px 40px', display: 'flex', flexDirection: 'column', gap: 15 }}>
         {list.length
           ? list.map(a => <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />)
           : <Empty text={q.trim() ? '没有匹配的活动' : '暂无活动'} />}
       </div>
-    </ListScreen>
+    </ScreenScroll>
   );
 }
 
