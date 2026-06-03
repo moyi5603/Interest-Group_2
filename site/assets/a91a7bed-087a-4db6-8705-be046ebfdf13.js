@@ -26,7 +26,7 @@
     { id: 'g3', name: '深夜读书会', cat: 'learning', lead: '周棠', members: 64, acts: 31,
       join: 'free', joined: false, tags: ['双周一次','主题共读','不打卡不焦虑'], area: '总部 · 三楼书吧',
       intro: '一本书、一杯茶、一群不催进度的人。每期共读一本,线下围读 + 自由发言,读得慢也没关系。' },
-    { id: 'g4', name: '周五观影会', cat: 'movie', lead: '许墨', members: 73, acts: 12,
+    { id: 'g4', name: '周五观影会', cat: 'movie', lead: '许墨', members: 73, acts: 13,
       join: 'free', joined: false, tags: ['每周放映','影乐分享','偶尔开麦'], area: '总部 · 多功能厅',
       intro: '下班留下来,一起看场电影、聊聊配乐。从经典老片到话题新作,也有同事的现场弹唱开放麦。' },
     { id: 'g5', name: '桌游电竞局', cat: 'game', lead: '沈星', members: 142, acts: 40,
@@ -35,7 +35,7 @@
     { id: 'g6', name: '职场成长营', cat: 'career', lead: '何夕', members: 58, acts: 16,
       join: 'approve', joined: false, tags: ['双周一次','经验分享','简历互助'], area: '总部 · 学习室',
       intro: '把同事的经验变成你的捷径。每期一个主题:汇报表达、向上沟通、项目复盘,老带新少走弯路。' },
-    { id: 'g7', name: '暖心公益志愿队', cat: 'volunteer', lead: '顾乔', members: 110, acts: 28,
+    { id: 'g7', name: '暖心公益志愿队', cat: 'volunteer', lead: '顾乔', members: 110, acts: 29,
       join: 'free', joined: false, tags: ['月度活动','工会支持','人人可参与'], area: '城市 · 各公益点',
       intro: '用业余时间做点暖心的事。社区助老、山区捐书、公益义卖,工会提供保障,报名即可参与。' },
     { id: 'g8', name: '羽毛球俱乐部', cat: 'sport', lead: '叶蓁', members: 87, acts: 35,
@@ -165,6 +165,19 @@
       desc: '<p>本期共读阿德勒心理学经典《被讨厌的勇气》。</p><ul><li>读到第几章都能来,现场围读 + 自由发言</li><li>提供茶点,不打卡不焦虑</li></ul>',
       tags: ['主题共读','提供茶点'], ai: false,
       deadlineIso: '2026-06-12T17:00:00+08:00' },
+
+    // ── Mock 样例：无人报名 / 已终止 ──
+    { id: 'a16', gid: 'g4', title: '初夏滨江摄影 Walk · 试点场', type: 'once', cat: 'movie',
+      date: '06月18日 周三', time: '17:30 - 19:00', loc: '滨江步道 · 南门集合', host: '许墨',
+      cap: 15, signed: 0, liked: false, likes: 0, joinedByMe: false, status: 'upcoming',
+      desc: '<p>沿滨江步道拍摄日落与街景,<b>零基础可报名</b>,现场提供构图小贴士。</p><ul><li>自备手机或相机即可,无需专业设备</li><li>活动结束后可选交片参与内部评选</li><li><b>当前暂无人报名</b>,管理端可删除或继续招募</li></ul>',
+      tags: ['摄影','试点场','无人报名'], ai: false,
+      deadlineIso: '2026-06-18T16:00:00+08:00' },
+    { id: 'a17', gid: 'g7', title: '六一亲子义卖 · 志愿者专场', type: 'once', cat: 'volunteer',
+      date: '06月01日 周日', time: '09:00 - 16:00', loc: '滨江社区广场', host: '顾乔',
+      cap: 30, signed: 18, liked: false, likes: 45, joinedByMe: false, status: 'cancelled',
+      desc: '<p>因天气原因活动已<b>终止</b>,已报名同事将收到通知。</p><ul><li>原定协助布置摊位、引导人流、清点物资</li><li>工会将为已报名同学生成志愿时长说明</li><li>后续将择机重新发布,敬请关注小组动态</li></ul>',
+      tags: ['已终止','亲子义卖','有人报名'], ai: false },
 
     // ── 已结束（单次历史场次,保留精彩瞬间关联）──
     { id: 'a7', gid: 'g1', title: '滨江 8K 夜跑 · 第 23 期', type: 'once', cat: 'sport',
