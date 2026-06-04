@@ -3572,14 +3572,15 @@ function StatusBar() {
   );
 }
 
-function Phone() {
+function Phone({ app = 'clubs' }) {
+  const AppBody = app === 'im' ? ImMobileApp : app === 'appmy' ? AppMineApp : MobileApp;
   return (
     <div style={{ width: 408, height: 858, borderRadius: 56, background: 'linear-gradient(145deg,#2a2a2e,#454549)',
       padding: 13, boxShadow: '0 40px 90px rgba(60,30,15,0.32), 0 0 0 2px rgba(255,255,255,0.06) inset', flexShrink: 0 }}>
       <div style={{ width: '100%', height: '100%', borderRadius: 44, overflow: 'hidden', position: 'relative', background: 'var(--bg)' }}>
         <StatusBar />
         <div style={{ position: 'absolute', top: 46, left: 0, right: 0, bottom: 0 }}>
-          <MobileApp />
+          <AppBody />
         </div>
       </div>
     </div>
@@ -3596,10 +3597,17 @@ function PC() {
 
 function Showcase() {
   const [view, setView] = useState('mobile');
+  const viewHint = {
+    mobile: '兴趣小组 · 员工视角 · 林浅',
+    pc: '管理控制台 · HR · 陈航',
+    im: 'IM消息 · 员工视角 · 林浅',
+    appmy: 'App · 我的 · 林浅',
+  };
+  const isPhone = view !== 'pc';
   return (
     <div className="stage-bg" style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 26px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 26px', flexShrink: 0, gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--brand)', display: 'flex', alignItems: 'center',
             justifyContent: 'center', boxShadow: 'var(--shadow-brand)', flexShrink: 0 }}><Icon name="users" size={22} stroke={2.4} style={{ color: '#fff' }} /></div>
@@ -3609,17 +3617,21 @@ function Showcase() {
             <div style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600, whiteSpace: 'nowrap' }}>让兴趣把同事变成伙伴</div>
           </div>
         </div>
-        <div className="seg-host" style={{ borderRadius: 14, padding: 4, boxShadow: 'var(--shadow-sm)' }}>
+        <div className="seg-host" style={{ borderRadius: 14, padding: 4, boxShadow: 'var(--shadow-sm)', flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0, overflowX: 'auto' }}>
           <Segmented value={view} onChange={setView} options={[
-            { value: 'mobile', label: '移动员工端', icon: 'chat' }, { value: 'pc', label: 'PC 管理端', icon: 'grid' }]} />
+            { value: 'mobile', label: '移动员工端', icon: 'home' },
+            { value: 'pc', label: 'PC 管理端', icon: 'grid' },
+            { value: 'im', label: 'IM消息', icon: 'chat' },
+            { value: 'appmy', label: 'App-我的', icon: 'user' },
+          ]} />
         </div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600, width: 200, textAlign: 'right' }}>
-          {view === 'mobile' ? '员工视角 · 林浅' : 'HR / 管理者视角 · 陈航'}
+        <div style={{ fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600, width: 220, textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          {viewHint[view]}
         </div>
       </div>
 
-      {view === 'mobile'
-        ? <FitStage w={408} h={858} max={1.02}><Phone /></FitStage>
+      {isPhone
+        ? <FitStage w={408} h={858} max={1.02}><Phone app={view === 'im' ? 'im' : view === 'appmy' ? 'appmy' : 'clubs'} /></FitStage>
         : <FitStage w={1280} h={800} max={1}><PC /></FitStage>}
     </div>
   );

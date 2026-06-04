@@ -3,7 +3,7 @@
 function ConvoList() {
   const { nav } = useM();
   return (
-    <div style={{ padding: '0 14px 96px' }}>
+    <div style={{ padding: '0 14px 24px' }}>
       {/* AI quick entry banner */}
       <div onClick={() => nav.go('aichat')} style={{ margin: '4px 0 14px', borderRadius: 'var(--r-lg)', padding: 2,
         background: 'var(--ai-grad)', cursor: 'pointer' }}>

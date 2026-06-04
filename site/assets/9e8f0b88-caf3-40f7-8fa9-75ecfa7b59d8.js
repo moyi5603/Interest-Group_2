@@ -85,7 +85,7 @@ function HomeTab() {
   ];
 
   return (
-    <ScreenScroll insetBottom={74}>
+    <ScreenScroll insetBottom={16}>
       {/* AI natural language entry */}
       <div style={{ padding: '18px 16px 4px' }}>
         <div onClick={() => nav.go('aichat')} style={{ borderRadius: 18, padding: 2, background: 'var(--ai-grad)', cursor: 'pointer', boxShadow: '0 10px 24px oklch(0.66 0.21 4 / 0.22)' }}>
@@ -544,45 +544,14 @@ function AllGroups() {
   );
 }
 
-// ---------- nav bar ----------
-function NavBar({ tab, setTab, unread }) {
-  const items = [['home', '主页', 'home'], ['im', '沟通', 'chat']];
-  return (
-    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 74, background: 'rgba(255,255,255,0.96)',
-      backdropFilter: 'blur(12px)', borderTop: '1px solid var(--line)', display: 'flex', paddingBottom: 8, zIndex: 40 }}>
-      {items.map(([k, l, ic]) => {
-        const on = tab === k;
-        return (
-          <button key={k} onClick={() => setTab(k)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 4, color: on ? 'var(--brand)' : 'var(--ink-3)', position: 'relative', paddingTop: 6 }}>
-            <div style={{ position: 'relative' }}>
-              <Icon name={ic} size={25} fill={on} stroke={on ? 0 : 2.1} />
-              {k === 'im' && unread > 0 && <span style={{ position: 'absolute', top: -4, right: -8, minWidth: 17, height: 17, padding: '0 4px',
-                borderRadius: 99, background: 'var(--brand)', color: '#fff', fontSize: 10.5, fontWeight: 800, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px #fff' }}>{unread}</span>}
-            </div>
-            <span style={{ fontSize: 11, fontWeight: on ? 700 : 600 }}>{l}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ---------- app shell ----------
-function MobileApp() {
+// ---------- shared mobile store / nav ----------
+function useInterestMobileState() {
   const [acts, setActs] = React.useState(() => DB.acts.map(a => ({ ...a })));
   const [groups, setGroups] = React.useState(() => DB.groups.map(g => ({ ...g })));
   const [moments, setMoments] = React.useState(() => DB.moments.map(m => ({ ...m, _liked: false })));
-  const [tab, setTab] = React.useState('home');
   const [stack, setStack] = React.useState([]);
-
   const nav = {
-    go: (name, params = {}) => {
-      if (name === 'im') { setTab('im'); setStack([]); return; }
-      if (name === 'home') { setTab('home'); setStack([]); return; }
-      setStack(s => [...s, { name, params }]);
-    },
+    go: (name, params = {}) => setStack(s => [...s, { name, params }]),
     back: () => setStack(s => s.slice(0, -1)),
   };
   const actions = {
@@ -622,50 +591,120 @@ function MobileApp() {
       setMoments(s => [{ id: 'mx' + Date.now(), gid, aid, author: DB.ME, text, imgs, likes: 0, _liked: false, time: '刚刚' }, ...s]);
     },
   };
+  return { store: { acts, groups, moments }, actions, nav, stack };
+}
 
-  const store = { acts, groups, moments };
+function renderMobileScreen(top) {
+  if (!top) return null;
+  const p = top.params;
+  switch (top.name) {
+    case 'activity': return <ActivityDetail aid={p.aid} pickEnroll={!!p.pickEnroll} />;
+    case 'group': return <GroupDetail gid={p.gid} />;
+    case 'moments': return <MomentsFeed gid={p.gid} />;
+    case 'post': return <PostMoment gid={p.gid} aid={p.aid} />;
+    case 'aichat': return <AIChat />;
+    case 'notify': return <NotifyThread />;
+    case 'groupchat': return <GroupChat cid={p.cid} />;
+    case 'myActivities': return <MyActivities />;
+    case 'myGroups': return <MyGroups />;
+    case 'allActs': return <AllActivities />;
+    case 'allGroups': return <AllGroups />;
+    default: return null;
+  }
+}
+
+function MobileStackOverlay({ stack, children }) {
   const top = stack[stack.length - 1];
-  const renderTop = () => {
-    if (!top) return null;
-    const p = top.params;
-    switch (top.name) {
-      case 'activity': return <ActivityDetail aid={p.aid} pickEnroll={!!p.pickEnroll} />;
-      case 'group': return <GroupDetail gid={p.gid} />;
-      case 'moments': return <MomentsFeed gid={p.gid} />;
-      case 'post': return <PostMoment gid={p.gid} aid={p.aid} />;
-      case 'aichat': return <AIChat />;
-      case 'notify': return <NotifyThread />;
-      case 'groupchat': return <GroupChat cid={p.cid} />;
-      case 'myActivities': return <MyActivities />;
-      case 'myGroups': return <MyGroups />;
-      case 'allActs': return <AllActivities />;
-      case 'allGroups': return <AllGroups />;
-      default: return null;
-    }
-  };
-  const unread = DB.convos.reduce((s, c) => s + c.unread, 0);
-
   return (
-    <MobileCtx.Provider value={{ store, actions, nav }}>
-      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        {/* roots */}
-        <div style={{ position: 'absolute', inset: 0 }}>
-          {tab === 'home' ? <HomeTab /> :
-            <div style={{ position: 'absolute', inset: 0 }}>
-              <div style={{ padding: '18px 16px 10px' }}>
-                <div style={{ fontSize: 23, fontWeight: 800, fontFamily: 'var(--font-display)' }}>沟通引擎</div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>消息 · 通知 · 小趣助手</div>
-              </div>
-              <div style={{ position: 'absolute', top: 76, left: 0, right: 0, bottom: 74, overflowY: 'auto' }} className="noscroll"><ConvoList /></div>
-            </div>}
-        </div>
-        {!top && <NavBar tab={tab} setTab={(t) => { setStack([]); setTab(t); }} unread={unread} />}
-        {/* pushed screen */}
-        {top && <div key={stack.length} style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'var(--bg)', animation: 'slideIn .28s cubic-bezier(.2,.8,.2,1)' }}>{renderTop()}</div>}
-        <ToastHost />
-      </div>
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
+      {top && <div key={stack.length} style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'var(--bg)',
+        animation: 'slideIn .28s cubic-bezier(.2,.8,.2,1)' }}>{renderMobileScreen(top)}</div>}
+      <ToastHost />
+    </div>
+  );
+}
+
+// ---------- 兴趣小组（仅首页，无底部沟通 Tab）----------
+function MobileApp() {
+  const shell = useInterestMobileState();
+  return (
+    <MobileCtx.Provider value={shell}>
+      <MobileStackOverlay stack={shell.stack}><HomeTab /></MobileStackOverlay>
     </MobileCtx.Provider>
   );
 }
 
-Object.assign(window, { MobileApp, ScreenScroll, HomeTab, MomentsFeed, PostMoment, AllActivities, AllGroups, MyActivities, MyGroups, NavBar });
+// ---------- IM 消息（原「沟通」）----------
+function ImMobileApp() {
+  const shell = useInterestMobileState();
+  const unread = DB.convos.reduce((s, c) => s + c.unread, 0);
+  return (
+    <MobileCtx.Provider value={shell}>
+      <MobileStackOverlay stack={shell.stack}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '18px 16px 10px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 23, fontWeight: 800, fontFamily: 'var(--font-display)' }}>IM消息</div>
+              {unread > 0 && <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 99, background: 'var(--brand)',
+                color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unread}</span>}
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>消息 · 通知 · 小趣助手</div>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto' }} className="noscroll"><ConvoList /></div>
+        </div>
+      </MobileStackOverlay>
+    </MobileCtx.Provider>
+  );
+}
+
+// ---------- App · 我的 ----------
+function AppMineApp() {
+  const shell = useInterestMobileState();
+  const { store, nav } = shell;
+  const actCount = store.acts.filter(a => a.joinedByMe).length;
+  const groupCount = store.groups.filter(g => g.joined).length;
+  const rows = [
+    { key: 'myActivities', label: '我的活动', sub: actCount ? `${actCount} 场进行中或已报名` : '暂无报名', icon: 'ticket', onClick: () => nav.go('myActivities') },
+    { key: 'myGroups', label: '我的小组', sub: groupCount ? `已加入 ${groupCount} 个小组` : '去探索小组', icon: 'star', onClick: () => nav.go('myGroups') },
+    { key: 'moments', label: '小组圈', sub: '精彩瞬间与动态', icon: 'image', onClick: () => nav.go('moments', {}) },
+    { key: 'aichat', label: '小趣助手', sub: 'AI 帮你找活动、答疑', icon: 'sparkles', onClick: () => nav.go('aichat') },
+  ];
+  return (
+    <MobileCtx.Provider value={shell}>
+      <MobileStackOverlay stack={shell.stack}>
+        <ScreenScroll insetBottom={16}>
+          <div style={{ padding: '18px 16px 20px' }}>
+            <div style={{ fontSize: 23, fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: 18 }}>App · 我的</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', borderRadius: 'var(--r-lg)',
+              background: 'var(--surface)', boxShadow: 'var(--shadow-sm)', marginBottom: 20 }}>
+              <Avatar name={DB.ME} size={56} />
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{DB.ME}</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 4 }}>员工 · 滨江园区</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {rows.map(r => (
+                <button key={r.key} type="button" onClick={r.onClick} style={{ display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 16px', borderRadius: 16, background: 'var(--surface)', boxShadow: 'var(--shadow-sm)', textAlign: 'left' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: 'var(--bg-2)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center' }}>
+                    {r.icon === 'sparkles' ? <Sparkles size={22} color="var(--ai)" /> : <Icon name={r.icon} size={22} style={{ color: 'var(--brand)' }} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700 }}>{r.label}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>{r.sub}</div>
+                  </div>
+                  <Icon name="chevR" size={18} style={{ color: 'var(--ink-3)' }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </ScreenScroll>
+      </MobileStackOverlay>
+    </MobileCtx.Provider>
+  );
+}
+
+Object.assign(window, { MobileApp, ImMobileApp, AppMineApp, ScreenScroll, HomeTab, MomentsFeed, PostMoment, AllActivities, AllGroups, MyActivities, MyGroups });
