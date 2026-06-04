@@ -57,7 +57,10 @@ function HomeMomentStripItem({ m, onOpenFeed }) {
 function HomeTab() {
   const { nav, store } = useM();
   const upcoming = store.acts.filter(a => a.status === 'upcoming');
-  const hotGroups = store.groups.filter(g => g.hot).concat(store.groups.filter(g => !g.hot));
+  // 热门小组：运营 hot 置顶，其余按成员数、累计活动数降序，首页横滑最多 5 条
+  const hotGroups = [...store.groups]
+    .sort((a, b) => (b.hot ? 1 : 0) - (a.hot ? 1 : 0) || (b.members - a.members) || (b.acts - a.acts))
+    .slice(0, 5);
   const recentMoments = DB.moments.slice(0, 4);
 
   const recs = [
@@ -166,7 +169,7 @@ function HomeTab() {
 
       {/* moments strip */}
       <div style={{ padding: '20px 0 4px' }}>
-        <div style={{ padding: '0 16px' }}><SectionHeader title="热门小组" action="全部" onAction={() => nav.go('allGroups')} accent="var(--c-music)" /></div>
+        <div style={{ padding: '0 16px' }}><SectionHeader title="热门小组" sub="成员规模 TOP 5 · 运营可置顶" action="全部" onAction={() => nav.go('allGroups')} accent="var(--c-music)" /></div>
         <div className="noscroll" style={{ display: 'flex', gap: 13, overflowX: 'auto', padding: '0 16px 4px', scrollSnapType: 'x mandatory' }}>
           {hotGroups.map(g => <GroupCard key={g.id} g={g} onClick={() => nav.go('group', { gid: g.id })} />)}
         </div>
