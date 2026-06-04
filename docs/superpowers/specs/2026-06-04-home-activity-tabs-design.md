@@ -37,7 +37,7 @@
 
 ### 推荐理由保留
 
-纵向列表不再使用横滑 `RecCard`。推荐 Tab 中，`ActivityCard` 通过 `recReason` 将 AI 理由与时间合并为同一行（`Sparkles` + 理由 · 日期 · 时间），不占卡片外独立行。最新/热门 Tab 不显示理由。
+纵向列表不再使用横滑 `RecCard`。推荐 Tab 中，`ActivityCard` 通过 `recReason` 将 AI 理由叠加在封面图左下角（标题上方）的半透明小药丸（`Sparkles` + 理由，`clamp1`），不增加卡片高度、不影响正文日期/地点/报名进度。最新/热门 Tab 不传 `recReason`，无理由。
 
 ### 空态
 

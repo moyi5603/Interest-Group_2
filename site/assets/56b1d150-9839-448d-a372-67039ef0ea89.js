@@ -90,6 +90,13 @@ function ActivityCard({ a, onClick, recReason }) {
           </div>
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 28%, rgba(0,0,0,0.72))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '12px 15px 13px' }}>
+          {!ended && recReason && (
+            <div style={{ alignSelf: 'flex-start', maxWidth: '100%', display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '3px 9px', borderRadius: 99, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', marginBottom: 6 }}>
+              <Sparkles size={12} color="#fff" />
+              <span className="clamp1" style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{recReason}</span>
+            </div>
+          )}
           {g && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600, marginBottom: 3 }} className="clamp1">{g.name}</div>}
           <div style={{ fontSize: 15.5, fontWeight: 800, lineHeight: 1.3, letterSpacing: -0.2, color: '#fff', paddingRight: ended ? 0 : 52 }} className="clamp1">{cardTitle}</div>
           {ended && (
@@ -102,17 +109,7 @@ function ActivityCard({ a, onClick, recReason }) {
       {!ended && (
         <div style={{ padding: '12px 15px 13px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {recReason ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500, minWidth: 0 }}>
-                <Sparkles size={15} color="var(--ai)" style={{ flexShrink: 0 }} />
-                <span className="clamp1" style={{ color: 'var(--ink-2)' }}>
-                  <span style={{ color: 'var(--ai)', fontWeight: 700 }}>{recReason}</span>
-                  <span style={{ color: 'var(--ink-3)' }}> · {a.date} · {a.time}</span>
-                </span>
-              </div>
-            ) : (
-              <MetaRow icon="calendar">{a.date} · {a.time}</MetaRow>
-            )}
+            <MetaRow icon="calendar">{a.date} · {a.time}</MetaRow>
             {a.loc && <MetaRow icon="pin">{a.loc}</MetaRow>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '11px 0' }}>
