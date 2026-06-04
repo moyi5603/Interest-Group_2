@@ -649,7 +649,7 @@ function ImMobileApp() {
               {unread > 0 && <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 99, background: 'var(--brand)',
                 color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unread}</span>}
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>消息 · 通知 · 小趣助手</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>搜索会话 · 群聊与私聊</div>
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }} className="noscroll"><ConvoList /></div>
         </div>

@@ -257,18 +257,26 @@
     { id: 'n5', kind: 'cancel', gid: 'g2', aid: 'a2', read: true, time: '昨天', text: '罗茜 取消了「看日出系列」整场报名 (第 2 期起生效)' },
   ];
 
-  // IM 沟通引擎会话
+  // IM 会话列表（对齐沟通引擎 IM 样例 + 保留小趣）
   const convos = [
-    { id: 'cv0', kind: 'ai', name: '小趣 · 你的兴趣助手', seed: 'ai', time: '刚刚', unread: 2,
+    { id: 'cv0', kind: 'ai', name: '小趣 · 你的兴趣助手', seed: 'ai', time: '刚刚', unread: 2, pinned: true,
       preview: '为你找到 3 个周末的羽毛球活动,要现在报名吗?' },
-    { id: 'cv1', kind: 'notify', name: '活动通知', seed: 'bell', time: '10 分钟前', unread: 3,
-      preview: '「滨江 8K 夜跑」明天 19:30 开始,记得带装备' },
-    { id: 'cv2', kind: 'group', name: '城市夜跑团', seed: 'g1', time: '21:36', unread: 0,
-      preview: '江野:38 人!本团历史新高,合影已发小组圈' },
-    { id: 'cv3', kind: 'group', name: '桌游电竞局', seed: 'g5', time: '12:48', unread: 5,
+    { id: 'cv1', kind: 'notify', name: '沟通引擎', seed: 'engine', time: '10:32', unread: 7, pinned: true, official: true,
+      prefix: '[提醒]', preview: '「城市夜跑团」发布了新活动「滨江 8K 夜跑」,快来看看' },
+    { id: 'cv2', kind: 'dm', name: '江野', seed: '江野', time: '10:30', unread: 2, online: true, pinned: true,
+      preview: '好的,明天夜跑见!' },
+    { id: 'cv3', kind: 'dm', name: '许墨', seed: '许墨', time: '09:15', unread: 0, online: true,
+      prefix: '[草稿]', preview: '我看一下系列活动报名' },
+    { id: 'cv4', kind: 'group', name: '城市夜跑团', seed: 'g1', time: '昨天', unread: 5,
+      prefix: '[有人@我]', prefixRed: true, preview: '江野:38 人!本团历史新高,合影已发小组圈' },
+    { id: 'cv5', kind: 'dm', name: '沈星', seed: '沈星', time: '昨天', unread: 0, muted: true,
+      preview: '收到,谢谢!' },
+    { id: 'cv6', kind: 'group', name: '桌游电竞局', seed: 'g5', time: '周一', unread: 12,
       preview: '沈星:午休阿瓦隆三缺一,速来休闲区 3 号桌!' },
-    { id: 'cv4', kind: 'group', name: '周末徒步野行', seed: 'g2', time: '昨天', unread: 0,
-      preview: '苏曼:系列②装备清单已更新,头灯必带' },
+    { id: 'cv7', kind: 'dm', name: '周棠', seed: '周棠', time: '周一', unread: 1, online: true,
+      preview: '读书会材料已更新' },
+    { id: 'cv8', kind: 'notify', name: 'HR 通知', seed: 'hr', time: '03/28', unread: 0, official: true,
+      prefix: '[通知]', preview: '4月兴趣活动福利报名开启' },
   ];
 
   // helpers
