@@ -83,7 +83,7 @@ function ActivityCard({ a, onClick, recReason }) {
           {cur.ai && <AIPill label="AI 共创" />}
         </div>
         <div style={{ position: 'absolute', top: 12, right: 12 }}><TypeTag type={a.type} /></div>
-        {!ended && (
+        {!ended && !recReason && (
           <div style={{ position: 'absolute', bottom: 11, right: 12, display: 'flex', gap: 10 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 13, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', padding: '4px 10px', borderRadius: 99 }}>
               <Icon name="heart" size={15} fill={cur.liked} />{cur.likes}</span>
@@ -92,12 +92,12 @@ function ActivityCard({ a, onClick, recReason }) {
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 28%, rgba(0,0,0,0.72))', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '12px 15px 13px' }}>
           {!ended && recReason && (
             <div style={{ alignSelf: 'flex-start', maxWidth: '100%', display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '3px 9px', borderRadius: 99, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', marginBottom: 6 }}>
+              padding: '3px 9px', borderRadius: 99, background: 'var(--ai-grad)', boxShadow: '0 2px 8px oklch(0.66 0.21 4 / 0.35)', marginBottom: 6 }}>
               <Sparkles size={12} color="#fff" />
               <span className="clamp1" style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{recReason}</span>
             </div>
           )}
-          {g && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600, marginBottom: 3 }} className="clamp1">{g.name}</div>}
+          {g && !recReason && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600, marginBottom: 3 }} className="clamp1">{g.name}</div>}
           <div style={{ fontSize: 15.5, fontWeight: 800, lineHeight: 1.3, letterSpacing: -0.2, color: '#fff', paddingRight: ended ? 0 : 52 }} className="clamp1">{cardTitle}</div>
           {ended && (
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 4 }}>
@@ -109,7 +109,14 @@ function ActivityCard({ a, onClick, recReason }) {
       {!ended && (
         <div style={{ padding: '12px 15px 13px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <MetaRow icon="calendar">{a.date} · {a.time}</MetaRow>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <MetaRow icon="calendar">{a.date} · {a.time}</MetaRow>
+              {recReason && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 12.5,
+                  fontWeight: 700, color: 'var(--ink-3)' }}>
+                  <Icon name="heart" size={14} fill={cur.liked} style={{ color: cur.liked ? 'var(--brand)' : 'var(--ink-3)' }} />{cur.likes}</span>
+              )}
+            </div>
             {a.loc && <MetaRow icon="pin">{a.loc}</MetaRow>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '11px 0' }}>
