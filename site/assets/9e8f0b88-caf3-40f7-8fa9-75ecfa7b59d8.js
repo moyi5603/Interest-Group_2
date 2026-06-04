@@ -57,7 +57,6 @@ function HomeMomentStripItem({ m, onOpenFeed }) {
 function HomeTab() {
   const { nav, store } = useM();
   const upcoming = store.acts.filter(a => a.status === 'upcoming');
-  const weekActivities = upcoming.slice(0, 3);
   const hotGroups = store.groups.filter(g => g.hot).concat(store.groups.filter(g => !g.hot));
   const recentMoments = DB.moments.slice(0, 4);
 
@@ -65,6 +64,21 @@ function HomeTab() {
     { aid: 'a1', reason: '因为你常参加「城市夜跑团」' },
     { aid: 'a5', reason: '同部门 6 位同学已报名' },
     { aid: 'a3', reason: '午休时段 · 离你工位 2 分钟' },
+  ];
+
+  // ---- 活动 Tab：推荐 / 最新 / 热门 ----
+  const [actTab, setActTab] = React.useState('rec');
+  const dateKey = (a) => {
+    const m = (a.date || '').match(/(\d+)月(\d+)日/);
+    return m ? parseInt(m[1], 10) * 100 + parseInt(m[2], 10) : 9999;
+  };
+  const recItems = recs.map(r => ({ a: store.acts.find(x => x.id === r.aid), reason: r.reason })).filter(x => x.a);
+  const latestActs = [...upcoming].sort((x, y) => dateKey(x) - dateKey(y)).slice(0, 4);
+  const hotActs = [...upcoming].sort((x, y) => (y.likes - x.likes) || (y.signed - x.signed)).slice(0, 4);
+  const actTabs = [
+    { key: 'rec', label: '推荐' },
+    { key: 'latest', label: '最新' },
+    { key: 'hot', label: '热门' },
   ];
 
   return (
@@ -117,23 +131,44 @@ function HomeTab() {
         })}
       </div>
 
-      {/* AI recommendations */}
-      <div style={{ padding: '18px 0 4px' }}>
-        <div style={{ padding: '0 16px' }}><SectionHeader title="为你推荐" sub="小趣根据你的兴趣与社交关系挑选"
-          action="" /></div>
-        <div className="noscroll" style={{ display: 'flex', gap: 13, overflowX: 'auto', padding: '0 16px 4px', scrollSnapType: 'x mandatory' }}>
-          {recs.map(r => { const a = store.acts.find(x => x.id === r.aid); return a ?
-            <RecCard key={r.aid} a={a} reason={r.reason} onClick={() => nav.go('activity', { aid: r.aid })} /> : null; })}
+      {/* activity tabs: 推荐 / 最新 / 热门 */}
+      <div style={{ padding: '18px 16px 4px' }}>
+        <SectionHeader title="活动" action="全部" onAction={() => nav.go('allActs')} accent="var(--brand)" />
+        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 13, background: 'var(--bg-2)', marginBottom: 15 }}>
+          {actTabs.map(t => {
+            const on = actTab === t.key;
+            return (
+              <button key={t.key} onClick={() => setActTab(t.key)} style={{ flex: 1, padding: '8px 0', borderRadius: 10,
+                fontSize: 13.5, fontWeight: 700, border: 'none', cursor: 'pointer',
+                background: on ? 'var(--ink)' : 'transparent', color: on ? '#fff' : 'var(--ink-2)',
+                boxShadow: on ? 'var(--shadow-sm)' : 'none', transition: 'background .18s, color .18s' }}>{t.label}</button>
+            );
+          })}
         </div>
-      </div>
-
-      {/* this week's activities */}
-      <div style={{ padding: '14px 16px 4px' }}>
-        <SectionHeader title="本周活动" action="全部" onAction={() => nav.go('allActs')} accent="var(--brand)" />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-          {weekActivities.length ? weekActivities.map(a => <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />)
-            : <Empty text="本周暂无活动" />}
-        </div>
+        {actTab === 'rec' && (
+          recItems.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+            {recItems.map(({ a, reason }) => (
+              <div key={a.id}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10,
+                  background: 'var(--ai-soft)', marginBottom: 7 }}>
+                  <Sparkles size={13} color="var(--ai)" />
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ai)' }}>{reason}</span>
+                </div>
+                <ActivityCard a={a} onClick={() => nav.go('activity', { aid: a.id })} />
+              </div>
+            ))}
+          </div> : <Empty text="暂无推荐活动" />
+        )}
+        {actTab === 'latest' && (
+          latestActs.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+            {latestActs.map(a => <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />)}
+          </div> : <Empty text="暂无最新活动" />
+        )}
+        {actTab === 'hot' && (
+          hotActs.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+            {hotActs.map(a => <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />)}
+          </div> : <Empty text="暂无热门活动" />
+        )}
       </div>
 
       {/* moments strip */}
