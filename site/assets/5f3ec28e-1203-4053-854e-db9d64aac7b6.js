@@ -304,10 +304,7 @@ function GroupsSection() {
               </div>
             </div>
             <div style={{ padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 16.5, fontWeight: 800 }}>{g.name}</div>
-                {g.hot && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 11, fontWeight: 700, color: 'var(--brand)' }}><Icon name="trending" size={13} stroke={2.6} />热门</span>}
-              </div>
+              <div style={{ fontSize: 16.5, fontWeight: 800 }}>{g.name}</div>
               <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55, margin: '7px 0 13px', height: 38 }} className="clamp2">{g.intro}</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="user" size={15} />{g.members} 成员</span>
@@ -343,7 +340,7 @@ function AdminGroupDetail({ gid }) {
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <div style={{ fontSize: 23, fontWeight: 800, fontFamily: 'var(--font-display)' }}>{g.name}</div>
-              <CatBadge cat={g.cat} size="sm" />{g.hot && <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--brand)', display: 'inline-flex', gap: 2, alignItems: 'center' }}><Icon name="trending" size={13} stroke={2.6} />热门</span>}
+              <CatBadge cat={g.cat} size="sm" />
             </div>
             <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.6, maxWidth: 620, marginBottom: 10 }}>{g.intro}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', fontSize: 13, color: 'var(--ink-2)' }}>

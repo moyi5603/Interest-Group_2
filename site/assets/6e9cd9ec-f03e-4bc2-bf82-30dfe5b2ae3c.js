@@ -493,8 +493,7 @@ function GroupDetail({ gid }) {
         <div style={{ marginTop: -34, position: 'relative', background: 'var(--surface)', borderRadius: 'var(--r-lg)',
           boxShadow: 'var(--shadow)', padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <CatBadge cat={g.cat} size="sm" />{g.hot && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3,
-              fontSize: 11.5, fontWeight: 700, color: 'var(--brand)' }}><Icon name="trending" size={13} stroke={2.6} />热门</span>}
+            <CatBadge cat={g.cat} size="sm" />
           </div>
           <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.3 }}>{g.name}</div>
           <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--ink-2)', margin: '9px 0 13px' }}>{g.intro}</div>

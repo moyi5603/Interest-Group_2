@@ -196,9 +196,6 @@ function GroupCard({ g, onClick, wide }) {
       <div style={{ position: 'relative', height: 96 }}>
         <Photo seed={g.id + g.cat} icon={CATS[g.cat].icon} dim />
         <div style={{ position: 'absolute', top: 10, left: 10 }}><CatBadge cat={g.cat} size="sm" solid /></div>
-        {g.hot && <div style={{ position: 'absolute', top: 10, right: 10, display: 'inline-flex', alignItems: 'center', gap: 3,
-          padding: '3px 8px', borderRadius: 99, background: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
-          <Icon name="trending" size={12} stroke={2.6} />热门</div>}
       </div>
       <div style={{ padding: 14 }}>
         <div style={{ fontSize: 16, fontWeight: 800 }} className="clamp1">{g.name}</div>

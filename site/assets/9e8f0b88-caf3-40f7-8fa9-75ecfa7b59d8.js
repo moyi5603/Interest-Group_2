@@ -169,7 +169,7 @@ function HomeTab() {
 
       {/* moments strip */}
       <div style={{ padding: '20px 0 4px' }}>
-        <div style={{ padding: '0 16px' }}><SectionHeader title="热门小组" sub="成员规模 TOP 5 · 运营可置顶" action="全部" onAction={() => nav.go('allGroups')} accent="var(--c-music)" /></div>
+        <div style={{ padding: '0 16px' }}><SectionHeader title="热门小组" action="全部" onAction={() => nav.go('allGroups')} accent="var(--c-music)" /></div>
         <div className="noscroll" style={{ display: 'flex', gap: 13, overflowX: 'auto', padding: '0 16px 4px', scrollSnapType: 'x mandatory' }}>
           {hotGroups.map(g => <GroupCard key={g.id} g={g} onClick={() => nav.go('group', { gid: g.id })} />)}
         </div>
