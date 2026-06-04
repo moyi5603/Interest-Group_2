@@ -53,7 +53,7 @@ function ConvoList() {
 
   return (
     <div style={{ padding: '0 0 24px' }}>
-      <div style={{ padding: '0 14px 12px' }}>
+      <div style={{ padding: '14px 14px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 14,
           background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--line)' }}>
           <Icon name="search" size={18} style={{ color: 'var(--ink-3)', flexShrink: 0 }} />
@@ -177,7 +177,7 @@ function AIChat() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-      <ChatHeader title="小趣 · 你的兴趣助手" sub="AI 在线 · 随时帮你找活动、催报名" ai onBack={nav.back} />
+      <ChatHeader title="你的兴趣助手" ai onBack={nav.back} />
       <div ref={scrollRef} className="noscroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {msgs.map(m => (
           <div key={m.id} style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -196,7 +196,7 @@ function AIChat() {
       </div>
       <div style={{ padding: '10px 14px', background: 'var(--surface)', borderTop: '1px solid var(--line)', display: 'flex', gap: 8, alignItems: 'center' }}>
         <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(); }}
-          placeholder="和小趣说点什么…" style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 14, padding: '8px 0' }} />
+          placeholder="和小悦说点什么…" style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 14, padding: '8px 0' }} />
         <button onClick={() => send()} style={{ width: 42, height: 42, borderRadius: 13, background: 'var(--ai-grad)', color: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={19} /></button>
       </div>

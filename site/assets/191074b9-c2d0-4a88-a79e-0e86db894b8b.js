@@ -3,9 +3,43 @@
 const SIGNUP_BAR = 'var(--brand)';
 const MODE_TAG_STYLE = { background: 'var(--surface-2)', color: 'var(--ink-2)' };
 const SESSION_IDX_STYLE = { background: 'var(--surface-2)', color: 'var(--ink-2)', border: '1px solid var(--line)' };
+const SIGNUP_AVATAR_MAX = 20;
+
+// 根据报名人数生成确定性的成员名单（mock：人数可能超过 NAMES 列表长度，循环并加序号）
+function signupMemberNames(count) {
+  const base = DB.NAMES;
+  const list = [];
+  for (let i = 0; i < count; i++) {
+    const name = base[i % base.length];
+    const round = Math.floor(i / base.length);
+    list.push(round === 0 ? name : `${name}${round + 1}`);
+  }
+  return list;
+}
+
+// 全部报名成员弹窗
+function SignupMembersModal({ open, onClose, count, title }) {
+  if (!open) return null;
+  const names = signupMemberNames(count);
+  return (
+    <Modal open={open} onClose={onClose} title={title || `已报名成员 (${count})`} width={600}>
+      <div style={{ padding: 22 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+          {names.map((m, i) => (
+            <div key={m + i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px 8px 8px', borderRadius: 12, background: 'var(--surface-2)' }}>
+              <Avatar name={m} size={30} />
+              <span style={{ fontSize: 13, fontWeight: 600, minWidth: 0 }} className="clamp1">{m}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 function SignupsView({ acts }) {
   const { store } = useA();
+  const [memberModal, setMemberModal] = React.useState(null);
 
   // Build display units (same grouping logic as ActTable)
   const units = [];
@@ -28,16 +62,25 @@ function SignupsView({ acts }) {
   const [sessionOpen, setSessionOpen] = React.useState({});
   const toggleSession = k => setSessionOpen(s => ({ ...s, [k]: !s[k] }));
 
-  const Avatars = ({ count }) => {
-    const names = DB.NAMES.slice(0, Math.min(count, 12));
+  const Avatars = ({ count, title }) => {
+    const overflow = count > SIGNUP_AVATAR_MAX;
+    // 有溢出时少显示一个头像，把「+N 人」按钮占据第 20 个位置，避免它单独换一行
+    const shown = overflow ? SIGNUP_AVATAR_MAX - 1 : count;
+    const names = signupMemberNames(shown);
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
-        {names.map(m => (
-          <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px 6px 6px', borderRadius: 99, background: 'var(--surface-2)' }}>
+        {names.map((m, i) => (
+          <div key={m + i} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px 6px 6px', borderRadius: 99, background: 'var(--surface-2)' }}>
             <Avatar name={m} size={26} /><span style={{ fontSize: 12.5, fontWeight: 600 }}>{m}</span>
           </div>
         ))}
-        {count > 12 && <span style={{ padding: '8px 12px', fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>+{count - 12} 人</span>}
+        {overflow && (
+          <button type="button" onClick={() => setMemberModal({ count, title })}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 99,
+              background: 'var(--brand-soft)', color: 'var(--brand-600)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+            +{count - (SIGNUP_AVATAR_MAX - 1)} 人<Icon name="chevR" size={14} />
+          </button>
+        )}
       </div>
     );
   };
@@ -78,7 +121,7 @@ function SignupsView({ acts }) {
               {isOpen && (
                 <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--line)' }} className="fade">
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', margin: '14px 0 11px' }}>已报名成员 ({a.signed})</div>
-                  <Avatars count={a.signed} />
+                  <Avatars count={a.signed} title={`${a.title} · 已报名成员 (${a.signed})`} />
                 </div>
               )}
             </div>
@@ -129,7 +172,7 @@ function SignupsView({ acts }) {
                         {sOpen && (
                           <div style={{ padding: '0 16px 14px 54px' }} className="fade">
                             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 9 }}>已报名 ({s.signed})</div>
-                            <Avatars count={s.signed} />
+                            <Avatars count={s.signed} title={`${a.title} · ${s.date} · 已报名 (${s.signed})`} />
                           </div>
                         )}
                       </div>
@@ -179,7 +222,7 @@ function SignupsView({ acts }) {
                   {mode === 'all' ? (
                     <div style={{ padding: '14px 16px 16px' }}>
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 11 }}>整场报名成员 ({totalSigned}) · 参与全部 {eps.length} 期</div>
-                      <Avatars count={totalSigned} />
+                      <Avatars count={totalSigned} title={`${first.series || first.title} · 整场报名成员 (${totalSigned})`} />
                     </div>
                   ) : (
                     eps.map((ep, ei) => {
@@ -206,7 +249,7 @@ function SignupsView({ acts }) {
                           {epOpen && (
                             <div style={{ padding: '0 16px 14px 54px' }} className="fade">
                               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 9 }}>已报名 ({ep.signed})</div>
-                              <Avatars count={ep.signed} />
+                              <Avatars count={ep.signed} title={`${ep.title} · 已报名 (${ep.signed})`} />
                             </div>
                           )}
                         </div>
@@ -220,37 +263,74 @@ function SignupsView({ acts }) {
         }
         return null;
       })}
+      <SignupMembersModal open={!!memberModal} onClose={() => setMemberModal(null)}
+        count={memberModal ? memberModal.count : 0} title={memberModal ? memberModal.title : ''} />
     </div>
   );
 }
 
-function CommentsView({ acts }) {
-  const { store } = useA();
+const COMMENTS_PAGE = 5;
+
+function CommentsView({ acts, inline }) {
+  const { store, actions } = useA();
+  const [page, setPage] = React.useState(1);
   const aids = acts.map(a => a.id);
-  const comments = DB.comments.filter(c => aids.includes(c.aid));
+  const comments = (store.comments || []).filter(c => aids.includes(c.aid));
   if (!comments.length) return <Empty text="暂无评论" />;
+
+  const total = comments.length;
+  // inline mode (inside act detail card): paginate; standalone (global comments section): show all
+  const shown = inline ? comments.slice(0, page * COMMENTS_PAGE) : comments;
+  const hasMore = inline && shown.length < total;
+  const hiddenCount = total - shown.length;
+
+  const CommentRow = ({ c, i }) => {
+    const a = store.acts.find(x => x.id === c.aid);
+    return (
+      <div key={c.id} style={{ display: 'flex', gap: 13, padding: 18, borderTop: i ? '1px solid var(--line)' : 'none' }}>
+        {c.isAI
+          ? <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--ai-grad)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={20} color="#fff" /></div>
+          : <Avatar name={c.author} size={40} />}
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: c.isAI ? 'var(--ai)' : 'var(--ink)' }}>{c.author}</span>
+            {c.isAI && <AIPill />}<span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{c.time}</span>
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.55, margin: '5px 0 7px' }}>{c.text}</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 14 }}>
+            {a && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name={CATS[a.cat].icon} size={13} style={{ color: CATS[a.cat].color }} />{a.title}</span>}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="heart" size={13} />{c.likes}</span>
+          </div>
+        </div>
+        <button type="button" title="删除" onClick={() => { if (confirm('确认删除该评论？')) { actions.delComment(c.id); toast('评论已删除', { icon: 'trash' }); } }}
+          style={{ width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'oklch(0.55 0.2 25)', flexShrink: 0, alignSelf: 'flex-start' }}>
+          <Icon name="trash" size={16} />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)' }}>
-      {comments.map((c, i) => {
-        const a = store.acts.find(x => x.id === c.aid);
-        return (
-          <div key={c.id} style={{ display: 'flex', gap: 13, padding: 18, borderTop: i ? '1px solid var(--line)' : 'none' }}>
-            {c.isAI ? <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--ai-grad)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={20} color="#fff" /></div> : <Avatar name={c.author} size={40} />}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: c.isAI ? 'var(--ai)' : 'var(--ink)' }}>{c.author}</span>
-                {c.isAI && <AIPill />}<span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{c.time}</span>
-              </div>
-              <div style={{ fontSize: 14, lineHeight: 1.55, margin: '5px 0 7px' }}>{c.text}</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name={CATS[a.cat].icon} size={13} style={{ color: CATS[a.cat].color }} />{a.title}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="heart" size={13} />{c.likes}</span>
-              </div>
-            </div>
-            <button onClick={() => toast('已隐藏该评论')} style={{ color: 'var(--ink-3)', alignSelf: 'flex-start' }}><Icon name="dots" size={20} /></button>
-          </div>
-        );
-      })}
+      {shown.map((c, i) => <CommentRow key={c.id} c={c} i={i} />)}
+      {hasMore && (
+        <div style={{ borderTop: '1px solid var(--line)', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>已显示 {shown.length} / {total} 条</span>
+          <button type="button" onClick={() => setPage(p => p + 1)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--brand)' }}>
+            显示更多<Icon name="chevD" size={15} />
+          </button>
+        </div>
+      )}
+      {inline && !hasMore && total > COMMENTS_PAGE && (
+        <div style={{ borderTop: '1px solid var(--line)', padding: '14px 18px', display: 'flex', justifyContent: 'center' }}>
+          <button type="button" onClick={() => setPage(1)}
+            style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="chevU" size={15} />收起
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -400,13 +480,18 @@ function ActivitiesSection() {
 
 function GlobalSection({ section }) {
   const { store } = useA();
-  const titles = { signups: ['报名管理', '查看与审核所有活动的报名情况'], moments: ['精彩瞬间', '成员在活动后分享的高光时刻,自动同步至小组圈'] };
+  const titles = {
+    signups: ['报名管理', '查看与审核所有活动的报名情况'],
+    comments: ['评论&互动', '查看活动下的员工评论,可删除不当内容'],
+    moments: ['精彩瞬间', '成员在活动后分享的高光时刻,自动同步至小组圈'],
+  };
   const [t, sub] = titles[section];
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }} className="noscroll">
       <Topbar title={t} sub={sub} />
       <div style={{ padding: 28 }}>
         {section === 'signups' && <SignupsView acts={store.acts.filter(a => a.status === 'upcoming')} />}
+        {section === 'comments' && <CommentsView acts={store.acts} />}
         {section === 'moments' && <MomentsGrid moms={DB.moments} navBack={{ section: 'moments' }} />}
       </div>
     </div>
@@ -442,22 +527,30 @@ function GroupForm({ open, onClose, onSave, init }) {
   return (
     <Modal open={open} onClose={onClose} title={init ? '编辑小组' : '新建兴趣小组'} width={580}>
       <div style={{ padding: 24 }}>
-        <Field label="封面图" hint="必填 · 支持 JPG / PNG">
+        <Field label={init ? '封面图' : '封面图 *'} hint="必填 · 支持 JPG / PNG">
           <input ref={coverRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={pickCover} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 12px', borderRadius: 12, border: '1.5px solid var(--line-2)', background: 'var(--bg)' }}>
-            <div style={{ width: 96, height: 54, borderRadius: 8, overflow: 'hidden', flexShrink: 0, border: f.cover ? 'none' : '1.5px dashed var(--line-2)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 120, height: 68, borderRadius: 9, overflow: 'hidden', background: 'var(--bg)', flexShrink: 0,
+              border: f.cover ? 'none' : '2px dashed var(--line-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
+              onClick={() => coverRef.current && coverRef.current.click()}>
               {f.cover
-                ? <img src={f.cover} alt="封面预览" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                : <Icon name="image" size={22} stroke={1.8} style={{ color: 'var(--ink-3)' }} />}
+                ? <img src={f.cover} alt="封面" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, color: 'var(--ink-3)' }}>
+                    <Icon name="image" size={24} stroke={1.6} />
+                    <span style={{ fontSize: 11, fontWeight: 600 }}>点击上传</span>
+                  </div>}
+              {f.cover && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'background .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.38)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0)'}>
+                  <button type="button" onClick={e => { e.stopPropagation(); coverRef.current && coverRef.current.click(); }}
+                    style={{ padding: '4px 9px', borderRadius: 7, background: 'rgba(255,255,255,0.9)', fontSize: 11.5, fontWeight: 700 }}>更换</button>
+                  <button type="button" onClick={e => { e.stopPropagation(); setF(s => ({ ...s, cover: '' })); }}
+                    style={{ padding: '4px 9px', borderRadius: 7, background: 'rgba(255,255,255,0.9)', fontSize: 11.5, fontWeight: 700, color: 'oklch(0.55 0.2 25)' }}>删除</button>
+                </div>
+              )}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 2 }}>{f.cover ? '已选择封面' : '尚未上传封面'}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>JPG / PNG</div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <Btn variant="ghost" size="sm" icon="image" type="button" onClick={() => coverRef.current && coverRef.current.click()}>{f.cover ? '更换' : '上传'}</Btn>
-              {f.cover && <Btn variant="danger" size="sm" icon="trash" type="button" onClick={() => setF(s => ({ ...s, cover: '' }))} />}
-            </div>
+            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>JPG / PNG，建议 16:9</span>
           </div>
         </Field>
         <Field label="小组名称"><TextInput value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="例如:城市夜跑团" /></Field>
@@ -628,9 +721,10 @@ function RichText({ value, onChange, placeholder }) {
           <Icon name="image" size={16} /><span style={{ fontSize: 12.5, fontWeight: 700 }}>图片</span></button>
         <input ref={imgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={pickImg} />
       </div>
-      <div style={{ position: 'relative', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', borderRadius: '0 0 12px 12px' }}>
         <div ref={ref} contentEditable suppressContentEditableWarning onInput={sync} className="richtext"
-          style={{ minHeight: 110, maxHeight: 240, overflowY: 'auto', padding: '11px 13px', fontSize: 14, lineHeight: 1.7, outline: 'none', color: 'var(--ink)' }} />
+          style={{ minHeight: 140, padding: '11px 13px', fontSize: 14, lineHeight: 1.7, outline: 'none', color: 'var(--ink)',
+            resize: 'vertical', overflow: 'auto', display: 'block', width: '100%', boxSizing: 'border-box' }} />
         {empty && <div style={{ position: 'absolute', top: 11, left: 13, fontSize: 14, color: 'var(--ink-3)', pointerEvents: 'none' }}>{placeholder}</div>}
       </div>
     </div>
@@ -638,7 +732,6 @@ function RichText({ value, onChange, placeholder }) {
 }
 
 // ---------- activity form (manual) ----------
-const ACT_DRAFT_KEY = 'ig:admin:actDraft';
 const WEEKDAYS = [
   { v: 1, label: '周一' }, { v: 2, label: '周二' }, { v: 3, label: '周三' }, { v: 4, label: '周四' },
   { v: 5, label: '周五' }, { v: 6, label: '周六' }, { v: 0, label: '周日' },
@@ -732,13 +825,6 @@ function TimeRangePicker({ start, end, onChange, style }) {
   );
 }
 
-function actHasContent(x) {
-  if (!x) return false;
-  const descText = (x.desc || '').replace(/<[^>]*>/g, '').trim();
-  return !!((x.title && x.title.trim()) || x.cover || descText || (x.loc && x.loc.trim())
-    || (x.sessions && x.sessions.some(s => s.date || s.time)) || (x.repeatWeekdays && x.repeatWeekdays.length));
-}
-
 function actFormReady(f, editing) {
   if (editing) {
     if (!f.title.trim()) return false;
@@ -771,9 +857,31 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
   });
   const [f, setF] = React.useState(blank);
   const [editorKey, setEditorKey] = React.useState(0);
-  const [draft, setDraft] = React.useState(null);
+  const [descGenning, setDescGenning] = React.useState(false);
   const coverRef = React.useRef(null);
   const applyForm = (next) => { setF(normalizeActForm(next)); setEditorKey(k => k + 1); };
+  const genActDesc = () => {
+    setDescGenning(true);
+    setTimeout(() => {
+      setDescGenning(false);
+      const title = f.title.trim() || '本次活动';
+      const when = f.dateValue && f.timeStart
+        ? `定于 ${formatDateCN(f.dateValue)} ${formatTimeRange(f.timeStart, f.timeEnd)}。`
+        : f.timeStart ? `时间 ${formatTimeRange(f.timeStart, f.timeEnd)}。` : '';
+      const loc = f.loc.trim() || '详见群内通知';
+      const samples = {
+        sport: `<p>欢迎参加 <b>${title}</b>!${when}</p><ul><li>集合地点:${loc}</li><li>请穿运动服与防滑鞋,建议自带水壶</li><li>热身约 10 分钟,零基础有领队陪同</li></ul>`,
+        outdoor: `<p><b>${title}</b> 等你来野!${when}</p><ul><li>集合:${loc}</li><li>请穿徒步鞋,自备防晒与少量路餐</li><li>领队持证,全程有收尾与保险说明</li></ul>`,
+        reading: `<p>本期 <b>${title}</b>${when ? ' ' + when : ''}</p><ul><li>地点:${loc}</li><li>请提前阅读指定章节,现场轮流分享</li><li>轻松讨论,不打卡、不焦虑</li></ul>`,
+        music: `<p><b>${title}</b> — 一起把耳朵交给现场!${when}</p><ul><li>集合:${loc}</li><li>可拼车同行,费用 AA</li><li>结束后可在群内约饭复盘</li></ul>`,
+        game: `<p><b>${title}</b> 开局啦!${when}</p><ul><li>地点:${loc}</li><li>新手有教学,40 分钟左右一局</li><li>快乐第一,胜负随缘</li></ul>`,
+        photo: `<p><b>${title}</b> 外拍招募!${when}</p><ul><li>集合:${loc}</li><li>建议携带相机或手机满电,可互勉构图</li><li>作品欢迎发小组圈</li></ul>`,
+        food: `<p><b>${title}</b> 开吃!${when}</p><ul><li>集合:${loc}</li><li>人均预算群内公示,口味偏辣请自备解辣</li><li>吃完记得在小组圈晒图打分</li></ul>`,
+      };
+      setF(s => ({ ...s, desc: samples[s.cat] || samples.sport }));
+      setEditorKey(k => k + 1);
+    }, 1200);
+  };
   const pickCover = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -781,69 +889,25 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
     reader.onload = ev => setF(s => ({ ...s, cover: ev.target.result }));
     reader.readAsDataURL(file);
   };
-  const clearDraft = () => { try { localStorage.removeItem(ACT_DRAFT_KEY); } catch (e) {} setDraft(null); };
   React.useEffect(() => {
     if (!open) return;
-    if (editing) { applyForm({ ...blank, ...initAct }); setDraft(null); return; }
+    setDescGenning(false);
+    if (editing) { applyForm({ ...blank, ...initAct }); return; }
     applyForm({ ...blank, gid: gidInit || 'g1' });
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem(ACT_DRAFT_KEY) || 'null'); } catch (e) {}
-    setDraft(actHasContent(saved) ? saved : null);
   }, [open, gidInit, editing]);
-  React.useEffect(() => {
-    if (!open || editing || !actHasContent(f)) return;
-    try { localStorage.setItem(ACT_DRAFT_KEY, JSON.stringify(f)); } catch (e) {}
-  }, [f, open, editing]);
-  const g = store.groups.find(x => x.id === f.gid);
-  const SecHead = ({ label }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '12px 0 6px' }}>
-      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink-3)', letterSpacing: 0.6, textTransform: 'uppercase' }}>{label}</span>
-      <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
-    </div>
-  );
-  const InlineFieldPair = ({ items }) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 8 }}>
-      <div style={{ width: 88, flexShrink: 0 }} />
-      <div style={{ flex: 1, display: 'flex', gap: 10, minWidth: 0 }}>
-        {items.map((item, i) => (
-          <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', flexShrink: 0, whiteSpace: 'nowrap', paddingTop: 9 }}>{item.label}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>{item.children}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
-    <Modal open={open} onClose={onClose} title={editing ? '编辑活动' : '新建活动'} width={680}>
-      <div style={{ padding: '4px 20px 20px' }}>
+    <Modal open={open} onClose={onClose} title={editing ? '编辑活动' : '新建活动'} width={580}>
+      <div style={{ padding: 24 }}>
 
-        {/* AI hint / draft restore */}
         {!editing && (
-          <div style={{ display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 12, background: 'var(--ai-soft)', margin: '16px 0 4px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 12, background: 'var(--ai-soft)', marginBottom: 10, alignItems: 'center' }}>
             <Sparkles size={18} color="var(--ai)" />
             <span style={{ flex: 1, fontSize: 12.5, color: 'var(--ink-2)' }}>不想手动填？试试用一句话让 AI 生成完整方案</span>
             <Btn variant="ai" size="sm" icon="spark" onClick={() => { onClose(); useAOpen(); }}>AI 策划</Btn>
           </div>
         )}
-        {!editing && draft && (
-          <div style={{ display: 'flex', gap: 11, padding: '11px 13px', borderRadius: 12, background: 'var(--sun-soft)', margin: '10px 0 0', alignItems: 'center', border: '1px solid color-mix(in oklch, oklch(0.8 0.13 70) 30%, transparent)' }}>
-            <Icon name="clock" size={18} style={{ color: 'oklch(0.55 0.13 70)', flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>发现未发布的活动草稿</div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }} className="clamp1">{draft.title ? `「${draft.title}」` : '上次编辑的内容'}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <Btn variant="ghost" size="sm" onClick={clearDraft}>放弃</Btn>
-              <Btn variant="primary" size="sm" icon="repeat" onClick={() => { applyForm({ ...blank, ...normalizeActForm(draft), gid: draft.gid || gidInit || 'g1' }); setDraft(null); }}>恢复</Btn>
-            </div>
-          </div>
-        )}
 
-        {/* ── 基本信息 ── */}
-        <SecHead label="基本信息" />
-        <Field label={editing ? '封面图' : '封面图 *'} inline>
+        <Field label={editing ? '封面图' : '封面图 *'} hint={editing ? undefined : '必填 · 支持 JPG / PNG'}>
           <input ref={coverRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={pickCover} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 120, height: 68, borderRadius: 9, overflow: 'hidden', background: 'var(--bg)', flexShrink: 0,
@@ -869,56 +933,58 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
             <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>JPG / PNG，建议 16:9</span>
           </div>
         </Field>
-        <Field label="活动标题" inline>
+        <Field label="活动标题">
           <TextInput value={f.title} onChange={e => setF({ ...f, title: e.target.value })} placeholder="例如:滨江 8K 夜跑" />
         </Field>
-        <InlineFieldPair items={[
-          { label: '所属小组', children: (
-            <select value={f.gid} onChange={e => { const ng = store.groups.find(x => x.id === e.target.value); setF({ ...f, gid: e.target.value, cat: ng ? ng.cat : f.cat }); }} style={inputStyle}>
-              {store.groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
-          ) },
-          { label: '分类', children: (
-            <select value={f.cat} onChange={e => setF({ ...f, cat: e.target.value })} style={inputStyle}>
-              {Object.values(CATS).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-            </select>
-          ) },
-        ]} />
+        <div style={{ display: 'flex', gap: 14 }}>
+          <div style={{ flex: 1 }}>
+            <Field label="所属小组">
+              <select value={f.gid} onChange={e => { const ng = store.groups.find(x => x.id === e.target.value); setF({ ...f, gid: e.target.value, cat: ng ? ng.cat : f.cat }); }} style={inputStyle}>
+                {store.groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </Field>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label="分类">
+              <select value={f.cat} onChange={e => setF({ ...f, cat: e.target.value })} style={inputStyle}>
+                {Object.values(CATS).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+            </Field>
+          </div>
+        </div>
 
-        {/* ── 时间安排 ── */}
-        <SecHead label="时间安排" />
         {editing ? (
           <>
-            <Field label="活动类型" inline>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 2 }}><TypeTag type={f.type} /><span style={{ fontSize: 12, color: 'var(--ink-3)' }}>活动类型创建后不可更改</span></div>
+            <Field label="活动类型">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><TypeTag type={f.type} /><span style={{ fontSize: 12, color: 'var(--ink-3)' }}>活动类型创建后不可更改</span></div>
             </Field>
             {f.type === 'recurring' ? (
               <>
-                <Field label="重复规则" inline><div style={{ ...inputStyle, background: 'var(--bg)', color: 'var(--ink-2)' }}>{initAct.date}</div></Field>
-                <Field label="时间" inline><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field>
+                <Field label="重复规则"><div style={{ ...inputStyle, background: 'var(--bg)', color: 'var(--ink-2)' }}>{initAct.date}</div></Field>
+                <Field label="时间"><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field>
               </>
             ) : (
-              <InlineFieldPair items={[
-                { label: '日期', children: <DatePicker value={f.dateValue} onChange={v => setF({ ...f, dateValue: v })} /> },
-                { label: '时间', children: <TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /> },
-              ]} />
+              <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ flex: 1 }}><Field label="日期"><DatePicker value={f.dateValue} onChange={v => setF({ ...f, dateValue: v })} /></Field></div>
+                <div style={{ flex: 1 }}><Field label="时间"><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field></div>
+              </div>
             )}
           </>
         ) : (
           <>
-            <Field label="活动类型" inline>
+            <Field label="活动类型">
               <Segmented value={f.type} onChange={v => setF({ ...f, type: v })} style={{ width: '100%' }}
                 options={[{ value: 'once', label: '单次', icon: 'calendar' }, { value: 'recurring', label: '周期性', icon: 'repeat' }, { value: 'series', label: '系列', icon: 'series' }]} />
             </Field>
             {f.type === 'once' && (
-              <InlineFieldPair items={[
-                { label: '日期', children: <DatePicker value={f.dateValue} onChange={v => setF({ ...f, dateValue: v })} /> },
-                { label: '时间', children: <TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /> },
-              ]} />
+              <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ flex: 1 }}><Field label="日期"><DatePicker value={f.dateValue} onChange={v => setF({ ...f, dateValue: v })} /></Field></div>
+                <div style={{ flex: 1 }}><Field label="时间"><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field></div>
+              </div>
             )}
             {f.type === 'recurring' && (
               <>
-                <Field label="重复规则" inline hint="选择每周重复的具体日期">
+                <Field label="重复规则" hint="选择每周重复的具体日期">
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {WEEKDAYS.map(d => {
                       const on = (f.repeatWeekdays || []).includes(d.v);
@@ -932,18 +998,18 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
                     })}
                   </div>
                 </Field>
-                <Field label="时间" inline hint="周期性活动无需选择具体日期">
+                <Field label="时间" hint="周期性活动无需选择具体日期">
                   <TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} />
                 </Field>
               </>
             )}
             {f.type === 'series' && (
               <>
-                <Field label="报名方式" inline>
+                <Field label="报名方式">
                   <Segmented value={f.seriesSignupMode || 'independent'} onChange={v => setF({ ...f, seriesSignupMode: v })}
                     options={[{ value: 'independent', label: '按场次报名', desc: '用户可独立选择参加每一场' }, { value: 'all', label: '整场报名', desc: '报名截止后不可中途加入' }]} />
                 </Field>
-                <Field label="场次安排" inline hint="每期可单独设置日期与时间">
+                <Field label="场次安排" hint="每期可单独设置日期与时间">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {(f.sessions || []).map((s, i) => (
                       <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -968,29 +1034,34 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
           </>
         )}
 
-        {/* ── 报名设置 ── */}
-        <SecHead label="报名设置" />
-        <Field label="报名截止" inline hint={f.deadlineMode === 'fixed' ? '到达指定时间后不可报名' : f.deadlineMode === 'hours_before' ? '距活动开始不足 N 小时后不可报名' : '不设截止，活动开始前均可报名'}>
+        <Field label="报名截止" hint={f.deadlineMode === 'fixed' ? '到达指定时间后不可报名' : f.deadlineMode === 'hours_before' ? '距活动开始不足 N 小时后不可报名' : '不设截止，活动开始前均可报名'}>
           <DeadlinePicker mode={f.deadlineMode || 'none'} date={f.deadlineDate || ''} time={f.deadlineTime || '18:00'} hours={f.deadlineHours || 2}
             onChange={({ mode, date, time, hours }) => setF(s => ({ ...s, deadlineMode: mode, deadlineDate: date, deadlineTime: time, deadlineHours: hours }))} />
         </Field>
-        <InlineFieldPair items={[
-          { label: '地点', children: <TextInput value={f.loc} onChange={e => setF({ ...f, loc: e.target.value })} placeholder="集合地点" /> },
-          { label: '人数上限', children: <TextInput type="number" value={f.cap} onChange={e => setF({ ...f, cap: +e.target.value })} /> },
-        ]} />
+        <div style={{ display: 'flex', gap: 14 }}>
+          <div style={{ flex: 1 }}><Field label="地点"><TextInput value={f.loc} onChange={e => setF({ ...f, loc: e.target.value })} placeholder="集合地点" /></Field></div>
+          <div style={{ flex: 1 }}><Field label="人数上限"><TextInput type="number" value={f.cap} onChange={e => setF({ ...f, cap: +e.target.value })} /></Field></div>
+        </div>
 
-        {/* ── 活动介绍 ── */}
-        <SecHead label="活动介绍" />
-        <Field label="" hint="支持加粗、字体颜色、有序/无序列表与插入图片">
-          <RichText key={editorKey} value={f.desc} onChange={html => setF(s => ({ ...s, desc: html }))} placeholder="活动安排、注意事项…(可插入图片)" />
+        <Field label="活动介绍">
+          <div style={{ position: 'relative' }}>
+            <div style={{ opacity: descGenning ? 0.45 : 1, pointerEvents: descGenning ? 'none' : 'auto' }}>
+              <RichText key={editorKey} value={f.desc} onChange={html => setF(s => ({ ...s, desc: html }))} placeholder="活动安排、注意事项…" />
+            </div>
+            {descGenning && <div style={{ position: 'absolute', top: 52, left: 13, zIndex: 3 }}><TypingDots color="var(--ai)" /></div>}
+            <button type="button" onClick={genActDesc} disabled={descGenning}
+              style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 4, display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '6px 11px', borderRadius: 9, background: 'var(--ai-soft)', color: 'var(--ai)', fontSize: 12, fontWeight: 700,
+                border: 'none', cursor: descGenning ? 'wait' : 'pointer', opacity: descGenning ? 0.7 : 1 }}>
+              <Sparkles size={14} color="var(--ai)" />AI 帮写</button>
+          </div>
         </Field>
 
         {/* footer */}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center', marginTop: 8 }}>
-          {!editing && actHasContent(f) && <span style={{ marginRight: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink-3)' }}><Icon name="check" size={14} stroke={2.6} />内容已自动暂存</span>}
           <Btn variant="ghost" onClick={onClose}>取消</Btn>
           {(() => { const ok = actFormReady(f, editing); return (
-          <Btn variant="primary" icon="check" disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }} onClick={() => { if (!editing) clearDraft(); onSave({ ...actFormPayload(f), id: editing ? initAct.id : undefined }); onClose(); }}>{editing ? '保存修改' : '发布活动'}</Btn>
+          <Btn variant="primary" icon="check" disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }} onClick={() => { onSave({ ...actFormPayload(f), id: editing ? initAct.id : undefined }); onClose(); }}>{editing ? '保存修改' : '发布活动'}</Btn>
           ); })()}
         </div>
       </div>
@@ -1003,6 +1074,7 @@ function AdminApp() {
   const [groups, setGroups] = React.useState(() => DB.groups.map(g => ({ ...g })));
   const [acts, setActs] = React.useState(() => DB.acts.map(a => ({ ...a })));
   const [joinRequests, setJoinRequests] = React.useState(() => (DB.joinRequests || []).map(r => ({ ...r })));
+  const [comments, setComments] = React.useState(() => DB.comments.map(c => ({ ...c })));
   const [view, setView] = React.useState({ section: 'dashboard' });
   const [aiOpen, setAiOpen] = React.useState(false);
   const [groupForm, setGroupForm] = React.useState({ open: false, init: null });
@@ -1088,16 +1160,43 @@ function AdminApp() {
       setJoinRequests(s => s.filter(r => r.id !== id));
       setGroups(s => s.map(g => g.id === req.gid ? { ...g, members: (g.members || 0) + 1 } : g));
       const g = groups.find(x => x.id === req.gid);
+      // 本人(C 端)申请：写回 DB,使 C 端切回后小组变「已加入」,可报名
+      if (req.self) DBH.patchGroup(req.gid, { joined: true, pending: false, members: (g ? g.members : 0) + 1 });
+      DBH.removeJoinRequest(id);
       toast(`已通过 ${req.name} 加入「${g ? g.name : '小组'}」`, { icon: 'check' });
     },
     rejectJoin: (id) => {
       const req = joinRequests.find(r => r.id === id && r.status === 'pending');
       if (!req) return;
       setJoinRequests(s => s.filter(r => r.id !== id));
+      if (req.self) DBH.patchGroup(req.gid, { pending: false });
+      DBH.removeJoinRequest(id);
       toast(`已拒绝 ${req.name} 的加入申请`, { icon: 'x' });
     },
+    delComment: (id) => {
+      setComments(s => s.filter(c => c.id !== id));
+      const idx = DB.comments.findIndex(c => c.id === id);
+      if (idx >= 0) DB.comments.splice(idx, 1);
+    },
+    approveAllJoin: () => {
+      const pending = joinRequests.filter(r => {
+        if (r.status !== 'pending') return false;
+        const g = groups.find(x => x.id === r.gid);
+        return g && g.join === 'approve';
+      });
+      if (!pending.length) return;
+      const memberDelta = {};
+      pending.forEach(r => { memberDelta[r.gid] = (memberDelta[r.gid] || 0) + 1; });
+      setJoinRequests(s => s.filter(r => !pending.some(p => p.id === r.id)));
+      setGroups(s => s.map(g => memberDelta[g.id] ? { ...g, members: (g.members || 0) + memberDelta[g.id] } : g));
+      pending.forEach(r => {
+        if (r.self) { const g = groups.find(x => x.id === r.gid); DBH.patchGroup(r.gid, { joined: true, pending: false, members: (g ? g.members : 0) + memberDelta[r.gid] }); }
+        DBH.removeJoinRequest(r.id);
+      });
+      toast(`已全部通过 ${pending.length} 条加入申请`, { icon: 'check' });
+    },
   };
-  const store = { groups, acts, joinRequests };
+  const store = { groups, acts, joinRequests, comments };
   const ctx = { view, setView, store, actions,
     openGroupForm: (init) => setGroupForm({ open: true, init }),
     openActForm: (gid, init) => setActForm({ open: true, gid, init: init || null }) };
@@ -1109,7 +1208,7 @@ function AdminApp() {
       case 'groupDetail': return <AdminGroupDetail gid={view.gid} />;
       case 'actDetail': return <AdminActDetail aid={view.aid} back={view.back} />;
       case 'activities': return <ActivitiesSection />;
-      case 'signups': case 'moments': return <GlobalSection section={view.section} />;
+      case 'signups': case 'comments': case 'moments': return <GlobalSection section={view.section} />;
       default: return <Dashboard />;
     }
   };
@@ -1128,4 +1227,4 @@ function AdminApp() {
   );
 }
 
-Object.assign(window, { SignupsView, CommentsView, MomentsGrid, MomentDetailModal, ActivitiesSection, GlobalSection, GroupForm, ActForm, AdminApp });
+Object.assign(window, { SignupsView, CommentsView, MomentsGrid, MomentDetailModal, ActivitiesSection, GlobalSection, GroupForm, ActForm, AdminApp, SignupMembersModal, signupMemberNames });

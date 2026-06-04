@@ -151,7 +151,7 @@
       deadlineIso: '2026-06-04T23:59:00+08:00' },
     { id: 'a14', gid: 'g6', title: 'Go 语言技术分享 · 第 2 期', type: 'series', cat: 'career',
       date: '06月12日 周四', time: '19:00 - 20:30', loc: '总部 · 学习室 A', host: '何夕',
-      cap: 20, signed: 16, liked: false, likes: 0, joinedByMe: true, status: 'upcoming',
+      cap: 20, signed: 15, liked: false, likes: 0, joinedByMe: false, status: 'upcoming',
       desc: '<p>Go 语言技术分享系列第 2 期:并发模型与 channel 实践。</p><ul><li>不要求参加过第 1 期,有基础即可</li><li>结合真实项目案例讲解 goroutine 最佳实践</li></ul>',
       tags: ['Go 语言','并发模型','按场次报名'], series: 'Go 语言技术分享', seriesIdx: 2, seriesTotal: 3, seriesSignupMode: 'independent', ai: false },
     { id: 'a15', gid: 'g6', title: 'Go 语言技术分享 · 第 3 期', type: 'series', cat: 'career',
@@ -177,7 +177,7 @@
     // ── Mock 样例：已终止 ──
     { id: 'a17', gid: 'g7', title: '六一亲子义卖 · 志愿者专场', type: 'once', cat: 'volunteer',
       date: '06月01日 周日', time: '09:00 - 16:00', loc: '滨江社区广场', host: '顾乔',
-      cap: 30, signed: 18, liked: false, likes: 45, joinedByMe: true, status: 'cancelled',
+      cap: 30, signed: 17, liked: false, likes: 45, joinedByMe: false, status: 'cancelled',
       desc: '<p>因天气原因活动已<b>终止</b>,已报名同事将收到通知。</p><ul><li>原定协助布置摊位、引导人流、清点物资</li><li>工会将为已报名同学生成志愿时长说明</li><li>后续将择机重新发布,敬请关注小组动态</li></ul>',
       tags: ['已终止','亲子义卖','有人报名'], ai: false },
 
@@ -228,23 +228,53 @@
   ];
 
   const comments = [
-    { id: 'c1', aid: 'a1', author: '周棠', text: '6′00″ 组报到!上周差点跟丢,这次跟稳了。', likes: 8, time: '昨天 18:20' },
-    { id: 'c2', aid: 'a1', author: '许墨', text: '跑后撸串记得叫我,我负责订位 🍢', likes: 12, time: '昨天 19:02' },
-    { id: 'c3', aid: 'a1', author: '小趣 · AI', isAI: true, text: '已为本场报名的 27 位同学生成了配速分组建议表,出发前会推送到群里~ 雨天预案也准备好了 ☔️', likes: 5, time: '今天 09:10' },
-    { id: 'c4', aid: 'a2', author: '江野', text: '装备清单看群公告,头灯一定要带!整场报名不可临时加入哦。', likes: 6, time: '前天 21:30' },
-    { id: 'c5', aid: 'a3', author: '何夕', text: '午休局太香了,吃饭十分钟解决冲了。', likes: 4, time: '今天 10:05' },
-    { id: 'c6', aid: 'a14', author: '黎川', text: '第 2 期 channel 案例很实用,没报第 1 期也能跟上。', likes: 3, time: '昨天 14:20' },
-    { id: 'c7', aid: 'a13', author: '小趣 · AI', isAI: true, text: 'Go 系列第 1 期还剩 2 个名额,建议有 Java/Python 基础的同学优先报名~', likes: 2, time: '今天 08:30' },
-    { id: 'c8', aid: 'a8', author: '苏曼', text: '系列①圆满收官!感谢 24 位战友凌晨四点准时集合,云海没有辜负我们。精彩瞬间已同步小组圈~', likes: 18, time: '5月25日 15:00' },
-    { id: 'c9', aid: 'a8', author: '顾乔', text: '领队太稳了,下撤段全程押队。登山鞋和头灯真的不能省,系列②见!', likes: 9, time: '5月25日 16:22' },
-    { id: 'c10', aid: 'a8', author: '江野', text: '从夜跑团跨界来徒步,体力还扛得住。这张云海合影必须当壁纸 🌄', likes: 14, time: '5月25日 18:05' },
+    { id: 'c1',  aid: 'a1', author: '周棠', text: '6′00″ 组报到！上周差点跟丢，这次跟稳了。', likes: 8,  time: '昨天 18:20' },
+    { id: 'c2',  aid: 'a1', author: '许墨', text: '跑后撸串记得叫我，我负责订位 🍢', likes: 12, time: '昨天 19:02' },
+    { id: 'c3',  aid: 'a1', author: '小趣 · AI', isAI: true, text: '已为本场报名的 27 位同学生成了配速分组建议表，出发前会推送到群里～ 雨天预案也准备好了 ☔️', likes: 5, time: '今天 09:10' },
+    { id: 'c11', aid: 'a1', author: '沈星', text: '5′30″ 组求组队，上次单飞有点无聊哈哈', likes: 6, time: '今天 09:22' },
+    { id: 'c12', aid: 'a1', author: '叶蓁', text: '新人第一次跑，6′30″ 组够不够？', likes: 3, time: '今天 09:35' },
+    { id: 'c13', aid: 'a1', author: '顾乔', text: '够的！6′30 组很友好，领队全程带节奏 💪', likes: 7, time: '今天 09:41' },
+    { id: 'c14', aid: 'a1', author: '江野', text: '记得带头灯！滨江最后一段没路灯', likes: 9, time: '今天 10:05' },
+    { id: 'c15', aid: 'a1', author: '安然', text: '撸串 +1，这次一定不缺席！上次临时加班悔死了 😭', likes: 4, time: '今天 10:18' },
+    { id: 'c16', aid: 'a1', author: '秦风', text: '今天天气正好，28° 微风，跑起来！', likes: 11, time: '今天 11:00' },
+    { id: 'c17', aid: 'a1', author: '苏曼', text: '上周配速表很准，这次继续用起来', likes: 5, time: '今天 11:30' },
+    { id: 'c18', aid: 'a1', author: '黎川', text: '组长跑的时候能帮忙拍一下吗，上次的照片太糊了', likes: 2, time: '今天 12:00' },
+    { id: 'c19', aid: 'a1', author: '温野', text: '我带自拍杆！大家统一在终点拍合影', likes: 8, time: '今天 12:10' },
+    { id: 'c4',  aid: 'a2', author: '江野', text: '装备清单看群公告，头灯一定要带！整场报名不可临时加入哦。', likes: 6, time: '前天 21:30' },
+    { id: 'c5',  aid: 'a3', author: '何夕', text: '午休局太香了，吃饭十分钟解决冲了。', likes: 4, time: '今天 10:05' },
+    { id: 'c6',  aid: 'a14', author: '黎川', text: '第 2 期 channel 案例很实用，没报第 1 期也能跟上。', likes: 3, time: '昨天 14:20' },
+    { id: 'c7',  aid: 'a13', author: '小趣 · AI', isAI: true, text: 'Go 系列第 1 期还剩 2 个名额，建议有 Java/Python 基础的同学优先报名～', likes: 2, time: '今天 08:30' },
+    { id: 'c8',  aid: 'a8', author: '苏曼', text: '系列①圆满收官！感谢 24 位战友凌晨四点准时集合，云海没有辜负我们。精彩瞬间已同步小组圈～', likes: 18, time: '5月25日 15:00' },
+    { id: 'c9',  aid: 'a8', author: '顾乔', text: '领队太稳了，下撤段全程押队。登山鞋和头灯真的不能省，系列②见！', likes: 9, time: '5月25日 16:22' },
+    { id: 'c10', aid: 'a8', author: '江野', text: '从夜跑团跨界来徒步，体力还扛得住。这张云海合影必须当壁纸 🌄', likes: 14, time: '5月25日 18:05' },
+    { id: 'c20', aid: 'a1', author: ME, text: '5′30″ 组已就位，今晚目标跑进 5′20″，有一起冲的搭子吗？', likes: 6, time: '昨天 17:45' },
+    { id: 'c21', aid: 'a1', author: ME, text: '上次江风配速很稳，这次继续跟 6′00″ 组热身～', likes: 4, time: '今天 08:52' },
+    { id: 'c22', aid: 'a2', author: ME, text: '系列②装备已齐，头灯和登山鞋都检查过了，周日见！', likes: 3, time: '前天 20:10' },
+    { id: 'c23', aid: 'a8', author: ME, text: '首期云海太震撼了，照片已设成壁纸，系列②继续冲 🌄', likes: 11, time: '5月25日 17:30' },
+    { id: 'c24', aid: 'a3', author: ME, text: '午休桌游局带我一个，上次阿瓦隆没玩够哈哈', likes: 2, time: '今天 09:18' },
+    { id: 'c25', aid: 'a13', author: ME, text: '有 Go 基础，第 1 期已报，期待并发那块 Demo', likes: 1, time: '昨天 11:20' },
   ];
 
   // PC 管理端：待审核的加入小组申请（仅 join === 'approve' 的小组）
   const joinRequests = [
     { id: 'jr1', gid: 'g6', name: '邵阳', dept: '产品部', appliedAt: '10 分钟前', status: 'pending' },
     { id: 'jr2', gid: 'g2', name: '黎川', dept: '研发部', appliedAt: '1 小时前', status: 'pending', note: '有多次徒步经验' },
-    { id: 'jr3', gid: 'g6', name: '温野', dept: '设计部', appliedAt: '昨天 16:20', status: 'pending' },
+    { id: 'jr3', gid: 'g6', name: '温野', dept: '设计部', appliedAt: '今天 09:30', status: 'pending' },
+    { id: 'jr4', gid: 'g2', name: '傅瑶', dept: '市场部', appliedAt: '今天 14:20', status: 'pending', note: '周末均可出行' },
+    { id: 'jr5', gid: 'g6', name: '简一', dept: '研发部', appliedAt: '昨天 16:20', status: 'pending' },
+    { id: 'jr6', gid: 'g2', name: '池夏', dept: '设计部', appliedAt: '昨天 11:05', status: 'pending' },
+    { id: 'jr7', gid: 'g6', name: '卫然', dept: '运营部', appliedAt: '昨天 08:40', status: 'pending', note: '想参加汇报表达专题' },
+    { id: 'jr8', gid: 'g2', name: '于归', dept: '产品部', appliedAt: '6月2日 17:30', status: 'pending' },
+    { id: 'jr9', gid: 'g6', name: '骆铭', dept: '财务部', appliedAt: '6月2日 10:15', status: 'pending' },
+    { id: 'jr10', gid: 'g2', name: '邓蔻', dept: '人力部', appliedAt: '6月1日 20:00', status: 'pending', note: '有户外急救证' },
+    { id: 'jr11', gid: 'g6', name: '穆青', dept: '法务部', appliedAt: '6月1日 15:45', status: 'pending' },
+    { id: 'jr12', gid: 'g2', name: '秦风', dept: '研发部', appliedAt: '6月1日 09:00', status: 'pending' },
+    { id: 'jr13', gid: 'g6', name: '安然', dept: '设计部', appliedAt: '5月31日 18:20', status: 'pending', note: '同事推荐加入' },
+    { id: 'jr14', gid: 'g2', name: '罗茜', dept: '产品部', appliedAt: '5月30日 16:00', status: 'pending' },
+    { id: 'jr15', gid: 'g6', name: '叶蓁', dept: '市场部', appliedAt: '5月30日 11:30', status: 'pending' },
+    { id: 'jr16', gid: 'g2', name: '陈航', dept: '运营部', appliedAt: '5月29日 14:00', status: 'pending', note: '可担任副领队' },
+    { id: 'jr17', gid: 'g6', name: '苏曼', dept: '研发部', appliedAt: '5月28日 19:10', status: 'pending' },
+    { id: 'jr18', gid: 'g2', name: '顾乔', dept: '产品部', appliedAt: '5月27日 10:45', status: 'pending' },
   ];
 
   const notifications = [
@@ -259,7 +289,7 @@
 
   // IM 会话列表（对齐沟通引擎 IM 样例 + 保留小趣）
   const convos = [
-    { id: 'cv0', kind: 'ai', name: '小趣 · 你的兴趣助手', seed: 'ai', time: '刚刚', unread: 2, pinned: true,
+    { id: 'cv0', kind: 'ai', name: '你的兴趣助手', seed: 'ai', time: '刚刚', unread: 2, pinned: true,
       preview: '为你找到 3 个周末的羽毛球活动,要现在报名吗?' },
     { id: 'cv1', kind: 'notify', name: '沟通引擎', seed: 'engine', time: '10:32', unread: 7, pinned: true, official: true,
       prefix: '[提醒]', preview: '「城市夜跑团」发布了新活动「滨江 8K 夜跑」,快来看看' },
@@ -267,16 +297,10 @@
       preview: '好的,明天夜跑见!' },
     { id: 'cv3', kind: 'dm', name: '许墨', seed: '许墨', time: '09:15', unread: 0, online: true,
       prefix: '[草稿]', preview: '我看一下系列活动报名' },
-    { id: 'cv4', kind: 'group', name: '城市夜跑团', seed: 'g1', time: '昨天', unread: 5,
-      prefix: '[有人@我]', prefixRed: true, preview: '江野:38 人!本团历史新高,合影已发小组圈' },
     { id: 'cv5', kind: 'dm', name: '沈星', seed: '沈星', time: '昨天', unread: 0, muted: true,
       preview: '收到,谢谢!' },
-    { id: 'cv6', kind: 'group', name: '桌游电竞局', seed: 'g5', time: '周一', unread: 12,
-      preview: '沈星:午休阿瓦隆三缺一,速来休闲区 3 号桌!' },
     { id: 'cv7', kind: 'dm', name: '周棠', seed: '周棠', time: '周一', unread: 1, online: true,
       preview: '读书会材料已更新' },
-    { id: 'cv8', kind: 'notify', name: 'HR 通知', seed: 'hr', time: '03/28', unread: 0, official: true,
-      prefix: '[通知]', preview: '4月兴趣活动福利报名开启' },
   ];
 
   // helpers
@@ -301,7 +325,43 @@
   const commentsOf = aid => comments.filter(c => c.aid === aid);
   const groupOf = aid => groups.find(g => g.id === (byId(acts, aid) || {}).gid);
 
-  window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME };
+  // 跨端共享：原型中移动端与 PC 互斥渲染,各自切 Tab 时从 DB 重新初始化。
+  // 这两个 helper 直接写回共享的 DB 数组,实现「C 端发起入组申请 → PC 审核 → C 端生效」联动。
+  const patchGroup = (gid, patch) => { const g = byId(groups, gid); if (g) Object.assign(g, patch); };
+  const pushSelfJoinRequest = (gid) => {
+    if (joinRequests.some(r => r.self && r.gid === gid && r.status === 'pending')) return;
+    joinRequests.unshift({ id: 'jr-self-' + gid, gid, name: ME, dept: '产品部', appliedAt: '刚刚',
+      status: 'pending', self: true, note: '想报名该小组活动' });
+  };
+  const removeJoinRequest = (id) => { const i = joinRequests.findIndex(r => r.id === id); if (i >= 0) joinRequests.splice(i, 1); };
+
+  // App · 我的互动（点赞/收藏/评论 · 悦文化等内容 mock）
+  const mineInteractFeed = [
+    { id: 'mf1', kind: 'likes', category: 'activity', title: '新春团建活动回顾：凝心聚力再出发', commentCount: 6, date: '2026年01月08日', coverSeed: 'reg-team' },
+    { id: 'mf2', kind: 'likes', category: 'article', title: '2026 年度企业文化建设白皮书', commentCount: 2, date: '2026年01月05日', coverSeed: 'reg-award' },
+    { id: 'mf3', kind: 'favorites', category: 'course', title: '管理者高效沟通与反馈技巧（线上课）', commentCount: 0, date: '2025年12月20日', coverSeed: 'reg-training' },
+    { id: 'mf4', kind: 'comments', category: 'activity', title: '年终颁奖典礼暨年会晚宴', commentCount: 12, date: '2025年12月31日', coverSeed: 'reg-award' },
+    { id: 'mf5', kind: 'comments', category: 'article', title: '员工健康关怀计划升级说明', commentCount: 1, date: '2025年12月18日', coverSeed: 'reg-outdoor' },
+    { id: 'mf6', kind: 'comments', category: 'activity', title: '2026年度团队户外拓展训练营', commentCount: 8, date: '2025年12月22日', coverSeed: 'reg-outdoor' },
+    { id: 'mf7', kind: 'comments', category: 'activity', title: '新春团建活动回顾：凝心聚力再出发', commentCount: 6, date: '2026年01月08日', coverSeed: 'reg-team' },
+    { id: 'mf8', kind: 'comments', category: 'course', title: '职场技能提升培训营（第三期）', commentCount: 4, date: '2025年12月16日', coverSeed: 'reg-training' },
+    { id: 'mf9', kind: 'comments', category: 'course', title: '新员工入职文化融入微课', commentCount: 0, date: '2025年11月28日', coverSeed: 'reg-training' },
+    { id: 'mf10', kind: 'comments', category: 'article', title: '工会福利政策 2026 版解读', commentCount: 15, date: '2025年12月08日', coverSeed: 'reg-award' },
+    { id: 'mf11', kind: 'comments', category: 'article', title: '冬季办公区节能与用电安全提示', commentCount: 3, date: '2025年11月15日', coverSeed: 'reg-outdoor' },
+  ];
+
+  // App · 我的报名（悦生活员工端 mock）
+  const myRegistrations = [
+    { id: 'mr1', status: 'pending', title: '2026年度团队户外拓展训练营', dateTime: '2026-12-28 09:00',
+      location: '北京·怀柔水长城景区', appliedAt: '2026-12-20 10:32', coverSeed: 'reg-outdoor' },
+    { id: 'mr2', status: 'success', title: '2026年终颁奖典礼暨年会晚宴', dateTime: '2026-12-31 18:00',
+      location: '北京·国际会议中心大宴会厅', appliedAt: '2026-12-19 14:15', coverSeed: 'reg-award', role: '参与者' },
+    { id: 'mr3', status: 'rejected', title: '职场技能提升培训营（第三期）', dateTime: '2025-01-10 14:00',
+      location: '总部大楼·3楼多功能厅', appliedAt: '2026-12-18 09:00', coverSeed: 'reg-training',
+      rejectReason: '报名人数已超出本期培训名额，请关注下期活动。' },
+  ];
+
+  window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME, myRegistrations, mineInteractFeed };
   window.CATS = CATS;
-  window.DBH = { byId, seriesEps, seriesAnchor, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf };
+  window.DBH = { byId, seriesEps, seriesAnchor, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf, patchGroup, pushSelfJoinRequest, removeJoinRequest };
 })();

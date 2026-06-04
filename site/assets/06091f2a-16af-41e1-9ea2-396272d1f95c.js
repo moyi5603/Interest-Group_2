@@ -10,6 +10,7 @@ const NAV_IG = {
     { k: 'groups', label: '小组管理', icon: 'users' },
     { k: 'activities', label: '活动管理', icon: 'calendar' },
     { k: 'signups', label: '报名管理', icon: 'ticket' },
+    { k: 'comments', label: '评论&互动', icon: 'comment' },
     { k: 'moments', label: '精彩瞬间', icon: 'image' },
   ],
 };
@@ -142,7 +143,7 @@ function makeAiPoster(title, cat) {
     + `<circle cx="548" cy="74" r="130" fill="#fff" opacity="0.12"/><circle cx="86" cy="310" r="96" fill="#fff" opacity="0.10"/>`
     + `<path d="M70 64 l13 36 36 13 -36 13 -13 36 -13-36 -36-13 36-13z" fill="#fff" opacity="0.92"/>`
     + `<text x="40" y="300" font-family="-apple-system,Segoe UI,sans-serif" font-size="46" font-weight="800" fill="#fff">${safe}</text>`
-    + `<text x="42" y="336" font-family="-apple-system,Segoe UI,sans-serif" font-size="18" fill="#fff" opacity="0.85">AI 生成 · 小趣</text>`
+    + `<text x="42" y="336" font-family="-apple-system,Segoe UI,sans-serif" font-size="18" fill="#fff" opacity="0.85">AI 生成</text>`
     + `</svg>`;
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
@@ -231,7 +232,7 @@ function AIComposer({ open, onClose, onPublish, store }) {
           <div style={{ width: 42, height: 42, borderRadius: 13, background: 'var(--ai-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={24} color="#fff" /></div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 800 }}>AI 活动策划 <AIPill label="Beta" /></div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>用一句话描述你的想法,小趣帮你生成完整方案与海报文案</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>用一句话描述你的想法,帮你生成完整方案</div>
           </div>
           <button onClick={onClose} style={{ color: 'var(--ink-3)' }}><Icon name="x" size={22} /></button>
         </div>
@@ -255,9 +256,9 @@ function AIComposer({ open, onClose, onPublish, store }) {
           <div style={{ padding: '40px 0', textAlign: 'center' }} className="fade">
             <div style={{ width: 60, height: 60, borderRadius: 18, background: 'var(--ai-grad)', display: 'flex', alignItems: 'center',
               justifyContent: 'center', margin: '0 auto 18px', animation: 'pulseRing 1.6s infinite' }}><Sparkles size={32} color="#fff" style={{ animation: 'sparkle 1.4s infinite' }} /></div>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>小趣正在策划中…</div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>正在策划中…</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 280, margin: '0 auto' }}>
-              {['理解你的需求', '匹配合适的小组与场地', '生成方案与海报文案'].map((t, i) => (
+              {['理解你的需求', '匹配合适的小组与场地', '生成方案'].map((t, i) => (
                 <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: 'var(--ink-2)', opacity: 0,
                   animation: `floatUp .4s ${i * 0.45}s both` }}>
                   <Icon name="check" size={16} style={{ color: 'var(--c-outdoor)' }} stroke={3} />{t}</div>
@@ -274,19 +275,30 @@ function AIComposer({ open, onClose, onPublish, store }) {
 
             <Field label="封面图" hint="AI 已生成 · 可重新生成或上传替换">
               <input ref={coverRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={pickCover} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 12px', borderRadius: 12, border: '1.5px solid var(--line-2)', background: 'var(--bg)' }}>
-                <div style={{ width: 96, height: 54, borderRadius: 8, overflow: 'hidden', flexShrink: 0, position: 'relative', border: form.cover ? 'none' : '1.5px dashed var(--line-2)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 120, height: 68, borderRadius: 9, overflow: 'hidden', background: 'var(--bg)', flexShrink: 0,
+                  border: form.cover ? 'none' : '2px dashed var(--line-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
+                  onClick={() => coverRef.current && coverRef.current.click()}>
                   {form.cover
-                    ? <img src={form.cover} alt="封面预览" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    : <Icon name="image" size={22} stroke={1.8} style={{ color: 'var(--ink-3)' }} />}
+                    ? <img src={form.cover} alt="封面" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    : <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, color: 'var(--ink-3)' }}>
+                        <Icon name="image" size={24} stroke={1.6} />
+                        <span style={{ fontSize: 11, fontWeight: 600 }}>点击上传</span>
+                      </div>}
+                  {form.cover && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'background .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.38)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0)'}>
+                      <button type="button" onClick={e => { e.stopPropagation(); coverRef.current && coverRef.current.click(); }}
+                        style={{ padding: '4px 9px', borderRadius: 7, background: 'rgba(255,255,255,0.9)', fontSize: 11.5, fontWeight: 700 }}>更换</button>
+                      <button type="button" onClick={e => { e.stopPropagation(); setForm(s => ({ ...s, cover: '' })); }}
+                        style={{ padding: '4px 9px', borderRadius: 7, background: 'rgba(255,255,255,0.9)', fontSize: 11.5, fontWeight: 700, color: 'oklch(0.55 0.2 25)' }}>删除</button>
+                    </div>
+                  )}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 2 }}>{form.cover ? '已选择封面' : '尚未上传封面'}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>JPG / PNG</div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  <Btn variant="ghost" size="sm" icon="spark" type="button" onClick={() => setForm(s => ({ ...s, cover: makeAiPoster(s.title, s.cat) }))}>重新生成</Btn>
-                  <Btn variant="ghost" size="sm" icon="image" type="button" onClick={() => coverRef.current && coverRef.current.click()}>{form.cover ? '更换' : '上传'}</Btn>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+                  <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>JPG / PNG，建议 16:9</span>
+                  <Btn variant="ai" size="sm" icon="spark" type="button" onClick={() => setForm(s => ({ ...s, cover: makeAiPoster(s.title, s.cat) }))}>重新生成</Btn>
                 </div>
               </div>
             </Field>
@@ -384,8 +396,8 @@ function AIComposer({ open, onClose, onPublish, store }) {
               <div style={{ flex: 1 }}><Field label="人数上限"><TextInput type="number" value={form.cap} onChange={e => setForm({ ...form, cap: +e.target.value })} /></Field></div>
             </div>
 
-            <Field label="活动描述" hint="支持加粗、字体颜色、有序/无序列表与插入图片">
-              <RichText key={editorKey} value={form.desc} onChange={html => setForm(s => ({ ...s, desc: html }))} placeholder="活动安排、注意事项…(可插入图片)" />
+            <Field label="活动描述">
+              <RichText key={editorKey} value={form.desc} onChange={html => setForm(s => ({ ...s, desc: html }))} placeholder="活动安排、注意事项…" />
             </Field>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>

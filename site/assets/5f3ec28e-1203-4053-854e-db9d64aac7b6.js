@@ -26,7 +26,11 @@ function MiniBars({ data, color = 'var(--brand)' }) {
 function Dashboard() {
   const { store, setView, actions } = useA();
   const upcoming = store.acts.filter(a => a.status === 'upcoming');
-  const pendingJoins = (store.joinRequests || []).filter(r => r.status === 'pending');
+  const pendingJoins = (store.joinRequests || []).filter(r => {
+    if (r.status !== 'pending') return false;
+    const g = store.groups.find(x => x.id === r.gid);
+    return g && g.join === 'approve';
+  });
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }} className="noscroll">
       <Topbar title="工作台"
@@ -49,18 +53,22 @@ function Dashboard() {
               { l: 'W5', v: 165 }, { l: 'W6', v: 210 }, { l: 'W7', v: 245 }, { l: 'W8', v: 312 }]} />
           </div>
           <div style={{ flex: 1, background: 'var(--surface)', borderRadius: 18, padding: 22, boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 800 }}>待审核</div>
-              {pendingJoins.length > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}>{pendingJoins.length} 条</span>}
+              {pendingJoins.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand)' }}>{pendingJoins.length} 条</span>
+                  <Btn variant="soft" size="sm" onClick={() => actions.approveAllJoin()}>全部通过</Btn>
+                </div>
+              )}
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginBottom: 16 }}>加入小组申请 · 需审核后加入</div>
             {pendingJoins.length === 0 ? (
               <div style={{ padding: '28px 8px', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)' }}>暂无待审核的加入申请</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 11, maxHeight: 'calc(36px * 3 + 11px * 2)', overflowY: 'auto', paddingRight: 4 }} className="noscroll">
                 {pendingJoins.map(r => {
                   const g = store.groups.find(x => x.id === r.gid);
-                  if (!g || g.join !== 'approve') return null;
                   return (
                     <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklch, var(--c-music) 14%, white)', color: 'var(--c-music)',
@@ -400,9 +408,13 @@ function MembersGrid({ members, lead }) {
   );
 }
 
+const ACT_DETAIL_AVATAR_COLS = 4;
+const ACT_DETAIL_AVATAR_MAX = ACT_DETAIL_AVATAR_COLS * 2; // 固定 2 行
+
 function AdminActDetail({ aid, back }) {
   const { store, setView, openActForm, actions } = useA();
   const [sessionOpen, setSessionOpen] = aUseState({});
+  const [memberModal, setMemberModal] = aUseState(null);
   const toggleSession = id => setSessionOpen(s => ({ ...s, [id]: !s[id] }));
   const aIn = store.acts.find(x => x.id === aid);
   if (!aIn) return null;
@@ -441,21 +453,34 @@ function AdminActDetail({ aid, back }) {
   const tags = isSeries ? (a.seriesTags || a.tags) : aIn.tags;
   const likes = isSeries ? episodes.reduce((m, e) => Math.max(m, e.likes || 0), 0) : aIn.likes;
   const commentActs = isSeries ? episodes : [aIn];
-  const commentCount = DB.comments.filter(c => commentActs.some(x => x.id === c.aid)).length;
+  const commentCount = (store.comments || []).filter(c => commentActs.some(x => x.id === c.aid)).length;
   const backTo = back || { section: 'activities' };
   const timeIcon = isSeries ? 'series' : aIn.type === 'recurring' ? 'repeat' : 'calendar';
 
-  const SignupAvatars = ({ count }) => (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
-      {DB.NAMES.slice(0, Math.min(count, 12)).map(m => (
-        <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px 6px 6px', borderRadius: 99, background: 'var(--surface)' }}>
-          <Avatar name={m} size={26} /><span style={{ fontSize: 12.5, fontWeight: 600 }}>{m}</span>
-        </div>
-      ))}
-      {count > 12 && <span style={{ padding: '8px 12px', fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>+{count - 12} 人</span>}
-      {count === 0 && <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>暂无报名</span>}
-    </div>
-  );
+  const SignupAvatars = ({ count, modalTitle }) => {
+    if (count === 0) return <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>暂无报名</span>;
+    const overflow = count > ACT_DETAIL_AVATAR_MAX;
+    // 溢出时占满 2 行（8 格）：前 7 格头像，第 8 格放「+N 人」按钮，保证它落在第二行末尾
+    const shown = overflow ? ACT_DETAIL_AVATAR_MAX - 1 : count;
+    const names = signupMemberNames(shown);
+    const chip = { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px 6px 6px', borderRadius: 99, background: 'var(--surface)', minWidth: 0 };
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ACT_DETAIL_AVATAR_COLS}, minmax(0, 1fr))`, gap: 8 }}>
+        {names.map((m, i) => (
+          <div key={m + i} style={chip}>
+            <Avatar name={m} size={24} /><span style={{ fontSize: 12.5, fontWeight: 600, minWidth: 0 }} className="clamp1">{m}</span>
+          </div>
+        ))}
+        {overflow && (
+          <button type="button" onClick={() => setMemberModal({ count, title: modalTitle })}
+            style={{ ...chip, justifyContent: 'center', gap: 4, padding: '6px 10px', cursor: 'pointer',
+              background: 'var(--brand-soft)', color: 'var(--brand-600)', fontSize: 12.5, fontWeight: 700 }}>
+            +{count - (ACT_DETAIL_AVATAR_MAX - 1)} 人<Icon name="chevR" size={14} />
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const renderSignupBlock = (s, memberCount) => {
     const count = memberCount != null ? memberCount : s.signed;
@@ -485,7 +510,7 @@ function AdminActDetail({ aid, back }) {
         {isOpen && (
           <div style={{ padding: '0 13px 12px', borderTop: '1px solid var(--line)' }} className="fade">
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', margin: '10px 0 8px' }}>已报名 ({count})</div>
-            <SignupAvatars count={count} />
+            <SignupAvatars count={count} modalTitle={`${title}${s.seriesIdx ? ` · 第 ${s.seriesIdx} 期` : ''} · ${s.date} · 已报名 (${count})`} />
           </div>
         )}
       </div>
@@ -503,8 +528,7 @@ function AdminActDetail({ aid, back }) {
             <Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} dim /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-              <CatBadge cat={a.cat} size="sm" /><TypeTag type={isSeries ? 'series' : aIn.type} />{a.ai && <AIPill label="AI 共创" />}
-              {isSeries && (
+              <CatBadge cat={a.cat} size="sm" /><TypeTag type={isSeries ? 'series' : aIn.type} />              {isSeries && (
                 <span style={{ padding: '3px 9px', borderRadius: 99, fontSize: 11, fontWeight: 700, ...MODE_TAG_STYLE }}>
                   {mode === 'all' ? '整场报名' : '按场次报名'}
                 </span>
@@ -556,7 +580,7 @@ function AdminActDetail({ aid, back }) {
 
             <div style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
               <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>评论 & 互动</div>
-              <CommentsView acts={commentActs} />
+              <CommentsView acts={commentActs} inline />
             </div>
           </div>
 
@@ -599,7 +623,7 @@ function AdminActDetail({ aid, back }) {
                 {sessionOpen.single && (
                   <div style={{ padding: '0 13px 12px', borderTop: '1px solid var(--line)' }} className="fade">
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', margin: '10px 0 8px' }}>已报名 ({signed})</div>
-                    <SignupAvatars count={signed} />
+                    <SignupAvatars count={signed} modalTitle={`${title} · 已报名 (${signed})`} />
                   </div>
                 )}
               </div>
@@ -607,6 +631,8 @@ function AdminActDetail({ aid, back }) {
           </div>
         </div>
       </div>
+      <SignupMembersModal open={!!memberModal} onClose={() => setMemberModal(null)}
+        count={memberModal ? memberModal.count : 0} title={memberModal ? memberModal.title : ''} />
     </div>
   );
 }

@@ -44,18 +44,47 @@ function needsDetailEnroll(type) {
   return type === 'recurring' || type === 'series';
 }
 
-function handleActivityEnrollClick(e, a, actions, nav) {
+// 本人对某小组的三态：member（已入组）/ pending（待审核）/ none（未入组）
+function groupMemberState(group) {
+  if (!group) return 'member';
+  if (group.joined) return 'member';
+  if (group.pending) return 'pending';
+  return 'none';
+}
+
+// 是否按场次/按期可增减（周期 或 系列·按场次）
+function isAdjustableAct(a) {
+  return a.type === 'recurring' || (a.type === 'series' && (a.seriesSignupMode || 'independent') === 'independent');
+}
+
+// 报名按钮文案/样式（卡片用）。需先加入小组才能报名。
+function enrollBtnInfo(a, cur, group) {
+  const via = needsDetailEnroll(a.type);
+  const adjustable = isAdjustableAct(a);
+  const gs = groupMemberState(group);
+  if (gs === 'pending') return { label: '审核中', icon: 'clock', variant: 'ghost', disabled: true };
+  if (gs === 'none') return { label: '报名+入组', icon: 'userPlus', variant: 'primary' };
+  if (cur.joinedByMe) {
+    if (adjustable) return { label: '调整场次', icon: 'ticket', variant: 'soft' };
+    return { label: via ? '取消报名' : '已报名', icon: via ? 'x' : 'check', variant: 'ghost' };
+  }
+  return { label: adjustable ? '选场次报名' : '报名', icon: 'ticket', variant: 'primary' };
+}
+
+function handleActivityEnrollClick(e, a, actions, nav, group) {
   e.stopPropagation();
-  const enrollViaDetail = needsDetailEnroll(a.type);
-  if (enrollViaDetail) {
-    const sessions = a.sessions;
-    const joined = sessions ? sessions.filter(s => s.joinedByMe).length : 0;
-    if (sessions && a.joinedByMe && joined === 1) {
-      actions.setSessionSignups(a.id, []);
-      toast('已取消报名', { icon: 'check' });
-      return;
-    }
-    nav.go('activity', { aid: a.id, pickEnroll: sessions });
+  const gs = groupMemberState(group);
+  if (gs === 'pending') { toast('申请审核中,通过后可报名', { icon: 'clock' }); return; }
+  if (gs === 'none') {
+    if (group.join === 'approve') { actions.applyJoin(group.id); return; }
+    // 自由加入：入组后报名
+    if (needsDetailEnroll(a.type)) { actions.joinGroupFree(group.id); nav.go('activity', { aid: a.id, pickEnroll: true }); return; }
+    actions.signupAndJoinFree(a.id, group.id);
+    return;
+  }
+  // 已是成员：周期/系列进详情调整场次,单次直接报名/取消
+  if (needsDetailEnroll(a.type)) {
+    nav.go('activity', { aid: a.id, pickEnroll: true });
     return;
   }
   actions.toggleSignup(a.id);
@@ -69,7 +98,11 @@ function ActivityCard({ a, onClick, recReason }) {
   const moms = DB.moments.filter(m => m.aid === a.id);
   const cancelled = cur.status === 'cancelled';
   const ended = cur.status === 'ended' || cancelled;
-  const enrollViaDetail = needsDetailEnroll(cur.type);
+  const statusMeta = cancelled
+    ? { label: '已终止', color: '#fff', bg: 'rgba(120,113,108,0.92)' }
+    : cur.status === 'ended'
+      ? { label: '已结束', color: '#fff', bg: 'rgba(60,60,60,0.78)' }
+      : null;
   const cardTitle = a.type === 'series' && a.series
     ? (a.seriesIdx ? `${a.series} · 第${a.seriesIdx}期` : a.series)
     : a.title;
@@ -79,8 +112,12 @@ function ActivityCard({ a, onClick, recReason }) {
       <div style={{ position: 'relative', height: 152 }}>
         <Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} dim />
         <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6 }}>
+          {statusMeta && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 99,
+              fontSize: 11, fontWeight: 800, color: statusMeta.color, background: statusMeta.bg,
+              backdropFilter: 'blur(4px)' }}>{statusMeta.label}</span>
+          )}
           <CatBadge cat={a.cat} size="sm" solid />
-          {cur.ai && <AIPill label="AI 共创" />}
         </div>
         <div style={{ position: 'absolute', top: 12, right: 12 }}><TypeTag type={a.type} /></div>
         {!ended && !recReason && (
@@ -99,9 +136,9 @@ function ActivityCard({ a, onClick, recReason }) {
           )}
           {g && !recReason && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600, marginBottom: 3 }} className="clamp1">{g.name}</div>}
           <div style={{ fontSize: 15.5, fontWeight: 800, lineHeight: 1.3, letterSpacing: -0.2, color: '#fff', paddingRight: ended ? 0 : 52 }} className="clamp1">{cardTitle}</div>
-          {ended && (
+          {ended && !cancelled && moms.length > 0 && (
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 4 }}>
-              {cancelled ? '已终止' : `已结束${moms.length ? ` · ${moms.length} 条精彩瞬间` : ''}`}
+              {moms.length} 条精彩瞬间
             </div>
           )}
         </div>
@@ -130,11 +167,11 @@ function ActivityCard({ a, onClick, recReason }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <AvatarStack names={DB.NAMES.slice(0, 6)} n={4} size={26} extra={Math.max(0, cur.signed - 4)} />
-            <Btn variant={cur.joinedByMe ? 'ghost' : 'primary'} size="sm"
-              icon={cur.joinedByMe ? 'check' : 'ticket'}
-              onClick={e => handleActivityEnrollClick(e, cur, actions, nav)}>
-              {cur.joinedByMe ? (enrollViaDetail ? '取消报名' : '已报名') : (enrollViaDetail ? '选场次报名' : '报名')}
-            </Btn>
+            {(() => { const b = enrollBtnInfo(cur, cur, g); return (
+              <Btn variant={b.variant} size="sm" icon={b.icon} disabled={b.disabled}
+                style={b.disabled ? { opacity: 0.55 } : undefined}
+                onClick={e => handleActivityEnrollClick(e, cur, actions, nav, g)}>{b.label}</Btn>
+            ); })()}
           </div>
         </div>
       )}
@@ -165,7 +202,7 @@ function ActivityRow({ a, onClick }) {
 function RecCard({ a, reason, onClick }) {
   const { store, actions, nav } = useM();
   const cur = store.acts.find(x => x.id === a.id) || a;
-  const enrollViaDetail = needsDetailEnroll(cur.type);
+  const g = store.groups.find(x => x.id === a.gid);
   return (
     <div onClick={onClick} style={{ width: 230, flexShrink: 0, background: 'var(--surface)', borderRadius: 'var(--r-lg)',
       boxShadow: 'var(--shadow)', overflow: 'hidden', cursor: 'pointer', scrollSnapAlign: 'start' }}>
@@ -183,8 +220,11 @@ function RecCard({ a, reason, onClick }) {
           <Sparkles size={14} color="var(--ai)" />
           <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ai)', lineHeight: 1.3 }} className="clamp2">{reason}</span>
         </div>
-        <Btn variant={cur.joinedByMe ? 'ghost' : 'primary'} size="sm" full icon={cur.joinedByMe ? 'check' : 'ticket'}
-          onClick={e => handleActivityEnrollClick(e, cur, actions, nav)}>{cur.joinedByMe ? (enrollViaDetail ? '取消报名' : '已报名') : (enrollViaDetail ? '选场次报名' : '一键报名')}</Btn>
+        {(() => { const b = enrollBtnInfo(cur, cur, g); return (
+          <Btn variant={b.variant} size="sm" full icon={b.icon} disabled={b.disabled}
+            style={b.disabled ? { opacity: 0.55 } : undefined}
+            onClick={e => handleActivityEnrollClick(e, cur, actions, nav, g)}>{b.label}</Btn>
+        ); })()}
       </div>
     </div>
   );
@@ -209,8 +249,15 @@ function GroupCard({ g, onClick, wide }) {
             <AvatarStack names={DB.NAMES.slice(2, 8)} n={3} size={24} />
             <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>{cur.members} 人</span>
           </div>
-          <Btn variant={cur.joined ? 'ghost' : 'soft'} size="sm" icon={cur.joined ? 'check' : 'plus'}
-            onClick={e => { e.stopPropagation(); actions.toggleJoin(g.id); }}>{cur.joined ? '已加入' : '加入'}</Btn>
+          {(() => {
+            const gs = groupMemberState(cur);
+            const jb = gs === 'member' ? { label: '已加入', icon: 'check', variant: 'ghost', disabled: false }
+              : gs === 'pending' ? { label: '审核中', icon: 'clock', variant: 'ghost', disabled: true }
+              : { label: cur.join === 'approve' ? '申请加入' : '加入', icon: 'plus', variant: 'soft', disabled: false };
+            return <Btn variant={jb.variant} size="sm" icon={jb.icon} disabled={jb.disabled}
+              style={jb.disabled ? { opacity: 0.55 } : undefined}
+              onClick={e => { e.stopPropagation(); if (!jb.disabled) actions.toggleJoin(g.id); }}>{jb.label}</Btn>;
+          })()}
         </div>
       </div>
     </div>

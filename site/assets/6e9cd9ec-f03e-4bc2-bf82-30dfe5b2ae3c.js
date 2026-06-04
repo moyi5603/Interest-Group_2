@@ -133,12 +133,13 @@ function sessionTimeShort(timeStr) {
 }
 
 /** 与详情页「最近场次」一致的场次方块 */
-function SessionSlotTile({ s, active, disabled, onClick, grid, cancelMode }) {
+function SessionSlotTile({ s, active, disabled, onClick, grid, cancelMode, topLabel, ended }) {
   const full = s.signed >= s.cap;
-  const mine = cancelMode ? active : (s.joinedByMe || active);
-  const statusColor = cancelMode && !active ? 'var(--ink-3)' : mine ? 'var(--brand)' : full ? 'var(--ink-3)' : 'var(--c-outdoor)';
-  const statusText = cancelMode
-    ? (active ? '已报名' : '将取消')
+  const mine = !ended && (cancelMode ? active : (s.joinedByMe || active));
+  const statusColor = ended ? 'var(--ink-3)'
+    : cancelMode && !active ? 'var(--ink-3)' : mine ? 'var(--brand)' : full ? 'var(--ink-3)' : 'var(--c-outdoor)';
+  const statusText = ended ? '已结束'
+    : cancelMode ? (active ? '已报名' : '将取消')
     : mine ? '已报名' : full ? '已满员' : `余 ${s.cap - s.signed} 位`;
   const Tag = onClick ? 'button' : 'div';
   return (
@@ -157,9 +158,11 @@ function SessionSlotTile({ s, active, disabled, onClick, grid, cancelMode }) {
         alignItems: grid ? 'center' : 'stretch',
         justifyContent: 'center',
         textAlign: grid ? 'center' : 'left',
-        opacity: disabled ? 0.45 : 1,
+        opacity: disabled ? 0.45 : ended ? 0.7 : 1,
         cursor: disabled ? 'not-allowed' : onClick ? 'pointer' : 'default',
       }}>
+      {topLabel && <div style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.2, marginBottom: 1,
+        color: mine ? 'var(--brand)' : 'var(--c-outdoor)' }}>{topLabel}</div>}
       <div style={{ fontSize: grid ? 12 : 12.5, fontWeight: 800, lineHeight: 1.25 }}>{sessionDateShort(s.date)}</div>
       <div style={{ fontSize: 11, color: 'var(--ink-3)', margin: '2px 0 2px', lineHeight: 1.25 }}>{sessionTimeShort(s.time)}</div>
       <div style={{ fontSize: grid ? 10 : 11, fontWeight: 700, color: statusColor, lineHeight: 1.2 }}>{statusText}</div>
@@ -209,7 +212,12 @@ function ActivityDetail({ aid, pickEnroll }) {
   const [detailExpanded, setDetailExpanded] = React.useState(!ended);
   const sessionsAll = (!isSeries && aIn.type === 'recurring' && aIn.sessions) ? aIn.sessions : null;
   const sessions = DBH.recentSessions(sessionsAll);
-  const joinedCount = sessionsAll ? sessionsAll.filter(s => s.joinedByMe).length : 0;
+  // 可按场次/按期增减报名的活动：周期 + 系列(按场次)
+  const isSeriesIndep = isSeries && mode === 'independent';
+  const adjustable = !!sessions || isSeriesIndep;
+  const slotsAll = sessions ? sessionsAll : isSeriesIndep ? episodes : null;
+  const slots = sessions ? sessions : isSeriesIndep ? episodes : null;
+  const joinedCount = slotsAll ? slotsAll.filter(s => s.joinedByMe).length : 0;
   const seriesJoined = isSeries && mode === 'all' ? activeEp.joinedByMe : isSeries ? episodes.some(e => e.joinedByMe) : aIn.joinedByMe;
   const displaySigned = viewEndedEp ? aIn.signed : isSeries
     ? (mode === 'all' ? activeEp.signed : episodes.reduce((s, e) => s + e.signed, 0))
@@ -218,48 +226,35 @@ function ActivityDetail({ aid, pickEnroll }) {
     ? (mode === 'all' ? activeEp.cap : episodes.reduce((s, e) => s + e.cap, 0))
     : aIn.cap;
   const [pickOpen, setPickOpen] = React.useState(false);
-  const [pickMode, setPickMode] = React.useState('enroll');
   const [sel, setSel] = React.useState([]);
+  const origSel = (slots || []).filter(s => s.joinedByMe).map(s => s.id);
+  // 打开「调整报名场次」弹窗：预选已报名的场次/期,可勾选新增、取消勾选移除
   const openPickEnroll = () => {
-    setPickMode('enroll');
-    setSel((sessions || []).filter(s => s.joinedByMe).map(s => s.id));
-    setPickOpen(true);
-  };
-  const cancelSessionsDirect = () => {
-    actions.setSessionSignups(aid, []);
-    toast('已取消报名', { icon: 'check' });
-  };
-  const openPickCancel = () => {
-    if (joinedCount === 1) {
-      cancelSessionsDirect();
-      return;
-    }
-    setPickMode('cancel');
-    setSel((sessions || []).filter(s => s.joinedByMe).map(s => s.id));
+    setSel((slots || []).filter(s => s.joinedByMe).map(s => s.id));
     setPickOpen(true);
   };
   React.useEffect(() => {
-    if (!sessions || ended || !pickEnroll) return;
-    if (joinedCount > 0) {
-      if (joinedCount > 1) openPickCancel();
-    } else {
-      openPickEnroll();
-    }
+    if (!adjustable || ended || !pickEnroll) return;
+    openPickEnroll();
   }, [aid]);
   const toggleSel = (s) => {
-    if (pickMode === 'enroll' && s.signed >= s.cap && !s.joinedByMe) return;
+    if (s.signed >= s.cap && !s.joinedByMe) return; // 已满且非本人不可新增
     setSel(cur => cur.includes(s.id) ? cur.filter(x => x !== s.id) : [...cur, s.id]);
   };
+  const selChanged = sel.length !== origSel.length || sel.some(id => !origSel.includes(id));
   const confirmPick = () => {
-    actions.setSessionSignups(aid, sel);
+    if (sessions) actions.setSessionSignups(aid, sel);
+    else if (isSeriesIndep) actions.setEpisodeSignups(episodes.map(e => e.id), sel);
     setPickOpen(false);
-    if (pickMode === 'cancel') {
-      const n = (sessionsAll || []).filter(s => s.joinedByMe).length - sel.length;
-      if (n > 0) toast(`已取消 ${n} 个场次`, { icon: 'check' });
-    }
   };
-  const pickSessions = pickMode === 'cancel' ? (sessions || []).filter(s => s.joinedByMe) : (sessions || []);
-  const cancelPickCount = pickMode === 'cancel' ? joinedCount - sel.length : 0;
+
+  // 报名门槛：必须先加入活动所属小组
+  const gs = groupMemberState(g);
+  const onJoinEnroll = () => {
+    if (g.join === 'approve') { actions.applyJoin(g.id); return; }
+    if (adjustable) { actions.joinGroupFree(g.id); openPickEnroll(); return; }
+    actions.signupAndJoinFree(isSeries ? activeEp.id : aid, g.id);
+  };
 
   const aiWrite = () => {
     setAiWriting(true); setDraft('');
@@ -283,7 +278,7 @@ function ActivityDetail({ aid, pickEnroll }) {
           <FloatBtn icon="back" onClick={nav.back} />
         </div>
         <div style={{ position: 'absolute', bottom: 14, left: 16, display: 'flex', gap: 7 }}>
-          <CatBadge cat={hero.cat} size="sm" solid /><TypeTag type={hero.type} />{hero.ai && <AIPill label="AI 共创" />}
+          <CatBadge cat={hero.cat} size="sm" solid /><TypeTag type={hero.type} />
         </div>
       </div>
 
@@ -336,6 +331,23 @@ function ActivityDetail({ aid, pickEnroll }) {
                     ))}
                   </div>
                 </div>
+              ) : showAsSeries ? (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 700, marginBottom: 9 }}>
+                    <span>系列场次 · 共 {episodes.length} 期{mode === 'independent' && episodes.filter(e => e.joinedByMe).length > 0 && <span style={{ color: 'var(--brand)', marginLeft: 6 }}>已报 {episodes.filter(e => e.joinedByMe).length} 场</span>}</span>
+                    {!ended && aIn.deadlineIso && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Icon name="clock" size={13} stroke={2} style={{ color: 'var(--brand)', flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: 'var(--brand)', fontWeight: 700 }}><DeadlineCountdown deadlineIso={aIn.deadlineIso} /></span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="noscroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 2px 2px' }}>
+                    {episodes.map(ep => (
+                      <SessionSlotTile key={ep.id} s={ep} active={ep.joinedByMe} ended={ep.status === 'ended'} />
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, marginBottom: 7 }}>
@@ -353,28 +365,6 @@ function ActivityDetail({ aid, pickEnroll }) {
               {tags.map(t => <span key={t} style={{ padding: '5px 11px', borderRadius: 99, background: 'var(--bg-2)',
                 fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>#{t}</span>)}
             </div>
-
-            {showAsSeries && (
-              <div>
-                <SectionHeader title="系列场次" sub={`共 ${episodes.length} 期 · ${mode === 'all' ? '整场报名' : '按场次报名'}`} accent="var(--c-outdoor)" />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  {episodes.map(ep => (
-                    <div key={ep.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: 11, borderRadius: 14, background: 'var(--surface)', boxShadow: 'var(--shadow-sm)' }}>
-                      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--c-outdoor)', color: '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14 }}>{ep.seriesIdx}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 700 }}>第 {ep.seriesIdx} 期</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{ep.date} · {ep.time}</div>
-                      </div>
-                      {mode === 'independent' && <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>{ep.signed}/{ep.cap}</span>}
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: ep.status === 'ended' ? 'var(--ink-3)' : 'var(--c-outdoor)' }}>
-                        {ep.status === 'ended' ? '已结束' : ep.signed >= ep.cap ? '已满员' : '报名中'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {ended && (
               <button onClick={() => setDetailExpanded(false)}
@@ -416,41 +406,55 @@ function ActivityDetail({ aid, pickEnroll }) {
           <button onClick={send} style={{ width: 34, height: 34, borderRadius: 10, background: draft.trim() ? 'var(--brand)' : 'var(--line-2)',
             color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={17} /></button>
         </div>
+        {/* 需先加入小组才能报名的提示 */}
+        {!ended && gs !== 'member' && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '8px 11px', borderRadius: 12,
+            background: gs === 'pending' ? 'var(--sun-soft)' : 'var(--bg-2)', fontSize: 12, lineHeight: 1.45,
+            color: gs === 'pending' ? 'oklch(0.5 0.13 70)' : 'var(--ink-2)' }}>
+            <Icon name={gs === 'pending' ? 'clock' : 'userPlus'} size={15} stroke={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{gs === 'pending'
+              ? '已提交加入申请,等待小组审核,通过后即可报名'
+              : g.join === 'approve' ? '该活动所属小组需审核加入,点击下方按钮提交申请' : '报名将同时加入该小组'}</span>
+          </div>
+        )}
         {/* main actions */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <LikeButton liked={hero.liked} count={hero.likes} onToggle={() => actions.toggleLike(hero.id)} size={24} />
           {ended && hero.joinedByMe
             ? <Btn variant="ai" full icon="camera" onClick={() => nav.go('post', { gid: hero.gid, aid: hero.id })}>发布精彩瞬间</Btn>
             : ended ? null
-            : sessions
-              ? <Btn variant={joinedCount > 0 ? 'ghost' : 'primary'} full size="lg"
-                icon={joinedCount > 0 ? 'x' : 'ticket'}
-                onClick={joinedCount > 0 ? (joinedCount === 1 ? cancelSessionsDirect : openPickCancel) : openPickEnroll}>
-                {joinedCount > 0 ? '取消报名' : '立即报名'}</Btn>
+            : gs === 'pending'
+              ? <Btn variant="ghost" full size="lg" icon="clock" disabled style={{ opacity: 0.55 }}>审核中…</Btn>
+            : gs === 'none'
+              ? <Btn variant="primary" full size="lg" icon="userPlus" onClick={onJoinEnroll}>报名并加入小组</Btn>
+            : adjustable
+              ? <Btn variant={joinedCount > 0 ? 'soft' : 'primary'} full size="lg" icon="ticket"
+                onClick={openPickEnroll}>{joinedCount > 0 ? '调整报名场次' : '立即报名'}</Btn>
               : <Btn variant={seriesJoined ? 'ghost' : 'primary'} full size="lg" icon={seriesJoined ? 'x' : 'ticket'}
                 onClick={() => actions.toggleSignup(isSeries ? activeEp.id : aid)}>{seriesJoined ? '取消报名' : '立即报名'}</Btn>}
         </div>
       </div>
 
-      {sessions && (
-        <Sheet open={pickOpen} onClose={() => setPickOpen(false)} title={pickMode === 'cancel' ? '取消报名' : '选择报名场次'}>
+      {adjustable && (
+        <Sheet open={pickOpen} onClose={() => setPickOpen(false)} title={joinedCount > 0 ? '调整报名场次' : '选择报名场次'}>
           <div style={{ padding: '2px 14px 0', fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.4 }}>
-            {pickMode === 'cancel' ? '仅显示已报名场次，取消勾选即取消该场报名' : `可多选场次，已满不可选 · 仅显示最近 ${DBH.RECENT_SESSIONS_MAX} 场`}
+            勾选新增、取消勾选移除，确认后生效（已满场次不可新增）{sessions ? ` · 仅显示最近 ${DBH.RECENT_SESSIONS_MAX} 场` : ''}
           </div>
           <div style={{ padding: '8px 14px 4px', maxHeight: '52vh', overflowY: 'auto' }} className="noscroll">
-            {pickSessions.length === 0 ? (
-              <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)' }}>暂无已报名场次</div>
-            ) : groupSessionsByMonth(pickSessions).map(([month, list]) => (
+            {(slots || []).length === 0 ? (
+              <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)' }}>暂无可报名场次</div>
+            ) : groupSessionsByMonth(slots || []).map(([month, list]) => (
               <section key={month} style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 8 }}>{month}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   {list.map(s => {
                     const full = s.signed >= s.cap;
+                    const ep = s.status === 'ended';
                     const checked = sel.includes(s.id);
-                    const disabled = pickMode === 'enroll' && full && !s.joinedByMe;
+                    const disabled = ep || (full && !s.joinedByMe);
                     return (
-                      <SessionSlotTile key={s.id} s={s} grid active={checked} disabled={disabled}
-                        cancelMode={pickMode === 'cancel'} onClick={() => toggleSel(s)} />
+                      <SessionSlotTile key={s.id} s={s} grid active={checked} disabled={disabled} ended={ep}
+                        onClick={() => toggleSel(s)} />
                     );
                   })}
                 </div>
@@ -458,12 +462,9 @@ function ActivityDetail({ aid, pickEnroll }) {
             ))}
           </div>
           <div style={{ padding: '8px 14px calc(12px + env(safe-area-inset-bottom))', position: 'sticky', bottom: 0, background: 'var(--surface)' }}>
-            <Btn variant={pickMode === 'cancel' ? 'ghost' : 'primary'} full size="md"
-              icon={pickMode === 'cancel' ? 'x' : 'ticket'} onClick={confirmPick}
-              disabled={pickMode === 'cancel' && cancelPickCount === 0}>
-              {pickMode === 'cancel'
-                ? (cancelPickCount > 0 ? `确认取消 ${cancelPickCount} 场` : '请选择要取消的场次')
-                : (sel.length > 0 ? `确认报名 ${sel.length} 场` : '请选择场次')}
+            <Btn variant={sel.length === 0 ? 'ghost' : 'primary'} full size="md"
+              icon={sel.length === 0 ? 'x' : 'ticket'} onClick={confirmPick} disabled={!selChanged}>
+              {!selChanged ? '未做更改' : sel.length === 0 ? '确认取消报名' : `确认 · 共 ${sel.length} 场`}
             </Btn>
           </div>
         </Sheet>
@@ -506,9 +507,15 @@ function GroupDetail({ gid }) {
             <span><b style={{ fontSize: 16, color: 'var(--ink)' }}>{g.acts}</b> 活动</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="pin" size={14} />{g.area}</span>
           </div>
-          <Btn variant={g.joined ? 'ghost' : 'primary'} full icon={g.joined ? 'check' : 'userPlus'}
-            onClick={() => actions.toggleJoin(gid)}>{g.joined ? '已加入' : (g.join === 'approve' ? '申请加入' : '加入小组')}</Btn>
-          {g.join === 'approve' && !g.joined && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 8, textAlign: 'center' }}>该小组需组长审核后加入</div>}
+          {(() => {
+            const gs = groupMemberState(g);
+            if (gs === 'pending') return <Btn variant="ghost" full icon="clock" disabled style={{ opacity: 0.55 }}>审核中…</Btn>;
+            if (gs === 'member') return <Btn variant="ghost" full icon="check" onClick={() => actions.leaveGroupWithConfirm(gid)}>已加入</Btn>;
+            return <Btn variant="primary" full icon="userPlus"
+              onClick={() => (g.join === 'approve' ? actions.applyJoin(gid) : actions.joinGroupFree(gid))}>{g.join === 'approve' ? '申请加入' : '加入小组'}</Btn>;
+          })()}
+          {g.pending && <div style={{ fontSize: 11.5, color: 'oklch(0.55 0.13 70)', marginTop: 8, textAlign: 'center' }}>已提交申请,等待小组审核,通过后可报名</div>}
+          {g.join === 'approve' && !g.joined && !g.pending && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 8, textAlign: 'center' }}>该小组需组长审核后加入</div>}
         </div>
 
         <div style={{ display: 'flex', gap: 6, margin: '18px 0 16px' }}>
