@@ -73,8 +73,8 @@ function HomeTab() {
     return m ? parseInt(m[1], 10) * 100 + parseInt(m[2], 10) : 9999;
   };
   const recItems = recs.map(r => ({ a: store.acts.find(x => x.id === r.aid), reason: r.reason })).filter(x => x.a);
-  const latestActs = [...upcoming].sort((x, y) => dateKey(x) - dateKey(y)).slice(0, 4);
-  const hotActs = [...upcoming].sort((x, y) => (y.likes - x.likes) || (y.signed - x.signed)).slice(0, 4);
+  const latestActs = [...upcoming].sort((x, y) => dateKey(x) - dateKey(y)).slice(0, 3);
+  const hotActs = [...upcoming].sort((x, y) => (y.likes - x.likes) || (y.signed - x.signed)).slice(0, 3);
   const actTabs = [
     { key: 'rec', label: '推荐' },
     { key: 'latest', label: '最新' },
@@ -148,14 +148,7 @@ function HomeTab() {
         {actTab === 'rec' && (
           recItems.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
             {recItems.map(({ a, reason }) => (
-              <div key={a.id}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10,
-                  background: 'var(--ai-soft)', marginBottom: 7 }}>
-                  <Sparkles size={13} color="var(--ai)" />
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ai)' }}>{reason}</span>
-                </div>
-                <ActivityCard a={a} onClick={() => nav.go('activity', { aid: a.id })} />
-              </div>
+              <ActivityCard key={a.id} a={a} recReason={reason} onClick={() => nav.go('activity', { aid: a.id })} />
             ))}
           </div> : <Empty text="暂无推荐活动" />
         )}

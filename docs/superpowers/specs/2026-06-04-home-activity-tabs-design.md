@@ -30,14 +30,14 @@
 | Tab | 内容 | 排序 | 数量 |
 |-----|------|------|------|
 | 推荐（默认） | 人工挑选 `recs`（含推荐理由） | 沿用数组顺序 | 3 |
-| 最新 | `status === 'upcoming'` | 日期升序（最近开始在前） | 4 |
-| 热门 | `status === 'upcoming'` | `likes` 降序，并列再按 `signed` 降序 | 4 |
+| 最新 | `status === 'upcoming'` | 日期升序（最近开始在前） | 3 |
+| 热门 | `status === 'upcoming'` | `likes` 降序，并列再按 `signed` 降序 | 3 |
 
 日期解析复用 `MM月DD日` 解析逻辑（与 `AllActivities` 一致，mock today = 2026-06-03）。
 
 ### 推荐理由保留
 
-纵向列表不再使用横滑 `RecCard`。推荐 Tab 中，在每张 `ActivityCard` 上方加一条淡紫 AI 理由小条（`Sparkles` + 文案，如「同部门 6 位同学已报名」）。最新/热门 Tab 不显示理由条。
+纵向列表不再使用横滑 `RecCard`。推荐 Tab 中，`ActivityCard` 通过 `recReason` 将 AI 理由与时间合并为同一行（`Sparkles` + 理由 · 日期 · 时间），不占卡片外独立行。最新/热门 Tab 不显示理由。
 
 ### 空态
 

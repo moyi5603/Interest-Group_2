@@ -62,7 +62,7 @@ function handleActivityEnrollClick(e, a, actions, nav) {
 }
 
 // big activity card (feed)
-function ActivityCard({ a, onClick }) {
+function ActivityCard({ a, onClick, recReason }) {
   const { actions, store, nav } = useM();
   const cur = store.acts.find(x => x.id === a.id) || a;
   const g = store.groups.find(x => x.id === a.gid);
@@ -102,7 +102,17 @@ function ActivityCard({ a, onClick }) {
       {!ended && (
         <div style={{ padding: '12px 15px 13px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <MetaRow icon="calendar">{a.date} · {a.time}</MetaRow>
+            {recReason ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500, minWidth: 0 }}>
+                <Sparkles size={15} color="var(--ai)" style={{ flexShrink: 0 }} />
+                <span className="clamp1" style={{ color: 'var(--ink-2)' }}>
+                  <span style={{ color: 'var(--ai)', fontWeight: 700 }}>{recReason}</span>
+                  <span style={{ color: 'var(--ink-3)' }}> · {a.date} · {a.time}</span>
+                </span>
+              </div>
+            ) : (
+              <MetaRow icon="calendar">{a.date} · {a.time}</MetaRow>
+            )}
             {a.loc && <MetaRow icon="pin">{a.loc}</MetaRow>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '11px 0' }}>
