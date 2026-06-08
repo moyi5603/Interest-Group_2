@@ -95,9 +95,9 @@ function AISummaryCard({ title = '小趣的总结', points, foot, showAiPill = t
   );
 }
 
-function CommentItem({ c }) {
+function CommentItem({ c, onLike, onReply }) {
   return (
-    <div style={{ display: 'flex', gap: 11, padding: '13px 0' }}>
+    <div style={{ display: 'flex', gap: 11, padding: '13px 0', borderBottom: '1px solid var(--line)' }}>
       {c.isAI ? <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--ai-grad)', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={20} color="#fff" /></div>
         : <Avatar name={c.author} size={38} />}
@@ -106,11 +106,19 @@ function CommentItem({ c }) {
           <span style={{ fontSize: 13.5, fontWeight: 700, color: c.isAI ? 'var(--ai)' : 'var(--ink)' }}>{c.author}</span>
           {c.isAI && <AIPill />}
         </div>
+        {c.replyAuthor && (
+          <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>
+            回复 <span style={{ fontWeight: 700, color: 'var(--brand)' }}>@{c.replyAuthor.replace(/ · AI$/, '')}</span>
+          </div>
+        )}
         <div style={{ fontSize: 14, lineHeight: 1.55, margin: '4px 0 6px', color: 'var(--ink)' }}>{c.text}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12, color: 'var(--ink-3)' }}>
           <span>{c.time}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="heart" size={14} />{c.likes}</span>
-          <span>回复</span>
+          <LikeButton liked={!!c._liked} count={c.likes || 0} onToggle={() => onLike(c.id)} size={16} />
+          <button type="button" onClick={() => onReply(c)}
+            style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', padding: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
+            回复
+          </button>
         </div>
       </div>
     </div>
@@ -123,9 +131,9 @@ function sessionMonthKey(dateStr) {
 }
 
 function sessionDateShort(dateStr) {
-  const m = dateStr.match(/(\d{1,2})月(\d{1,2})日\s*(周[一二三四五六日])?/);
-  if (!m) return dateStr;
-  return `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}${m[3] ? ` ${m[3]}` : ''}`;
+  if (typeof ActWhen.short === 'function') return ActWhen.short(dateStr);
+  const m = (dateStr || '').match(/(\d{1,2})月(\d{1,2})日/);
+  return m ? `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}` : (dateStr || '');
 }
 
 function sessionTimeShort(timeStr) {
@@ -182,13 +190,34 @@ function groupSessionsByMonth(sessions) {
 }
 
 // ===================== ACTIVITY DETAIL =====================
+function fmtSeriesRange(eps) {
+  if (typeof ActWhen.seriesRange === 'function') return ActWhen.seriesRange(eps);
+  const short = (d) => {
+    const m = (d || '').match(/(\d{1,2})月(\d{1,2})日/);
+    return m ? `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}` : (d || '');
+  };
+  if (!eps || !eps.length) return '';
+  if (eps.length === 1) return short(eps[0].date);
+  return `${short(eps[0].date)} - ${short(eps[eps.length - 1].date)}`;
+}
+
 function ActivityDetail({ aid, pickEnroll }) {
   const { store, actions, nav } = useM();
   const aIn = store.acts.find(x => x.id === aid);
+  if (!aIn) {
+    return (
+      <ScreenScroll>
+        <div style={{ padding: '48px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <Empty text="未找到该活动" />
+          <Btn variant="soft" size="sm" onClick={nav.back}>返回</Btn>
+        </div>
+      </ScreenScroll>
+    );
+  }
   const episodes = DBH.seriesEps(store.acts, aIn);
   const isSeries = episodes.length > 0;
   const a = isSeries ? episodes[0] : aIn;
-  const g = store.groups.find(x => x.id === a.gid);
+  const g = store.groups.find(x => x.id === aIn.gid) || (DB.groups || []).find(x => x.id === aIn.gid);
   const mode = isSeries ? (a.seriesSignupMode || 'independent') : null;
   const activeEp = isSeries ? (episodes.find(e => e.status !== 'ended') || episodes[episodes.length - 1]) : aIn;
   const viewEndedEp = aIn.status === 'ended';
@@ -196,19 +225,18 @@ function ActivityDetail({ aid, pickEnroll }) {
   const showAsSeries = isSeries && !viewEndedEp;
   const hero = viewEndedEp ? aIn : a;
   const title = showAsSeries ? a.series : aIn.title;
-  const dateLabel = showAsSeries
-    ? (episodes.length > 1
-      ? `${episodes[0].date.replace(/\s.+/, '')} ~ ${episodes[episodes.length - 1].date.replace(/\s.+/, '')}`
-      : episodes[0].date)
-    : aIn.date;
-  const timeLabel = showAsSeries ? `共 ${episodes.length} 期` : aIn.time;
+  const dateLabel = showAsSeries ? fmtSeriesRange(episodes) : aIn.date;
+  const timeLabel = showAsSeries ? `共${episodes.length}期` : aIn.time;
   const desc = showAsSeries ? (a.seriesDesc || a.desc) : aIn.desc;
   const tags = showAsSeries ? (a.seriesTags || a.tags) : aIn.tags;
   const commentAids = viewEndedEp ? [aIn.id] : (isSeries ? episodes.map(e => e.id) : [aIn.id]);
   const moms = DB.moments.filter(m => commentAids.includes(m.aid));
-  const [comments, setComments] = React.useState(DB.comments.filter(c => commentAids.includes(c.aid)));
+  const [comments, setComments] = React.useState(
+    () => DB.comments.filter(c => commentAids.includes(c.aid)).map(c => ({ ...c, _liked: false }))
+  );
   const [draft, setDraft] = React.useState('');
-  const [aiWriting, setAiWriting] = React.useState(false);
+  const [replyTo, setReplyTo] = React.useState(null);
+  const commentAid = viewEndedEp ? aIn.id : (isSeries ? activeEp.id : aIn.id);
   const [detailExpanded, setDetailExpanded] = React.useState(!ended);
   const sessionsAll = (!isSeries && aIn.type === 'recurring' && aIn.sessions) ? aIn.sessions : null;
   const sessions = DBH.recentSessions(sessionsAll);
@@ -251,21 +279,42 @@ function ActivityDetail({ aid, pickEnroll }) {
   // 报名门槛：必须先加入活动所属小组
   const gs = groupMemberState(g);
   const onJoinEnroll = () => {
+    if (!g) { toast('未找到活动所属小组', { icon: 'alert' }); return; }
     if (g.join === 'approve') { actions.applyJoin(g.id); return; }
     if (adjustable) { actions.joinGroupFree(g.id); openPickEnroll(); return; }
     actions.signupAndJoinFree(isSeries ? activeEp.id : aid, g.id);
   };
 
-  const aiWrite = () => {
-    setAiWriting(true); setDraft('');
-    const samples = ['报名冲!上次跟着 6′00″ 组完赛,这次想挑战 5′30″,求带 🏃', '这个时间刚好,下班直接过去。有一起的搭子吗?',
-      '第一次参加,有点紧张但很期待,请大家多关照!'];
-    setTimeout(() => { setAiWriting(false); setDraft(samples[Math.floor(Math.random() * samples.length)]); }, 1100);
+  const toggleCommentLike = (id) => {
+    setComments(cs => cs.map(c => c.id === id
+      ? { ...c, _liked: !c._liked, likes: (c.likes || 0) + (c._liked ? -1 : 1) }
+      : c));
+  };
+  const startReply = (c) => {
+    setReplyTo(c);
+    setDraft('');
+  };
+  const cancelReply = () => {
+    setReplyTo(null);
+    setDraft('');
   };
   const send = () => {
-    if (!draft.trim()) return;
-    setComments(c => [...c, { id: 'cx' + Date.now(), author: DB.ME, text: draft, likes: 0, time: '刚刚' }]);
-    setDraft(''); toast('评论已发布', { icon: 'check' });
+    const text = draft.trim();
+    if (!text) return;
+    setComments(cs => [...cs, {
+      id: 'cx' + Date.now(),
+      aid: commentAid,
+      author: DB.ME,
+      text,
+      likes: 0,
+      _liked: false,
+      time: '刚刚',
+      replyTo: replyTo ? replyTo.id : undefined,
+      replyAuthor: replyTo ? replyTo.author : undefined,
+    }]);
+    setDraft('');
+    setReplyTo(null);
+    toast(replyTo ? '回复已发布' : '评论已发布', { icon: 'check' });
   };
 
   return (
@@ -285,9 +334,12 @@ function ActivityDetail({ aid, pickEnroll }) {
       <div style={{ padding: '18px 16px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.28, letterSpacing: -0.3 }}>{title}</div>
-          <button onClick={() => nav.go('group', { gid: g.id })} style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-            marginTop: 9, fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)' }}>
-            <Icon name={CATS[g.cat].icon} size={15} style={{ color: CATS[g.cat].color }} stroke={2.2} />{g.name}<Icon name="chevR" size={14} /></button>
+          {g && (
+            <button onClick={() => nav.go('group', { gid: g.id })} style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+              marginTop: 9, fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)' }}>
+              <Icon name={CATS[g.cat].icon} size={15} style={{ color: CATS[g.cat].color }} stroke={2.2} />{g.name}<Icon name="chevR" size={14} />
+            </button>
+          )}
         </div>
 
         {/* 已结束时折叠活动详情 */}
@@ -362,7 +414,7 @@ function ActivityDetail({ aid, pickEnroll }) {
 
             <div className="richtext" style={{ fontSize: 14.5, lineHeight: 1.7, color: 'var(--ink)' }} dangerouslySetInnerHTML={{ __html: desc || '' }} />
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-              {tags.map(t => <span key={t} style={{ padding: '5px 11px', borderRadius: 99, background: 'var(--bg-2)',
+              {(tags || []).map(t => <span key={t} style={{ padding: '5px 11px', borderRadius: 99, background: 'var(--bg-2)',
                 fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>#{t}</span>)}
             </div>
 
@@ -388,7 +440,7 @@ function ActivityDetail({ aid, pickEnroll }) {
         {/* comments */}
         <div>
           <SectionHeader title={`评论 ${comments.length}`} accent="var(--brand)" />
-          <div>{comments.map(c => <CommentItem key={c.id} c={c} />)}</div>
+          <div>{comments.map(c => <CommentItem key={c.id} c={c} onLike={toggleCommentLike} onReply={startReply} />)}</div>
         </div>
       </div>
 
@@ -397,12 +449,21 @@ function ActivityDetail({ aid, pickEnroll }) {
         backdropFilter: 'blur(10px)', borderTop: '1px solid var(--line)', padding: '11px 14px', display: 'flex',
         flexDirection: 'column', gap: 9, zIndex: 5 }}>
         {/* comment compose */}
+        {replyTo && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 2px' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--ink-2)', fontWeight: 600 }}>
+              回复 <span style={{ color: 'var(--brand)' }}>@{replyTo.author.replace(/ · AI$/, '')}</span>
+            </span>
+            <button type="button" onClick={cancelReply}
+              style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer' }}>
+              取消
+            </button>
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-2)', borderRadius: 14, padding: '6px 6px 6px 14px' }}>
-          {aiWriting ? <div style={{ flex: 1, padding: '6px 0' }}><TypingDots /></div>
-            : <input value={draft} onChange={e => setDraft(e.target.value)} placeholder="说点什么…"
-              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 14, outline: 'none', padding: '6px 0' }} />}
-          <button onClick={aiWrite} title="AI 帮我写" style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--ai-soft)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={18} color="var(--ai)" /></button>
+          <input value={draft} onChange={e => setDraft(e.target.value)} placeholder={replyTo ? `回复 ${replyTo.author.replace(/ · AI$/, '')}…` : '说点什么…'}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+            style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 14, outline: 'none', padding: '6px 0' }} />
           <button onClick={send} style={{ width: 34, height: 34, borderRadius: 10, background: draft.trim() ? 'var(--brand)' : 'var(--line-2)',
             color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={17} /></button>
         </div>
@@ -414,7 +475,7 @@ function ActivityDetail({ aid, pickEnroll }) {
             <Icon name={gs === 'pending' ? 'clock' : 'userPlus'} size={15} stroke={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>{gs === 'pending'
               ? '已提交加入申请,等待小组审核,通过后即可报名'
-              : g.join === 'approve' ? '该活动所属小组需审核加入,点击下方按钮提交申请' : '报名将同时加入该小组'}</span>
+              : g && g.join === 'approve' ? '该活动所属小组需审核加入,点击下方按钮提交申请' : '报名将同时加入该小组'}</span>
           </div>
         )}
         {/* main actions */}

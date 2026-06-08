@@ -498,17 +498,25 @@
     return n > 1 ? n : 0;
   };
   const awDaysBadge = (a) => { const n = awDays(a); return n > 1 ? `共 ${n} 天` : null; };
-  // 详情页：起止全量
+  // 详情页：起止全量（日期统一 x/y）
   const awFull = (a) => {
+    if (!a) return '';
     const { s, e } = awTimes(a.time);
-    return awIsCross(a) ? `${a.date} ${s} —— ${a.endDate} ${e}` : `${a.date} · ${a.time}`;
+    return awIsCross(a) ? `${awShort(a.date)} ${s} —— ${awShort(a.endDate)} ${e}` : `${awShort(a.date)} · ${a.time}`;
   };
   // 列表/卡片：紧凑（日期统一 x/y，周期规则如「每周四」原样保留）
   const awCompact = (a) => {
     const { s, e } = awTimes(a.time);
     return awIsCross(a) ? `${awShort(a.date)} ${s} → ${awShort(a.endDate)} ${e}` : `${awShort(a.date)} · ${a.time}`;
   };
-  window.ActWhen = { isCross: awIsCross, days: awDays, daysBadge: awDaysBadge, full: awFull, compact: awCompact, short: awShort };
+  // 系列：5/25 - 7/6 · 共4期
+  const awSeriesRange = (eps) => {
+    if (!eps || !eps.length) return '';
+    if (eps.length === 1) return awShort(eps[0].date);
+    return `${awShort(eps[0].date)} - ${awShort(eps[eps.length - 1].date)}`;
+  };
+  const awSeriesWhen = (eps) => `${awSeriesRange(eps)} · 共${eps.length}期`;
+  window.ActWhen = { isCross: awIsCross, days: awDays, daysBadge: awDaysBadge, full: awFull, compact: awCompact, short: awShort, seriesRange: awSeriesRange, seriesWhen: awSeriesWhen };
 
   window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME, employees, myRegistrations, mineInteractFeed };
   window.CATS = CATS;

@@ -225,9 +225,7 @@ function ActTable({ acts, onRow }) {
             const mode = first.seriesSignupMode || 'independent';
             const totalSigned = mode === 'all' ? (eps.find(e => e.status !== 'ended') || first).signed : eps.reduce((s, e) => s + e.signed, 0);
             const totalCap = mode === 'all' ? first.cap : eps.reduce((s, e) => s + e.cap, 0);
-            const dateRange = eps.length > 1
-              ? `${first.date.replace(/\s.+/, '')} ~ ${last.date.replace(/\s.+/, '')}`
-              : first.date;
+            const dateRange = typeof ActWhen.seriesRange === 'function' ? ActWhen.seriesRange(eps) : first.date;
             const allEnded = eps.every(e => e.status === 'ended');
             const anyFull = eps.some(e => e.signed >= e.cap && e.status !== 'ended');
             return (
@@ -444,11 +442,9 @@ function AdminActDetail({ aid, back }) {
   const canDelete = signed === 0;
   const title = isSeries ? a.series : aIn.title;
   const dateLabel = isSeries
-    ? (episodes.length > 1
-      ? `${episodes[0].date.replace(/\s.+/, '')} ~ ${episodes[episodes.length - 1].date.replace(/\s.+/, '')}`
-      : episodes[0].date)
+    ? (typeof ActWhen.seriesRange === 'function' ? ActWhen.seriesRange(episodes) : aIn.date)
     : aIn.date;
-  const timeLabel = isSeries ? `共 ${episodes.length} 期` : aIn.time;
+  const timeLabel = isSeries ? `共${episodes.length}期` : aIn.time;
   const desc = isSeries ? (a.seriesDesc || a.desc) : aIn.desc;
   const tags = isSeries ? (a.seriesTags || a.tags) : aIn.tags;
   const likes = isSeries ? episodes.reduce((m, e) => Math.max(m, e.likes || 0), 0) : aIn.likes;
@@ -495,7 +491,7 @@ function AdminActDetail({ aid, back }) {
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
             <div style={{ fontSize: 13, fontWeight: 700, flex: 1, minWidth: 0 }}>
-              {s.seriesIdx ? `第 ${s.seriesIdx} 期 · ` : ''}{s.date}{ActWhen.isCross(s) ? ` → ${s.endDate}` : ''} <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>{s.time}{ActWhen.isCross(s) ? ' · 跨天' : ''}</span>
+              {s.seriesIdx ? `第 ${s.seriesIdx} 期 · ` : ''}{ActWhen.short(s.date)}{ActWhen.isCross(s) ? ` → ${ActWhen.short(s.endDate)}` : ''} <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>{s.time}{ActWhen.isCross(s) ? ' · 跨天' : ''}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ padding: '2px 9px', borderRadius: 99, fontSize: 11, fontWeight: 700, ...signupStatusStyle(sEnded, sfull) }}>
@@ -510,7 +506,7 @@ function AdminActDetail({ aid, back }) {
         {isOpen && (
           <div style={{ padding: '0 13px 12px', borderTop: '1px solid var(--line)' }} className="fade">
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', margin: '10px 0 8px' }}>已报名 ({count})</div>
-            <SignupAvatars count={count} modalTitle={`${title}${s.seriesIdx ? ` · 第 ${s.seriesIdx} 期` : ''} · ${s.date} · 已报名 (${count})`} />
+            <SignupAvatars count={count} modalTitle={`${title}${s.seriesIdx ? ` · 第 ${s.seriesIdx} 期` : ''} · ${ActWhen.short(s.date)} · 已报名 (${count})`} />
           </div>
         )}
       </div>
