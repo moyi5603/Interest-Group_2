@@ -47,10 +47,11 @@
 
   /** 周期活动 mock：只物化近期若干场（UI 展示最近 5 场，场次理论上无限） */
   const RECURRING_SESSIONS_MOCK = 8;
-  function recurringSessions(actId, dates, time, cap, firstSigned, joinedFirst) {
+  function recurringSessions(actId, dates, time, cap, firstSigned, joinedFirst, endDates) {
     return dates.slice(0, RECURRING_SESSIONS_MOCK).map((date, i) => ({
       id: `${actId}-s${i + 1}`,
       date,
+      endDate: endDates ? endDates[i] : undefined,
       time,
       cap,
       signed: Math.max(0, Math.round(firstSigned * Math.pow(0.55, i))),
@@ -113,6 +114,20 @@
         '07月04日 周五', '07月11日 周五', '07月18日 周五', '07月25日 周五',
         '08月01日 周五', '08月08日 周五',
       ], '14:00 - 16:30', 12, 9, false) },
+    // 周期 · 跨天（通宵场,结束在次日）
+    { id: 'a19', gid: 'g5', title: '通宵桌游马拉松 · 周五不眠局', type: 'recurring', cat: 'game',
+      date: '每周五', endDate: '周六', spanDays: 1, time: '22:00 - 02:00', repeatMode: 'weekly', repeatWeekdays: [5],
+      loc: '总部 · 休闲区', host: '沈星',
+      cap: 16, signed: 10, liked: false, likes: 34, joinedByMe: false, status: 'upcoming',
+      desc: '<p>周五夜不归宿,从晚上 22:00 一路开到<b>次日凌晨 02:00</b>。</p><ul><li>剧本杀 / 阿瓦隆 / 狼人杀轮换,新手有教学</li><li>提供宵夜与饮料,跨天场地已申请</li><li>按场次报名,来一次算一次</li></ul>',
+      tags: ['跨天','通宵局','按场次报名'], ai: false, repeatMonthDays: [],
+      sessions: recurringSessions('a19', [
+        '06月06日 周五', '06月13日 周五', '06月20日 周五', '06月27日 周五',
+        '07月04日 周五', '07月11日 周五', '07月18日 周五', '07月25日 周五',
+      ], '22:00 - 02:00', 16, 10, false, [
+        '06月07日 周六', '06月14日 周六', '06月21日 周六', '06月28日 周六',
+        '07月05日 周六', '07月12日 周六', '07月19日 周六', '07月26日 周六',
+      ]) },
 
     // ── 系列活动 · 整场报名（各期 signed 相同,同一批人）──
     { id: 'a8', gid: 'g2', title: '云栖谷溪行 · 看日出系列 ①', type: 'series', cat: 'sport',
@@ -139,6 +154,21 @@
       cap: 24, signed: 22, liked: false, likes: 0, joinedByMe: true, status: 'upcoming',
       desc: '<p>「看日出」系列收官期。登顶看日出 + 溪谷下撤 + 系列结业合影。</p><ul><li>全程约 9 公里,中级强度</li><li>系列全程参与者颁发纪念徽章</li></ul>',
       tags: ['看日出系列','收官期','整场报名'], series: '看日出系列', seriesIdx: 4, seriesTotal: 4, seriesSignupMode: 'all', ai: false },
+
+    // 系列 · 跨天场次（每期过夜,结束在次日）
+    { id: 'a20', gid: 'g2', title: '星空露营系列 · 第 1 期', type: 'series', cat: 'team',
+      date: '06月14日 周六', endDate: '06月15日 周日', time: '16:00 - 09:00', loc: '近郊 · 萤火谷营地', host: '苏曼',
+      cap: 30, signed: 19, liked: false, likes: 28, joinedByMe: false, status: 'upcoming',
+      seriesDesc: '<p>星空露营系列共 2 期,<b>每期周六傍晚入营、周日上午撤营</b>,过夜跨天。</p><ul><li>含帐篷营位与早餐,自带睡袋</li><li>天文领队带观星,雨天顺延</li><li>整场报名,跨天活动请安排好行程</li></ul>',
+      seriesTags: ['星空露营','跨天过夜','整场报名'],
+      desc: '<p>星空露营第 1 期:萤火谷扎营观星。<b>06月14日 16:00 入营,06月15日 09:00 撤营</b>。</p><ul><li>傍晚扎营 + 篝火晚餐</li><li>夜间观星 + 次日溪边早餐</li></ul>',
+      tags: ['星空露营','跨天过夜'], series: '星空露营系列', seriesIdx: 1, seriesTotal: 2, seriesSignupMode: 'all', ai: false,
+      deadlineIso: '2026-06-12T18:00:00+08:00' },
+    { id: 'a21', gid: 'g2', title: '星空露营系列 · 第 2 期', type: 'series', cat: 'team',
+      date: '06月28日 周六', endDate: '06月29日 周日', time: '16:00 - 09:00', loc: '近郊 · 萤火谷营地', host: '苏曼',
+      cap: 30, signed: 19, liked: false, likes: 0, joinedByMe: false, status: 'upcoming',
+      desc: '<p>星空露营第 2 期:延续首期营地,新增银河摄影环节。<b>06月28日 16:00 入营,06月29日 09:00 撤营</b>。</p><ul><li>银河摄影教学</li><li>整场报名,与第 1 期同一批队员</li></ul>',
+      tags: ['星空露营','跨天过夜'], series: '星空露营系列', seriesIdx: 2, seriesTotal: 2, seriesSignupMode: 'all', ai: false },
 
     // ── 系列活动 · 按场次报名（各期 signed 独立,可中途加入）──
     { id: 'a13', gid: 'g6', title: 'Go 语言技术分享 · 第 1 期', type: 'series', cat: 'career',
@@ -173,6 +203,13 @@
       desc: '<p>本期共读阿德勒心理学经典《被讨厌的勇气》。</p><ul><li>读到第几章都能来,现场围读 + 自由发言</li><li>提供茶点,不打卡不焦虑</li></ul>',
       tags: ['主题共读','提供茶点'], ai: false,
       deadlineIso: '2026-06-12T17:00:00+08:00' },
+    // 单次 · 跨多天（连续日程）
+    { id: 'a18', gid: 'g2', title: '年度团队户外拓展训练营', type: 'once', cat: 'team',
+      date: '06月18日 周三', endDate: '06月20日 周五', time: '09:00 - 16:00', loc: '近郊 · 怀谷拓展基地', host: '苏曼',
+      cap: 40, signed: 23, liked: false, likes: 18, joinedByMe: false, status: 'upcoming',
+      desc: '<p>连续三天两夜的团队拓展训练营,<b>06月18日 09:00 集合出发,06月20日 16:00 返程解散</b>。</p><ul><li>含住宿与三餐,统一大巴往返</li><li>破冰、高空项目、协作沙盘、复盘分享</li><li>跨天活动,请按行程安排好工作交接</li></ul>',
+      tags: ['跨多天','含食宿','团队拓展'], ai: false,
+      deadlineIso: '2026-06-15T18:00:00+08:00' },
 
     // ── Mock 样例：已终止 ──
     { id: 'a17', gid: 'g7', title: '六一亲子义卖 · 志愿者专场', type: 'once', cat: 'volunteer',
@@ -360,6 +397,35 @@
       location: '总部大楼·3楼多功能厅', appliedAt: '2026-12-18 09:00', coverSeed: 'reg-training',
       rejectReason: '报名人数已超出本期培训名额，请关注下期活动。' },
   ];
+
+  // ── 活动时间展示工具（跨天/多天）：PC 与移动端共用 ──
+  // 约定：a.date 为开始日期(中文串或「每周X」)，a.endDate 为结束日期；
+  //       a.time 为「开始时间 - 结束时间」，开始时间属开始日、结束时间属结束日。
+  const awTimes = (time) => { const p = (time || '').split(/\s*-\s*/); return { s: (p[0] || '').trim(), e: (p[1] || p[0] || '').trim() }; };
+  const awCnMd = (cn) => { const m = cn && cn.match(/(\d{1,2})月(\d{1,2})日/); return m ? { mo: +m[1], d: +m[2] } : null; };
+  const awShort = (cn) => { if (!cn) return ''; const md = awCnMd(cn); return md ? `${md.mo}/${md.d}` : cn; };
+  const awIsCross = (a) => !!(a && a.endDate && a.endDate !== a.date);
+  const awDays = (a) => {
+    if (!awIsCross(a)) return 0;
+    const s = awCnMd(a.date), e = awCnMd(a.endDate);
+    if (!s || !e) return 0;
+    const y = new Date().getFullYear();
+    const ds = new Date(y, s.mo - 1, s.d), de = new Date(y, e.mo - 1, e.d);
+    const n = Math.round((de - ds) / 86400000) + 1;
+    return n > 1 ? n : 0;
+  };
+  const awDaysBadge = (a) => { const n = awDays(a); return n > 1 ? `共 ${n} 天` : null; };
+  // 详情页：起止全量
+  const awFull = (a) => {
+    const { s, e } = awTimes(a.time);
+    return awIsCross(a) ? `${a.date} ${s} —— ${a.endDate} ${e}` : `${a.date} · ${a.time}`;
+  };
+  // 列表/卡片：紧凑
+  const awCompact = (a) => {
+    const { s, e } = awTimes(a.time);
+    return awIsCross(a) ? `${awShort(a.date)} ${s} → ${awShort(a.endDate)} ${e}` : `${a.date} · ${a.time}`;
+  };
+  window.ActWhen = { isCross: awIsCross, days: awDays, daysBadge: awDaysBadge, full: awFull, compact: awCompact, short: awShort };
 
   window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME, myRegistrations, mineInteractFeed };
   window.CATS = CATS;

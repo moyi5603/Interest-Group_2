@@ -108,7 +108,7 @@ function SignupsView({ acts }) {
                     <span style={{ fontSize: 15, fontWeight: 700 }} className="clamp1">{a.title}</span>
                     <TypeTag type={a.type} />
                   </div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{g ? g.name : ''} · {a.date} · {a.time}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{g ? g.name : ''} · {ActWhen.full(a)}{ActWhen.daysBadge(a) ? ` · ${ActWhen.daysBadge(a)}` : ''}</div>
                 </div>
                 <div style={{ width: 130 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
@@ -131,7 +131,13 @@ function SignupsView({ acts }) {
         if (unit.kind === 'recurring') {
           const a = unit.act;
           const g = store.groups.find(x => x.id === a.gid);
-          const sessions = a.sessions || [];
+          const sessionsAll = a.sessions || [];
+          const sessions = DBH.recentSessions(sessionsAll) || [];
+          const recentSigned = sessions.reduce((t, s) => t + s.signed, 0);
+          const recentCap = sessions.reduce((t, s) => t + s.cap, 0);
+          const sessionLabel = sessionsAll.length > DBH.RECENT_SESSIONS_MAX
+            ? `最近 ${sessions.length} 场（共 ${sessionsAll.length} 场）`
+            : `共 ${sessionsAll.length} 个场次`;
           return (
             <div key={unit.key} style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
               <div onClick={() => setOpen(isOpen ? null : unit.key)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, cursor: 'pointer' }}>
@@ -141,13 +147,31 @@ function SignupsView({ acts }) {
                     <span style={{ fontSize: 15, fontWeight: 700 }} className="clamp1">{a.title}</span>
                     <TypeTag type={a.type} />
                   </div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{g ? g.name : ''} · {a.date} · 共 {sessions.length} 个场次 · 各期独立报名</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3 }}>{g ? g.name : ''} · {a.date} · {sessionLabel} · 各期独立报名</div>
                 </div>
-                <div style={{ width: 130, fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>各期独立</div>
+                <div style={{ width: 130 }}>
+                  {sessions.length > 0 ? (
+                    <>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{recentSigned}/{recentCap}</span>
+                        <span style={{ color: 'var(--ink-3)' }}>{recentCap ? Math.round(recentSigned / recentCap * 100) : 0}%</span>
+                      </div>
+                      <ProgressBar value={recentSigned} max={recentCap} color={SIGNUP_BAR} height={6} />
+                      <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4, fontWeight: 600 }}>最近 {sessions.length} 场人次</div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>各期独立</div>
+                  )}
+                </div>
                 <Icon name={isOpen ? 'chevD' : 'chevR'} size={20} style={{ color: 'var(--ink-3)' }} />
               </div>
               {isOpen && (
                 <div style={{ borderTop: '1px solid var(--line)' }} className="fade">
+                  {sessions.length > 0 && (
+                    <div style={{ padding: '12px 16px 0', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)' }}>
+                      最近 {sessions.length} 场报名情况{sessionsAll.length > sessions.length ? ` · 仅展示最近 ${DBH.RECENT_SESSIONS_MAX} 场` : ''}
+                    </div>
+                  )}
                   {sessions.map((s, si) => {
                     const sOpen = sessionOpen[s.id];
                     return (
@@ -158,8 +182,8 @@ function SignupsView({ acts }) {
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                           <div style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0, ...SESSION_IDX_STYLE }}>{si + 1}</div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13.5, fontWeight: 600 }}>{s.date}</div>
-                            <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{s.time}</div>
+                            <div style={{ fontSize: 13.5, fontWeight: 600 }}>{s.date}{ActWhen.isCross(s) ? ` → ${s.endDate}` : ''}</div>
+                            <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{s.time}{ActWhen.isCross(s) ? ' · 跨天' : ''}</div>
                           </div>
                           <div style={{ width: 110 }}>
                             <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
@@ -178,6 +202,9 @@ function SignupsView({ acts }) {
                       </div>
                     );
                   })}
+                  {sessions.length === 0 && (
+                    <div style={{ padding: '16px', fontSize: 13, color: 'var(--ink-3)' }}>暂无场次数据</div>
+                  )}
                 </div>
               )}
             </div>
@@ -236,7 +263,7 @@ function SignupsView({ acts }) {
                             <div style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0, ...SESSION_IDX_STYLE }}>{ep.seriesIdx || ei + 1}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13.5, fontWeight: 600 }} className="clamp1">{ep.title}</div>
-                              <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{ep.date} · {ep.time}</div>
+                              <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{ActWhen.full(ep)}{ActWhen.daysBadge(ep) ? ` · ${ActWhen.daysBadge(ep)}` : ''}</div>
                             </div>
                             <div style={{ width: 110 }}>
                               <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
@@ -776,11 +803,14 @@ function parseTimeRange(str) {
 function normalizeActForm(raw) {
   const f = { ...raw };
   if (!f.dateValue && f.date) f.dateValue = parseDateCN(f.date);
+  if (!f.endDateValue && f.endDate) f.endDateValue = parseDateCN(f.endDate);
+  if (f.spanDays == null) f.spanDays = 0;
   if (!f.timeStart && f.time) { const t = parseTimeRange(f.time); f.timeStart = t.start; f.timeEnd = t.end; }
   if (f.sessions) {
     f.sessions = f.sessions.map(s => {
       const x = { ...s };
       if (!x.dateValue && x.date) x.dateValue = parseDateCN(x.date);
+      if (!x.endDateValue && x.endDate) x.endDateValue = parseDateCN(x.endDate);
       if (!x.timeStart && x.time) { const t = parseTimeRange(x.time); x.timeStart = t.start; x.timeEnd = t.end; }
       return x;
     });
@@ -793,12 +823,22 @@ function actFormPayload(f) {
     : f.deadlineMode === 'hours_before'
     ? `开始前 ${f.deadlineHours < 24 ? f.deadlineHours + ' 小时' : f.deadlineHours / 24 + ' 天'}`
     : null;
+  // 单次/系列：结束日期晚于开始日期才算跨天
+  const crossEnd = (dv, edv) => (edv && edv !== dv ? formatDateCN(edv) : undefined);
+  // 周期：结束时间落在开始日后第 spanDays 天 → 推算结束星期标签
+  let recEndDate;
+  if (f.type === 'recurring' && f.spanDays > 0) {
+    const wd = (f.repeatWeekdays || []).slice().sort((a, b) => a - b)[0];
+    if (wd != null) recEndDate = CN_WEEK[(wd + f.spanDays) % 7];
+  }
   return {
     ...f,
     date: formatDateCN(f.dateValue),
+    endDate: f.type === 'recurring' ? recEndDate : crossEnd(f.dateValue, f.endDateValue),
+    spanDays: f.type === 'recurring' ? (f.spanDays || 0) : undefined,
     time: formatTimeRange(f.timeStart, f.timeEnd),
     sessions: (f.sessions || []).map(s => ({
-      ...s, date: formatDateCN(s.dateValue), time: formatTimeRange(s.timeStart, s.timeEnd),
+      ...s, date: formatDateCN(s.dateValue), endDate: crossEnd(s.dateValue, s.endDateValue), time: formatTimeRange(s.timeStart, s.timeEnd),
     })),
     signupDeadline: deadlineSummary,
     deadlineMode: f.deadlineMode,
@@ -806,9 +846,16 @@ function actFormPayload(f) {
   };
 }
 
-function DatePicker({ value, onChange, style }) {
+function DatePicker({ value, onChange, style, min }) {
   return (
-    <input type="date" value={value || ''} onChange={e => onChange(e.target.value)}
+    <input type="date" value={value || ''} min={min || undefined} onChange={e => onChange(e.target.value)}
+      style={{ ...inputStyle, colorScheme: 'light', ...style }} />
+  );
+}
+
+function TimePicker({ value, onChange, style }) {
+  return (
+    <input type="time" value={value || ''} onChange={e => onChange(e.target.value)}
       style={{ ...inputStyle, colorScheme: 'light', ...style }} />
   );
 }
@@ -832,14 +879,14 @@ function actFormReady(f, editing) {
     return f.type === 'recurring' ? true : !!f.dateValue;
   }
   if (!f.title.trim() || !f.cover) return false;
-  if (f.type === 'once') return !!(f.dateValue && f.timeStart);
+  if (f.type === 'once') return !!(f.dateValue && f.timeStart && !(f.endDateValue && f.endDateValue < f.dateValue));
   if (f.type === 'recurring') {
     if (!f.timeStart) return false;
     if (f.repeatMode === 'monthly') return (f.repeatWeekdays || []).length > 0;
     return (f.repeatWeekdays || []).length > 0;
   }
   if (f.type === 'series') {
-    return (f.sessions || []).length > 0 && f.sessions.every(s => s.dateValue && s.timeStart);
+    return (f.sessions || []).length > 0 && f.sessions.every(s => s.dateValue && s.timeStart && !(s.endDateValue && s.endDateValue < s.dateValue));
   }
   return true;
 }
@@ -848,10 +895,10 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
   const editing = !!initAct;
   const blank = normalizeActForm({
     title: '', gid: gidInit || 'g1', cat: 'sport', type: 'once',
-    dateValue: isoToday(), timeStart: '19:00', timeEnd: '21:00',
+    dateValue: isoToday(), endDateValue: '', spanDays: 0, timeStart: '19:00', timeEnd: '21:00',
     loc: '', cap: 20, desc: '', cover: '',
     repeatMode: 'weekly', repeatWeekdays: [3, 5], repeatMonthDays: [8],
-    sessions: [{ dateValue: '2026-06-15', timeStart: '04:30', timeEnd: '14:00' }],
+    sessions: [{ dateValue: '2026-06-15', endDateValue: '', timeStart: '04:30', timeEnd: '14:00' }],
     seriesSignupMode: 'independent',
     deadlineMode: 'none', deadlineDate: '', deadlineTime: '18:00', deadlineHours: 2,
   });
@@ -964,10 +1011,20 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
                 <Field label="时间"><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field>
               </>
             ) : (
-              <div style={{ display: 'flex', gap: 14 }}>
-                <div style={{ flex: 1 }}><Field label="日期"><DatePicker value={f.dateValue} onChange={v => setF({ ...f, dateValue: v })} /></Field></div>
-                <div style={{ flex: 1 }}><Field label="时间"><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field></div>
-              </div>
+              <>
+                <Field label="开始">
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker value={f.dateValue} onChange={v => setF(s => ({ ...s, dateValue: v, endDateValue: s.endDateValue && s.endDateValue < v ? v : s.endDateValue }))} style={{ flex: 1, minWidth: 0 }} />
+                    <TimePicker value={f.timeStart} onChange={v => setF({ ...f, timeStart: v })} style={{ width: 128, flexShrink: 0 }} />
+                  </div>
+                </Field>
+                <Field label="结束" hint={f.endDateValue && f.endDateValue !== f.dateValue ? '跨天活动' : '默认与开始同一天'}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker value={f.endDateValue || f.dateValue} min={f.dateValue} onChange={v => setF({ ...f, endDateValue: v })} style={{ flex: 1, minWidth: 0 }} />
+                    <TimePicker value={f.timeEnd} onChange={v => setF({ ...f, timeEnd: v })} style={{ width: 128, flexShrink: 0 }} />
+                  </div>
+                </Field>
+              </>
             )}
           </>
         ) : (
@@ -977,10 +1034,20 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
                 options={[{ value: 'once', label: '单次', icon: 'calendar' }, { value: 'recurring', label: '周期性', icon: 'repeat' }, { value: 'series', label: '系列', icon: 'series' }]} />
             </Field>
             {f.type === 'once' && (
-              <div style={{ display: 'flex', gap: 14 }}>
-                <div style={{ flex: 1 }}><Field label="日期"><DatePicker value={f.dateValue} onChange={v => setF({ ...f, dateValue: v })} /></Field></div>
-                <div style={{ flex: 1 }}><Field label="时间"><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field></div>
-              </div>
+              <>
+                <Field label="开始">
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker value={f.dateValue} onChange={v => setF(s => ({ ...s, dateValue: v, endDateValue: s.endDateValue && s.endDateValue < v ? v : s.endDateValue }))} style={{ flex: 1, minWidth: 0 }} />
+                    <TimePicker value={f.timeStart} onChange={v => setF({ ...f, timeStart: v })} style={{ width: 128, flexShrink: 0 }} />
+                  </div>
+                </Field>
+                <Field label="结束" hint={f.endDateValue && f.endDateValue !== f.dateValue ? '跨天活动' : '默认与开始同一天'}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker value={f.endDateValue || f.dateValue} min={f.dateValue} onChange={v => setF({ ...f, endDateValue: v })} style={{ flex: 1, minWidth: 0 }} />
+                    <TimePicker value={f.timeEnd} onChange={v => setF({ ...f, timeEnd: v })} style={{ width: 128, flexShrink: 0 }} />
+                  </div>
+                </Field>
+              </>
             )}
             {f.type === 'recurring' && (
               <>
@@ -1001,6 +1068,10 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
                 <Field label="时间" hint="周期性活动无需选择具体日期">
                   <TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} />
                 </Field>
+                <Field label="结束于" hint={f.spanDays > 0 ? '通宵/跨天场，结束时间落在开始日的次日' : '当天结束'}>
+                  <Segmented value={String(f.spanDays || 0)} onChange={v => setF({ ...f, spanDays: +v })} style={{ width: '100%' }}
+                    options={[{ value: '0', label: '当天结束' }, { value: '1', label: '次日结束' }, { value: '2', label: '第 3 天结束' }]} />
+                </Field>
               </>
             )}
             {f.type === 'series' && (
@@ -1009,23 +1080,34 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
                   <Segmented value={f.seriesSignupMode || 'independent'} onChange={v => setF({ ...f, seriesSignupMode: v })}
                     options={[{ value: 'independent', label: '按场次报名', desc: '用户可独立选择参加每一场' }, { value: 'all', label: '整场报名', desc: '报名截止后不可中途加入' }]} />
                 </Field>
-                <Field label="场次安排" hint="每期可单独设置日期与时间">
+                <Field label="场次安排" hint="每期可单独设置起止日期与时间，结束日期晚于开始即为跨天">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {(f.sessions || []).map((s, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span style={{ width: 22, fontSize: 12, fontWeight: 800, color: 'var(--ink-3)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
-                        <DatePicker value={s.dateValue} onChange={v => setF(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, dateValue: v } : x) }))} style={{ flex: 1, minWidth: 0 }} />
-                        <TimeRangePicker start={s.timeStart} end={s.timeEnd}
-                          onChange={(a, b) => setF(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, timeStart: a, timeEnd: b } : x) }))} style={{ flex: 1.2, minWidth: 0 }} />
-                        {(f.sessions || []).length > 1 && (
-                          <button type="button" onClick={() => setF(st => ({ ...st, sessions: st.sessions.filter((_, j) => j !== i) }))}
-                            style={{ width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.55 0.2 25)', flexShrink: 0 }}>
-                            <Icon name="trash" size={16} /></button>
-                        )}
+                    {(f.sessions || []).map((s, i) => {
+                      const cross = s.endDateValue && s.endDateValue !== s.dateValue;
+                      return (
+                      <div key={i} style={{ border: '1.5px solid var(--line-2)', borderRadius: 11, padding: '9px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ width: 22, fontSize: 12, fontWeight: 800, color: 'var(--ink-3)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
+                          <span style={{ width: 28, fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>开始</span>
+                          <DatePicker value={s.dateValue} onChange={v => setF(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, dateValue: v, endDateValue: x.endDateValue && x.endDateValue < v ? v : x.endDateValue } : x) }))} style={{ flex: 1, minWidth: 0 }} />
+                          <TimePicker value={s.timeStart} onChange={v => setF(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, timeStart: v } : x) }))} style={{ width: 128, flexShrink: 0 }} />
+                          {(f.sessions || []).length > 1 && (
+                            <button type="button" onClick={() => setF(st => ({ ...st, sessions: st.sessions.filter((_, j) => j !== i) }))}
+                              style={{ width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.55 0.2 25)', flexShrink: 0, marginLeft: 'auto' }}>
+                              <Icon name="trash" size={16} /></button>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 30 }}>
+                          <span style={{ width: 28, fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>结束</span>
+                          <DatePicker value={s.endDateValue || s.dateValue} min={s.dateValue} onChange={v => setF(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, endDateValue: v } : x) }))} style={{ flex: 1, minWidth: 0 }} />
+                          <TimePicker value={s.timeEnd} onChange={v => setF(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, timeEnd: v } : x) }))} style={{ width: 128, flexShrink: 0 }} />
+                          {cross && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand)', flexShrink: 0 }}>跨天</span>}
+                        </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     <Btn variant="ghost" size="sm" icon="plus" type="button" onClick={() => setF(st => ({
-                      ...st, sessions: [...(st.sessions || []), { dateValue: isoToday(), timeStart: '19:00', timeEnd: '21:00' }],
+                      ...st, sessions: [...(st.sessions || []), { dateValue: isoToday(), endDateValue: '', timeStart: '19:00', timeEnd: '21:00' }],
                     }))}>添加场次</Btn>
                   </div>
                 </Field>

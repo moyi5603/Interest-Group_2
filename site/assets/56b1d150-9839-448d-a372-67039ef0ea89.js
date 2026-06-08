@@ -31,11 +31,11 @@ function AvatarStack({ names = [], n = 4, size = 24, extra }) {
   );
 }
 
-function MetaRow({ icon, children }) {
+function MetaRow({ icon, children, wrap }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--ink-2)', fontWeight: 500 }}>
-      <Icon name={icon} size={15} stroke={2} style={{ color: 'var(--ink-3)' }} />
-      <span className="clamp1">{children}</span>
+    <div style={{ display: 'flex', alignItems: wrap ? 'flex-start' : 'center', gap: 7, fontSize: 13, color: 'var(--ink-2)', fontWeight: 500 }}>
+      <Icon name={icon} size={15} stroke={2} style={{ color: 'var(--ink-3)', flexShrink: 0, marginTop: wrap ? 2 : 0 }} />
+      <span className={wrap ? undefined : 'clamp1'}>{children}</span>
     </div>
   );
 }
@@ -147,7 +147,10 @@ function ActivityCard({ a, onClick, recReason }) {
         <div style={{ padding: '12px 15px 13px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <MetaRow icon="calendar">{a.date} · {a.time}</MetaRow>
+              <MetaRow icon="calendar">
+                {ActWhen.compact(a)}
+                {ActWhen.daysBadge(a) && <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 6, background: 'var(--brand-tint, color-mix(in oklch, var(--brand) 12%, white))', color: 'var(--brand)', fontSize: 11, fontWeight: 700 }}>{ActWhen.daysBadge(a)}</span>}
+              </MetaRow>
               {recReason && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 12.5,
                   fontWeight: 700, color: 'var(--ink-3)' }}>
@@ -190,7 +193,7 @@ function ActivityRow({ a, onClick }) {
         <Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} /></div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14.5, fontWeight: 700 }} className="clamp1">{a.title}</div>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', margin: '3px 0 6px' }} className="clamp1">{a.date} · {a.time}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', margin: '3px 0 6px' }} className="clamp1">{ActWhen.compact(a)}{ActWhen.daysBadge(a) ? ` · ${ActWhen.daysBadge(a)}` : ''}</div>
         <div style={{ display: 'flex', gap: 6 }}><CatBadge cat={a.cat} size="sm" /><TypeTag type={a.type} /></div>
       </div>
       <Icon name="chevR" size={18} style={{ color: 'var(--ink-3)' }} />
@@ -214,7 +217,7 @@ function RecCard({ a, reason, onClick }) {
         </div>
       </div>
       <div style={{ padding: '10px 11px 11px' }}>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 8 }} className="clamp1">{a.date.slice(0, 7)} · {a.time.split(' ')[0]}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 8 }} className="clamp1">{ActWhen.isCross(a) ? `${ActWhen.short(a.date)} → ${ActWhen.short(a.endDate)}` : `${a.date.slice(0, 7)} · ${a.time.split(' ')[0]}`}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px', borderRadius: 11,
           background: 'var(--ai-soft)', marginBottom: 10 }}>
           <Sparkles size={14} color="var(--ai)" />

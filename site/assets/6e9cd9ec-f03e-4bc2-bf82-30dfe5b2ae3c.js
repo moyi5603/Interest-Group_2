@@ -163,8 +163,8 @@ function SessionSlotTile({ s, active, disabled, onClick, grid, cancelMode, topLa
       }}>
       {topLabel && <div style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.2, marginBottom: 1,
         color: mine ? 'var(--brand)' : 'var(--c-outdoor)' }}>{topLabel}</div>}
-      <div style={{ fontSize: grid ? 12 : 12.5, fontWeight: 800, lineHeight: 1.25 }}>{sessionDateShort(s.date)}</div>
-      <div style={{ fontSize: 11, color: 'var(--ink-3)', margin: '2px 0 2px', lineHeight: 1.25 }}>{sessionTimeShort(s.time)}</div>
+      <div style={{ fontSize: grid ? 12 : 12.5, fontWeight: 800, lineHeight: 1.25 }}>{sessionDateShort(s.date)}{ActWhen.isCross(s) && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--brand)', marginLeft: 3 }}>跨天</span>}</div>
+      <div style={{ fontSize: 11, color: 'var(--ink-3)', margin: '2px 0 2px', lineHeight: 1.25 }}>{ActWhen.isCross(s) ? `${sessionTimeShort(s.time)}→次日` : sessionTimeShort(s.time)}</div>
       <div style={{ fontSize: grid ? 10 : 11, fontWeight: 700, color: statusColor, lineHeight: 1.2 }}>{statusText}</div>
     </Tag>
   );
@@ -303,7 +303,7 @@ function ActivityDetail({ aid, pickEnroll }) {
             {/* info card */}
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: '12px 14px',
               display: 'flex', flexDirection: 'column', gap: 7 }}>
-              <MetaRow icon={showAsSeries ? 'series' : aIn.type === 'recurring' ? 'repeat' : 'calendar'}>{dateLabel} · {timeLabel}{aIn.type === 'recurring' && !isSeries && <span style={{ marginLeft: 4, fontSize: 11, color: 'var(--ink-3)' }}>(周期)</span>}</MetaRow>
+              <MetaRow wrap={!showAsSeries && ActWhen.isCross(aIn)} icon={showAsSeries ? 'series' : aIn.type === 'recurring' ? 'repeat' : 'calendar'}>{showAsSeries ? `${dateLabel} · ${timeLabel}` : ActWhen.full(aIn)}{!showAsSeries && ActWhen.daysBadge(aIn) && <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 6, background: 'color-mix(in oklch, var(--brand) 12%, white)', color: 'var(--brand)', fontSize: 11, fontWeight: 700 }}>{ActWhen.daysBadge(aIn)}</span>}{aIn.type === 'recurring' && !isSeries && <span style={{ marginLeft: 4, fontSize: 11, color: 'var(--ink-3)' }}>(周期)</span>}</MetaRow>
               <MetaRow icon="pin">{hero.loc}</MetaRow>
               <MetaRow icon="user">发起人 {hero.host}</MetaRow>
               {showAsSeries && mode === 'all' && <MetaRow icon="ticket">整场报名 · 共 {episodes.length} 期</MetaRow>}

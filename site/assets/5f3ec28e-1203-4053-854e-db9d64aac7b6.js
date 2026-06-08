@@ -171,7 +171,7 @@ function ActTable({ acts, onRow }) {
                   </div>
                 </td>
                 <td style={{ padding: '13px 22px' }}><TypeTag type={a.type} /></td>
-                <td style={{ padding: '13px 22px', color: 'var(--ink-2)' }}>{a.date}<br /><span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{a.time}</span></td>
+                <td style={{ padding: '13px 22px', color: 'var(--ink-2)' }}>{a.date}{ActWhen.isCross(a) ? <> → {a.endDate}</> : ''}<br /><span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{a.time}{ActWhen.daysBadge(a) ? ` · ${ActWhen.daysBadge(a)}` : ''}</span></td>
                 <td style={{ padding: '13px 22px', minWidth: 120 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>{a.signed}/{a.cap}</div>
                   <ProgressBar value={a.signed} max={a.cap} color={SIGNUP_BAR} height={6} />
@@ -202,7 +202,7 @@ function ActTable({ acts, onRow }) {
                 </td>
                 <td style={{ padding: '13px 22px' }}><TypeTag type={a.type} /></td>
                 <td style={{ padding: '13px 22px', color: 'var(--ink-2)' }}>
-                  {a.date}<br /><span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{a.time}</span>
+                  {a.date}<br /><span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{a.time}{ActWhen.isCross(a) ? ` → ${a.endDate}` : ''}</span>
                 </td>
                 <td style={{ padding: '13px 22px', minWidth: 120 }}>
                   <div style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600, marginBottom: 4 }}>下期 {next.signed || 0}/{next.cap || a.cap}</div>
@@ -495,7 +495,7 @@ function AdminActDetail({ aid, back }) {
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
             <div style={{ fontSize: 13, fontWeight: 700, flex: 1, minWidth: 0 }}>
-              {s.seriesIdx ? `第 ${s.seriesIdx} 期 · ` : ''}{s.date} <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>{s.time}</span>
+              {s.seriesIdx ? `第 ${s.seriesIdx} 期 · ` : ''}{s.date}{ActWhen.isCross(s) ? ` → ${s.endDate}` : ''} <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>{s.time}{ActWhen.isCross(s) ? ' · 跨天' : ''}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ padding: '2px 9px', borderRadius: 99, fontSize: 11, fontWeight: 700, ...signupStatusStyle(sEnded, sfull) }}>
@@ -537,7 +537,7 @@ function AdminActDetail({ aid, back }) {
             </div>
             <div style={{ fontSize: 23, fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: 8 }}>{title}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', fontSize: 13, color: 'var(--ink-2)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name={timeIcon} size={15} />{dateLabel} · {timeLabel}{aIn.type === 'recurring' && !isSeries && ' (周期)'}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name={timeIcon} size={15} />{isSeries ? `${dateLabel} · ${timeLabel}` : ActWhen.full(aIn)}{!isSeries && ActWhen.daysBadge(aIn) && <span style={{ marginLeft: 2, padding: '1px 7px', borderRadius: 6, background: 'color-mix(in oklch, var(--brand) 12%, white)', color: 'var(--brand)', fontSize: 11, fontWeight: 700 }}>{ActWhen.daysBadge(aIn)}</span>}{aIn.type === 'recurring' && !isSeries && ' (周期)'}</span>
               <button onClick={() => g && setView({ section: 'groupDetail', gid: g.id })} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--ink-2)' }}><Icon name="users" size={15} />{g ? g.name : ''}</button>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="user" size={15} />发起人 {a.host}</span>
               {a.loc && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={15} />{a.loc}</span>}

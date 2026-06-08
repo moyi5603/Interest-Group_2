@@ -151,7 +151,7 @@ function makeAiPoster(title, cat) {
 // ============ AI ACTIVITY/GROUP COMPOSER ============
 const AI_BLANK = {
   title: '', gid: 'g1', cat: 'sport', type: 'once',
-  dateValue: '', timeStart: '19:00', timeEnd: '21:00',
+  dateValue: '', endDateValue: '', spanDays: 0, timeStart: '19:00', timeEnd: '21:00',
   loc: '', cap: 20, desc: '', cover: '',
   repeatMode: 'weekly', repeatWeekdays: [], repeatMonthDays: [],
   sessions: [], poster: '', tags: [],
@@ -317,10 +317,20 @@ function AIComposer({ open, onClose, onPublish, store }) {
             </Field>
 
             {form.type === 'once' && (
-              <div style={{ display: 'flex', gap: 14 }}>
-                <div style={{ flex: 1 }}><Field label="日期"><DatePicker value={form.dateValue} onChange={v => setForm({ ...form, dateValue: v })} /></Field></div>
-                <div style={{ flex: 1 }}><Field label="时间"><TimeRangePicker start={form.timeStart} end={form.timeEnd} onChange={(a, b) => setForm({ ...form, timeStart: a, timeEnd: b })} /></Field></div>
-              </div>
+              <>
+                <Field label="开始">
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker value={form.dateValue} onChange={v => setForm(s => ({ ...s, dateValue: v, endDateValue: s.endDateValue && s.endDateValue < v ? v : s.endDateValue }))} style={{ flex: 1, minWidth: 0 }} />
+                    <TimePicker value={form.timeStart} onChange={v => setForm({ ...form, timeStart: v })} style={{ width: 128, flexShrink: 0 }} />
+                  </div>
+                </Field>
+                <Field label="结束" hint={form.endDateValue && form.endDateValue !== form.dateValue ? '跨天活动' : '默认与开始同一天'}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker value={form.endDateValue || form.dateValue} min={form.dateValue} onChange={v => setForm({ ...form, endDateValue: v })} style={{ flex: 1, minWidth: 0 }} />
+                    <TimePicker value={form.timeEnd} onChange={v => setForm({ ...form, timeEnd: v })} style={{ width: 128, flexShrink: 0 }} />
+                  </div>
+                </Field>
+              </>
             )}
 
             {form.type === 'recurring' && (
@@ -342,6 +352,10 @@ function AIComposer({ open, onClose, onPublish, store }) {
                 <Field label="时间" hint="周期性活动无需选择具体日期">
                   <TimeRangePicker start={form.timeStart} end={form.timeEnd} onChange={(a, b) => setForm({ ...form, timeStart: a, timeEnd: b })} />
                 </Field>
+                <Field label="结束于" hint={form.spanDays > 0 ? '通宵/跨天场，结束时间落在开始日的次日' : '当天结束'}>
+                  <Segmented value={String(form.spanDays || 0)} onChange={v => setForm({ ...form, spanDays: +v })} style={{ width: '100%' }}
+                    options={[{ value: '0', label: '当天结束' }, { value: '1', label: '次日结束' }, { value: '2', label: '第 3 天结束' }]} />
+                </Field>
               </>
             )}
 
@@ -357,25 +371,36 @@ function AIComposer({ open, onClose, onPublish, store }) {
                     ]}
                   />
                 </Field>
-                <Field label="场次安排" hint="每期可单独设置日期与时间">
+                <Field label="场次安排" hint="每期可单独设置起止日期与时间，结束日期晚于开始即为跨天">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {(form.sessions || []).map((s, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span style={{ width: 22, fontSize: 12, fontWeight: 800, color: 'var(--ink-3)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
-                        <DatePicker value={s.dateValue} onChange={v => setForm(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, dateValue: v } : x) }))}
-                          style={{ flex: 1, minWidth: 0 }} />
-                        <TimeRangePicker start={s.timeStart} end={s.timeEnd}
-                          onChange={(a, b) => setForm(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, timeStart: a, timeEnd: b } : x) }))}
-                          style={{ flex: 1.2, minWidth: 0 }} />
-                        {(form.sessions || []).length > 1 && (
-                          <button type="button" onClick={() => setForm(st => ({ ...st, sessions: st.sessions.filter((_, j) => j !== i) }))}
-                            style={{ width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.55 0.2 25)', flexShrink: 0 }}>
-                            <Icon name="trash" size={16} /></button>
-                        )}
+                    {(form.sessions || []).map((s, i) => {
+                      const cross = s.endDateValue && s.endDateValue !== s.dateValue;
+                      return (
+                      <div key={i} style={{ border: '1.5px solid var(--line-2)', borderRadius: 11, padding: '9px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ width: 22, fontSize: 12, fontWeight: 800, color: 'var(--ink-3)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
+                          <span style={{ width: 28, fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>开始</span>
+                          <DatePicker value={s.dateValue} onChange={v => setForm(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, dateValue: v, endDateValue: x.endDateValue && x.endDateValue < v ? v : x.endDateValue } : x) }))}
+                            style={{ flex: 1, minWidth: 0 }} />
+                          <TimePicker value={s.timeStart} onChange={v => setForm(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, timeStart: v } : x) }))} style={{ width: 128, flexShrink: 0 }} />
+                          {(form.sessions || []).length > 1 && (
+                            <button type="button" onClick={() => setForm(st => ({ ...st, sessions: st.sessions.filter((_, j) => j !== i) }))}
+                              style={{ width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.55 0.2 25)', flexShrink: 0, marginLeft: 'auto' }}>
+                              <Icon name="trash" size={16} /></button>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingLeft: 30 }}>
+                          <span style={{ width: 28, fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>结束</span>
+                          <DatePicker value={s.endDateValue || s.dateValue} min={s.dateValue} onChange={v => setForm(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, endDateValue: v } : x) }))}
+                            style={{ flex: 1, minWidth: 0 }} />
+                          <TimePicker value={s.timeEnd} onChange={v => setForm(st => ({ ...st, sessions: st.sessions.map((x, j) => j === i ? { ...x, timeEnd: v } : x) }))} style={{ width: 128, flexShrink: 0 }} />
+                          {cross && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand)', flexShrink: 0 }}>跨天</span>}
+                        </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     <Btn variant="ghost" size="sm" icon="plus" type="button" onClick={() => setForm(st => ({
-                      ...st, sessions: [...(st.sessions || []), { dateValue: isoToday(), timeStart: '19:00', timeEnd: '21:00' }],
+                      ...st, sessions: [...(st.sessions || []), { dateValue: isoToday(), endDateValue: '', timeStart: '19:00', timeEnd: '21:00' }],
                     }))}>添加场次</Btn>
                   </div>
                 </Field>

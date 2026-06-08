@@ -291,7 +291,7 @@ function PostMoment({ gid, aid: aidInit }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600 }} className="clamp1">{a.title}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 1 }}>
-                    {(DB.groups.find(g => g.id === a.gid) || {}).name} · {a.date} · {a.time}
+                    {(DB.groups.find(g => g.id === a.gid) || {}).name} · {ActWhen.compact(a)}
                   </div>
                 </div>
                 {aid === a.id && <Icon name="check" size={16} style={{ color: 'var(--brand)', flexShrink: 0 }} />}
@@ -477,7 +477,7 @@ function igActsToRegItems(acts, groups) {
         id: 'ig-' + a.id,
         status: a.status === 'cancelled' ? 'cancelled' : a.status,
         title: a.title,
-        dateTime: `${a.date} ${a.time || ''}`.trim(),
+        dateTime: (ActWhen.full(a) + (ActWhen.daysBadge(a) ? ` · ${ActWhen.daysBadge(a)}` : '')).trim(),
         location: a.loc || g.area || '待定',
         appliedAt: '2026-06-01 10:00',
         coverSeed: a.id + (a.cat || ''),

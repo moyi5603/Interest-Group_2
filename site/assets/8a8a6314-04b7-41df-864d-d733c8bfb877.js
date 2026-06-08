@@ -123,7 +123,7 @@ function ChatActCard({ a }) {
         <div style={{ position: 'absolute', top: 8, left: 8 }}><CatBadge cat={a.cat} size="sm" solid /></div></div>
       <div style={{ padding: 11 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700 }} className="clamp1">{a.title}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink-3)', margin: '3px 0 9px' }}>{a.date} · 余 {a.cap - cur.signed} 位</div>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-3)', margin: '3px 0 9px' }}>{ActWhen.isCross(a) ? `${ActWhen.short(a.date)} → ${ActWhen.short(a.endDate)}` : a.date} · 余 {a.cap - cur.signed} 位</div>
         <Btn variant={cur.joinedByMe ? 'ghost' : 'primary'} size="sm" full icon={cur.joinedByMe ? 'check' : 'ticket'}
           onClick={e => { e.stopPropagation(); actions.toggleSignup(a.id); }}>{cur.joinedByMe ? '已报名' : '报名'}</Btn>
       </div>
