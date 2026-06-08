@@ -585,7 +585,8 @@ function GroupForm({ open, onClose, onSave, init }) {
           <div style={{ flex: 1 }}><Field label="分类">
             <select value={f.cat} onChange={e => setF({ ...f, cat: e.target.value })} style={{ ...inputStyle }}>
               {Object.values(CATS).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field></div>
-          <div style={{ flex: 1 }}><Field label="组长"><TextInput value={f.lead} onChange={e => setF({ ...f, lead: e.target.value })} /></Field></div>
+          <div style={{ flex: 1 }}><Field label="组长" hint="搜索公司员工姓名、工号或部门">
+            <EmployeeLeadSearch value={f.lead} onChange={lead => setF({ ...f, lead })} /></Field></div>
         </div>
         <Field label="小组简介">
           <div style={{ position: 'relative' }}>

@@ -127,6 +127,78 @@ const inputStyle = { width: '100%', padding: '8px 11px', borderRadius: 10, borde
 function TextInput(p) { return <input {...p} style={{ ...inputStyle, ...p.style }} onFocus={e => e.target.style.borderColor = 'var(--brand)'} onBlur={e => e.target.style.borderColor = 'var(--line-2)'} />; }
 function TextArea(p) { return <textarea {...p} style={{ ...inputStyle, resize: 'vertical', minHeight: 84, lineHeight: 1.6, ...p.style }} onFocus={e => e.target.style.borderColor = 'var(--brand)'} onBlur={e => e.target.style.borderColor = 'var(--line-2)'} />; }
 
+/** PC 管理端 · 组长选择：边输入边搜索公司员工 */
+function EmployeeLeadSearch({ value, onChange, placeholder }) {
+  const [query, setQuery] = React.useState(value || '');
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef(null);
+  const list = DB.employees || [];
+
+  React.useEffect(() => { setQuery(value || ''); }, [value]);
+  React.useEffect(() => {
+    const close = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  const q = query.trim();
+  const results = !q
+    ? list.slice(0, 6)
+    : list.filter(e =>
+        e.name.includes(q) || e.dept.includes(q) || e.id.toLowerCase().includes(q.toLowerCase())
+        || (e.title && e.title.includes(q))
+      ).slice(0, 8);
+
+  const pick = (emp) => {
+    setQuery(emp.name);
+    onChange(emp.name);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={wrapRef}>
+      <div style={{ position: 'relative' }}>
+        <Icon name="search" size={16} stroke={2.1}
+          style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none' }} />
+        <input
+          value={query}
+          placeholder={placeholder || '搜索员工姓名、工号或部门'}
+          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
+          onFocus={e => { e.target.style.borderColor = 'var(--brand)'; setOpen(true); }}
+          onBlur={e => e.target.style.borderColor = 'var(--line-2)'}
+          style={{ ...inputStyle, paddingLeft: 34 }}
+        />
+      </div>
+      {open && (
+        <div style={{ marginTop: 6, borderRadius: 10, border: '1.5px solid var(--line-2)', background: 'var(--surface)',
+          boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+          {results.length ? results.map(emp => {
+            const on = emp.name === value;
+            return (
+              <button key={emp.id} type="button" onMouseDown={e => { e.preventDefault(); pick(emp); }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: 'none',
+                  background: on ? 'var(--brand-tint)' : 'transparent', cursor: 'pointer', textAlign: 'left',
+                  borderBottom: '1px solid var(--line)' }}
+                onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'var(--surface-2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = on ? 'var(--brand-tint)' : 'transparent'; }}>
+                <Avatar name={emp.name} size={32} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{emp.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 1 }}>{emp.dept} · {emp.title}</div>
+                </div>
+                <span style={{ fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 600, flexShrink: 0 }}>{emp.id}</span>
+                {on && <Icon name="check" size={16} style={{ color: 'var(--brand)', flexShrink: 0 }} />}
+              </button>
+            );
+          }) : (
+            <div style={{ padding: '18px 12px', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)' }}>未找到匹配员工</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // AI-generated cover poster (SVG data URL) — honors the now-required cover field.
 function escapeXml(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
 function makeAiPoster(title, cat) {
@@ -478,4 +550,4 @@ function DeadlinePicker({ mode, date, time, hours, onChange }) {
   );
 }
 
-Object.assign(window, { AdminCtx, useA, NAV, Sidebar, Topbar, StatCard, Field, TextInput, TextArea, AIComposer, DeadlinePicker, inputStyle, useAOpen });
+Object.assign(window, { AdminCtx, useA, NAV, Sidebar, Topbar, StatCard, Field, TextInput, TextArea, EmployeeLeadSearch, AIComposer, DeadlinePicker, inputStyle, useAOpen });

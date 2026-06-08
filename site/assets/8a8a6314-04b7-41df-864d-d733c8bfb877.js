@@ -123,7 +123,7 @@ function ChatActCard({ a }) {
         <div style={{ position: 'absolute', top: 8, left: 8 }}><CatBadge cat={a.cat} size="sm" solid /></div></div>
       <div style={{ padding: 11 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700 }} className="clamp1">{a.title}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink-3)', margin: '3px 0 9px' }}>{ActWhen.isCross(a) ? `${ActWhen.short(a.date)} → ${ActWhen.short(a.endDate)}` : a.date} · 余 {a.cap - cur.signed} 位</div>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-3)', margin: '3px 0 9px' }}>{ActWhen.isCross(a) ? `${ActWhen.short(a.date)} → ${ActWhen.short(a.endDate)}` : ActWhen.short(a.date)} · 余 {a.cap - cur.signed} 位</div>
         <Btn variant={cur.joinedByMe ? 'ghost' : 'primary'} size="sm" full icon={cur.joinedByMe ? 'check' : 'ticket'}
           onClick={e => { e.stopPropagation(); actions.toggleSignup(a.id); }}>{cur.joinedByMe ? '已报名' : '报名'}</Btn>
       </div>
@@ -146,8 +146,10 @@ function Bubble({ side, children, ai }) {
 }
 
 function AIChat() {
-  const { nav } = useM();
-  const [msgs, setMsgs] = React.useState([
+  const { nav, emptyMode } = useM();
+  const [msgs, setMsgs] = React.useState(() => emptyMode ? [
+    { id: 1, side: 'ai', text: '嗨 👋 我是小趣。当前暂无活动与小组数据,你可以去「全部活动」「我的小组」等页面查看空状态展示。' },
+  ] : [
     { id: 1, side: 'ai', text: '嗨 林浅 👋 我是小趣。最近想动一动还是想充充电?你也可以直接告诉我想找什么活动~' },
     { id: 2, side: 'ai', cards: ['a5', 'a8'], text: '顺便提醒:你报名的「滨江 8K 夜跑」明天 19:30 开始,要不要把搭子也叫上?' },
   ]);
@@ -160,6 +162,7 @@ function AIChat() {
     const t = text.toLowerCase();
     let cards = [], answer;
     if (text.includes('羽毛球')) { cards = ['a5']; answer = '为你找到本周的羽毛球活动 🏸 周四晚体育馆已包 4 片场地、可借拍,目前余 2 位,要现在报名吗?'; }
+    else if (text.includes('职场') || text.includes('成长营')) { cards = ['a14', 'a15']; answer = '职场成长营目前有「Go 语言技术分享」系列,共 3 期、按场次独立报名 📈 最近两场是并发实战与微服务调优,要帮你看看哪期更合适吗?'; }
     else if (text.includes('周末')) { cards = ['a2', 'a6']; answer = '这个周末有 2 个不错的选择:看日出徒步(中级强度)和潮汕砂锅粥探店。看你想出汗还是想吃好的 😋'; }
     else if (text.includes('新人') || text.includes('新手') || text.includes('小组')) { cards = ['a3', 'a4']; answer = '想轻松融入的话,推荐先从“午休桌游局”和“读书围读会”开始,氛围都很友好,不会冷场~'; }
     else { cards = ['a1', 'a3']; answer = '根据你的兴趣(运动 / 桌游)和最近的活跃时段,这两个我觉得你会喜欢。需要我帮你直接报名吗?'; }
@@ -173,7 +176,7 @@ function AIChat() {
       setMsgs(m => [...m, { id: Date.now() + 1, side: 'ai', text: r.answer, cards: r.cards }]);
     }, 1000);
   };
-  const sugg = ['帮我找周末的羽毛球活动', '推荐适合新人的小组', '本周还有什么活动'];
+  const sugg = ['职场成长的活动有什么', '推荐适合新人的小组', '本周还有什么活动'];
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>

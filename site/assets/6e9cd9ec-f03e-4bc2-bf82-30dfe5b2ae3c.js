@@ -477,10 +477,13 @@ function ActivityDetail({ aid, pickEnroll }) {
 function GroupDetail({ gid }) {
   const { store, actions, nav } = useM();
   const g = store.groups.find(x => x.id === gid);
-  const acts = DB.acts.filter(a => a.gid === gid);
-  const moms = DB.moments.filter(m => m.gid === gid);
+  const actsRaw = DB.acts.filter(a => a.gid === gid);
+  const acts = DBH.collapseActsForList(actsRaw, store.acts);
+  const moms = store.moments.filter(m => m.gid === gid);
+  const isMember = groupMemberState(g) === 'member';
   const [tab, setTab] = React.useState('acts');
   const members = DB.NAMES.slice(0, 14);
+  const goPostMoment = () => nav.go('post', { gid });
 
   return (
     <ScreenScroll>
@@ -510,7 +513,7 @@ function GroupDetail({ gid }) {
           {(() => {
             const gs = groupMemberState(g);
             if (gs === 'pending') return <Btn variant="ghost" full icon="clock" disabled style={{ opacity: 0.55 }}>审核中…</Btn>;
-            if (gs === 'member') return <Btn variant="ghost" full icon="check" onClick={() => actions.leaveGroupWithConfirm(gid)}>已加入</Btn>;
+            if (gs === 'member') return <Btn variant="ghost" full icon="check" onClick={() => actions.leaveGroupWithConfirm(gid)}>退出小组</Btn>;
             return <Btn variant="primary" full icon="userPlus"
               onClick={() => (g.join === 'approve' ? actions.applyJoin(gid) : actions.joinGroupFree(gid))}>{g.join === 'approve' ? '申请加入' : '加入小组'}</Btn>;
           })()}
@@ -527,14 +530,13 @@ function GroupDetail({ gid }) {
         </div>
 
         {tab === 'acts' && <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-          {acts.map(a => <ActivityRow key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />)}</div>}
+          {acts.map(a => <ActivityRow key={a._listKey || a.id} a={a} />)}</div>}
 
         {tab === 'members' && <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: 13, background: 'var(--surface)',
             borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', marginBottom: 11 }}>
             <Avatar name={g.lead} size={46} ring />
-            <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700 }}>{g.lead}</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>组长 · 创建人</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700 }}>{g.lead}</div></div>
             <span style={{ padding: '4px 10px', borderRadius: 99, background: 'var(--sun-soft)', color: 'oklch(0.55 0.13 70)',
               fontSize: 11.5, fontWeight: 700 }}>组长</span>
           </div>
@@ -545,18 +547,45 @@ function GroupDetail({ gid }) {
           </div>
         </div>}
 
-        {tab === 'moments' && (moms.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-          {moms.map(m => <MomentCard key={m.id} m={m} />)}</div>
-          : <Empty text="还没有精彩瞬间,参加活动后来这里分享吧" />)}
+        {tab === 'moments' && (
+          <div>
+            {isMember && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 600, lineHeight: 1.5, flex: 1 }}>
+                  分享你参与活动的精彩瞬间
+                </div>
+                <Btn variant="ai" size="sm" icon="camera" onClick={goPostMoment}>发布</Btn>
+              </div>
+            )}
+            {moms.length
+              ? <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+                  {moms.map(m => <MomentCard key={m.id} m={m} />)}
+                </div>
+              : <Empty
+                  text="还没有精彩瞬间,参加活动后来这里分享吧"
+                  actionLabel={isMember ? '发布精彩瞬间' : undefined}
+                  onAction={isMember ? goPostMoment : undefined}
+                />}
+          </div>
+        )}
       </div>
     </ScreenScroll>
   );
 }
 
-function Empty({ text }) {
-  return <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--ink-3)', fontSize: 13.5 }}>
-    <div style={{ width: 56, height: 56, borderRadius: 18, background: 'var(--bg-2)', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', margin: '0 auto 12px' }}><Icon name="image" size={26} style={{ color: 'var(--ink-3)' }} /></div>{text}</div>;
+function Empty({ text, actionLabel, onAction }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--ink-3)', fontSize: 13.5 }}>
+      <div style={{ width: 56, height: 56, borderRadius: 18, background: 'var(--bg-2)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', margin: '0 auto 12px' }}><Icon name="image" size={26} style={{ color: 'var(--ink-3)' }} /></div>
+      <div style={{ lineHeight: 1.55, maxWidth: 280, margin: '0 auto' }}>{text}</div>
+      {actionLabel && onAction && (
+        <div style={{ marginTop: 16 }}>
+          <Btn variant="soft" size="sm" onClick={onAction}>{actionLabel}</Btn>
+        </div>
+      )}
+    </div>
+  );
 }
 
 Object.assign(window, { ActivityDetail, GroupDetail, MomentCard, AISummaryCard, CommentItem, ImgGrid, FloatBtn, Empty });

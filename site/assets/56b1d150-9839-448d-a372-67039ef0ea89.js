@@ -58,7 +58,8 @@ function isAdjustableAct(a) {
 }
 
 // 报名按钮文案/样式（卡片用）。需先加入小组才能报名。
-function enrollBtnInfo(a, cur, group) {
+function enrollBtnInfo(a, cur, group, opts) {
+  const simpleLabel = opts && opts.simpleLabel;
   const via = needsDetailEnroll(a.type);
   const adjustable = isAdjustableAct(a);
   const gs = groupMemberState(group);
@@ -66,61 +67,63 @@ function enrollBtnInfo(a, cur, group) {
   if (gs === 'none') return { label: '报名+入组', icon: 'userPlus', variant: 'primary' };
   if (cur.joinedByMe) {
     if (adjustable) return { label: '调整场次', icon: 'ticket', variant: 'soft' };
-    return { label: via ? '取消报名' : '已报名', icon: via ? 'x' : 'check', variant: 'ghost' };
+    if (via || (simpleLabel && a.type === 'once')) return { label: '取消报名', icon: 'x', variant: 'ghost' };
+    return { label: '已报名', icon: 'check', variant: 'ghost' };
   }
-  return { label: adjustable ? '选场次报名' : '报名', icon: 'ticket', variant: 'primary' };
+  return { label: (adjustable && !simpleLabel) ? '选场次报名' : '报名', icon: 'ticket', variant: 'primary' };
 }
 
-function handleActivityEnrollClick(e, a, actions, nav, group) {
+function handleActivityEnrollClick(e, a, actions, nav, group, detailAid) {
   e.stopPropagation();
+  const aid = detailAid || a.id;
   const gs = groupMemberState(group);
   if (gs === 'pending') { toast('申请审核中,通过后可报名', { icon: 'clock' }); return; }
   if (gs === 'none') {
     if (group.join === 'approve') { actions.applyJoin(group.id); return; }
     // 自由加入：入组后报名
-    if (needsDetailEnroll(a.type)) { actions.joinGroupFree(group.id); nav.go('activity', { aid: a.id, pickEnroll: true }); return; }
-    actions.signupAndJoinFree(a.id, group.id);
+    if (needsDetailEnroll(a.type)) { actions.joinGroupFree(group.id); nav.go('activity', { aid, pickEnroll: true }); return; }
+    actions.signupAndJoinFree(aid, group.id);
     return;
   }
   // 已是成员：周期/系列进详情调整场次,单次直接报名/取消
   if (needsDetailEnroll(a.type)) {
-    nav.go('activity', { aid: a.id, pickEnroll: true });
+    nav.go('activity', { aid, pickEnroll: true });
     return;
   }
-  actions.toggleSignup(a.id);
+  actions.toggleSignup(aid);
 }
 
 // big activity card (feed)
-function ActivityCard({ a, onClick, recReason }) {
+function ActivityCard({ a, onClick, recReason, simpleEnrollLabel }) {
   const { actions, store, nav } = useM();
-  const cur = store.acts.find(x => x.id === a.id) || a;
-  const g = store.groups.find(x => x.id === a.gid);
-  const moms = DB.moments.filter(m => m.aid === a.id);
-  const cancelled = cur.status === 'cancelled';
-  const ended = cur.status === 'ended' || cancelled;
+  const view = DBH.forListCard(a, store.acts);
+  const cur = store.acts.find(x => x.id === view.id) || view;
+  const g = store.groups.find(x => x.id === view.gid);
+  const moms = DB.moments.filter(m => m.aid === view.id);
+  const cancelled = view.status === 'cancelled';
+  const ended = view.status === 'ended' || cancelled;
   const statusMeta = cancelled
     ? { label: '已终止', color: '#fff', bg: 'rgba(120,113,108,0.92)' }
-    : cur.status === 'ended'
+    : view.status === 'ended'
       ? { label: '已结束', color: '#fff', bg: 'rgba(60,60,60,0.78)' }
       : null;
-  const cardTitle = a.type === 'series' && a.series
-    ? (a.seriesIdx ? `${a.series} · 第${a.seriesIdx}期` : a.series)
-    : a.title;
+  const cardTitle = view.type === 'series' && view.series ? view.series : view.title;
+  const openDetail = () => { nav.go('activity', { aid: view._detailAid || view.id }); onClick && onClick(); };
   return (
-    <div onClick={onClick} className="rise" style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)',
+    <div onClick={openDetail} className="rise" style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)',
       boxShadow: 'var(--shadow)', overflow: 'hidden', cursor: 'pointer' }}>
       <div style={{ position: 'relative', height: 152 }}>
-        <Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} dim />
+        <Cover src={view.cover} seed={view.id + view.cat} icon={CATS[view.cat].icon} dim />
         <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6 }}>
           {statusMeta && (
             <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 99,
               fontSize: 11, fontWeight: 800, color: statusMeta.color, background: statusMeta.bg,
               backdropFilter: 'blur(4px)' }}>{statusMeta.label}</span>
           )}
-          <CatBadge cat={a.cat} size="sm" solid />
+          <CatBadge cat={view.cat} size="sm" solid />
         </div>
-        <div style={{ position: 'absolute', top: 12, right: 12 }}><TypeTag type={a.type} /></div>
-        {!ended && !recReason && (
+        <div style={{ position: 'absolute', top: 12, right: 12 }}><TypeTag type={view.type} /></div>
+        {!ended && (
           <div style={{ position: 'absolute', bottom: 11, right: 12, display: 'flex', gap: 10 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 13, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', padding: '4px 10px', borderRadius: 99 }}>
               <Icon name="heart" size={15} fill={cur.liked} />{cur.likes}</span>
@@ -148,32 +151,27 @@ function ActivityCard({ a, onClick, recReason }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <MetaRow icon="calendar">
-                {ActWhen.compact(a)}
-                {ActWhen.daysBadge(a) && <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 6, background: 'var(--brand-tint, color-mix(in oklch, var(--brand) 12%, white))', color: 'var(--brand)', fontSize: 11, fontWeight: 700 }}>{ActWhen.daysBadge(a)}</span>}
+                {ActWhen.compact(view)}
+                {ActWhen.daysBadge(view) && <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 6, background: 'var(--brand-tint, color-mix(in oklch, var(--brand) 12%, white))', color: 'var(--brand)', fontSize: 11, fontWeight: 700 }}>{ActWhen.daysBadge(view)}</span>}
               </MetaRow>
-              {recReason && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 12.5,
-                  fontWeight: 700, color: 'var(--ink-3)' }}>
-                  <Icon name="heart" size={14} fill={cur.liked} style={{ color: cur.liked ? 'var(--brand)' : 'var(--ink-3)' }} />{cur.likes}</span>
-              )}
             </div>
-            {a.loc && <MetaRow icon="pin">{a.loc}</MetaRow>}
+            {view.loc && <MetaRow icon="pin">{view.loc}</MetaRow>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '11px 0' }}>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 700, marginBottom: 5 }}>
-                <span style={{ color: 'var(--ink-2)' }}>已报名 {cur.signed}/{a.cap}</span>
-                <span style={{ color: cur.signed >= a.cap ? 'var(--brand)' : 'var(--ink-3)' }}>{cur.signed >= a.cap ? '已满员' : `余 ${a.cap - cur.signed} 位`}</span>
+                <span style={{ color: 'var(--ink-2)' }}>已报名 {view.signed}/{view.cap}</span>
+                <span style={{ color: view.signed >= view.cap ? 'var(--brand)' : 'var(--ink-3)' }}>{view.signed >= view.cap ? '已满员' : `余 ${view.cap - view.signed} 位`}</span>
               </div>
-              <ProgressBar value={cur.signed} max={a.cap} color={CATS[a.cat].color} />
+              <ProgressBar value={view.signed} max={view.cap} color={CATS[view.cat].color} />
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <AvatarStack names={DB.NAMES.slice(0, 6)} n={4} size={26} extra={Math.max(0, cur.signed - 4)} />
-            {(() => { const b = enrollBtnInfo(cur, cur, g); return (
+            <AvatarStack names={DB.NAMES.slice(0, 6)} n={4} size={26} extra={Math.max(0, view.signed - 4)} />
+            {(() => { const b = enrollBtnInfo(cur, view, g, { simpleLabel: simpleEnrollLabel }); return (
               <Btn variant={b.variant} size="sm" icon={b.icon} disabled={b.disabled}
                 style={b.disabled ? { opacity: 0.55 } : undefined}
-                onClick={e => handleActivityEnrollClick(e, cur, actions, nav, g)}>{b.label}</Btn>
+                onClick={e => handleActivityEnrollClick(e, cur, actions, nav, g, view._detailAid || view.id)}>{b.label}</Btn>
             ); })()}
           </div>
         </div>
@@ -184,17 +182,19 @@ function ActivityCard({ a, onClick, recReason }) {
 
 // compact list row
 function ActivityRow({ a, onClick }) {
-  const { store } = useM();
-  const cur = store.acts.find(x => x.id === a.id) || a;
+  const { store, nav } = useM();
+  const view = DBH.forListCard(a, store.acts);
+  const cardTitle = view.type === 'series' && view.series ? view.series : view.title;
+  const openDetail = () => { nav.go('activity', { aid: view._detailAid || view.id }); onClick && onClick(); };
   return (
-    <div onClick={onClick} style={{ display: 'flex', gap: 12, padding: 11, background: 'var(--surface)',
+    <div onClick={openDetail} style={{ display: 'flex', gap: 12, padding: 11, background: 'var(--surface)',
       borderRadius: 'var(--r)', boxShadow: 'var(--shadow-sm)', cursor: 'pointer', alignItems: 'center' }}>
       <div style={{ width: 64, height: 64, borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
-        <Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} /></div>
+        <Cover src={view.cover} seed={view.id + view.cat} icon={CATS[view.cat].icon} /></div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14.5, fontWeight: 700 }} className="clamp1">{a.title}</div>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', margin: '3px 0 6px' }} className="clamp1">{ActWhen.compact(a)}{ActWhen.daysBadge(a) ? ` · ${ActWhen.daysBadge(a)}` : ''}</div>
-        <div style={{ display: 'flex', gap: 6 }}><CatBadge cat={a.cat} size="sm" /><TypeTag type={a.type} /></div>
+        <div style={{ fontSize: 14.5, fontWeight: 700 }} className="clamp1">{cardTitle}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', margin: '3px 0 6px' }} className="clamp1">{ActWhen.compact(view)}{ActWhen.daysBadge(view) ? ` · ${ActWhen.daysBadge(view)}` : ''}</div>
+        <div style={{ display: 'flex', gap: 6 }}><CatBadge cat={view.cat} size="sm" /><TypeTag type={view.type} /></div>
       </div>
       <Icon name="chevR" size={18} style={{ color: 'var(--ink-3)' }} />
     </div>
@@ -217,7 +217,7 @@ function RecCard({ a, reason, onClick }) {
         </div>
       </div>
       <div style={{ padding: '10px 11px 11px' }}>
-        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 8 }} className="clamp1">{ActWhen.isCross(a) ? `${ActWhen.short(a.date)} → ${ActWhen.short(a.endDate)}` : `${a.date.slice(0, 7)} · ${a.time.split(' ')[0]}`}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 8 }} className="clamp1">{ActWhen.compact(a)}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px', borderRadius: 11,
           background: 'var(--ai-soft)', marginBottom: 10 }}>
           <Sparkles size={14} color="var(--ai)" />
@@ -254,7 +254,7 @@ function GroupCard({ g, onClick, wide }) {
           </div>
           {(() => {
             const gs = groupMemberState(cur);
-            const jb = gs === 'member' ? { label: '已加入', icon: 'check', variant: 'ghost', disabled: false }
+            const jb = gs === 'member' ? { label: '已加入', icon: 'check', variant: 'ghost', disabled: true }
               : gs === 'pending' ? { label: '审核中', icon: 'clock', variant: 'ghost', disabled: true }
               : { label: cur.join === 'approve' ? '申请加入' : '加入', icon: 'plus', variant: 'soft', disabled: false };
             return <Btn variant={jb.variant} size="sm" icon={jb.icon} disabled={jb.disabled}
@@ -268,7 +268,13 @@ function GroupCard({ g, onClick, wide }) {
 }
 
 function EndedActsStrip({ acts, groups, onViewDetail }) {
-  if (!acts || acts.length === 0) return null;
+  if (!acts || acts.length === 0) {
+    return (
+      <div style={{ padding: '8px 16px 4px' }}>
+        <Empty text="暂无往期精彩回顾" />
+      </div>
+    );
+  }
   return (
     <div className="noscroll" style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '2px 16px 6px' }}>
       {acts.map(a => {

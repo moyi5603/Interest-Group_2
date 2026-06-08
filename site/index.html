@@ -3573,7 +3573,7 @@ function StatusBar() {
 }
 
 function Phone({ app = 'clubs' }) {
-  const AppBody = app === 'im' ? ImMobileApp : app === 'appmy' ? AppMineApp : MobileApp;
+  const AppBody = app === 'im' ? ImMobileApp : app === 'appmy' ? AppMineApp : app === 'clubsEmpty' ? MobileAppEmpty : MobileApp;
   return (
     <div style={{ width: 408, height: 858, borderRadius: 56, background: 'linear-gradient(145deg,#2a2a2e,#454549)',
       padding: 13, boxShadow: '0 40px 90px rgba(60,30,15,0.32), 0 0 0 2px rgba(255,255,255,0.06) inset', flexShrink: 0 }}>
@@ -3602,8 +3602,10 @@ function Showcase() {
     pc: '管理控制台 · HR · 陈航',
     im: 'IM消息 · 员工视角 · 林浅',
     appmy: 'App · 我的 · 林浅',
+    mobileEmpty: '移动员工端 · 无数据空态预览',
   };
   const isPhone = view !== 'pc';
+  const phoneApp = view === 'im' ? 'im' : view === 'appmy' ? 'appmy' : view === 'mobileEmpty' ? 'clubsEmpty' : 'clubs';
   return (
     <div className="stage-bg" style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* top bar */}
@@ -3623,6 +3625,7 @@ function Showcase() {
             { value: 'pc', label: 'PC 管理端', icon: 'grid' },
             { value: 'im', label: 'IM消息', icon: 'chat' },
             { value: 'appmy', label: 'App-我的', icon: 'user' },
+            { value: 'mobileEmpty', label: '移动端-无数据', icon: 'layers' },
           ]} />
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600, width: 220, textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
@@ -3631,7 +3634,7 @@ function Showcase() {
       </div>
 
       {isPhone
-        ? <FitStage w={408} h={858} max={1.02}><Phone app={view === 'im' ? 'im' : view === 'appmy' ? 'appmy' : 'clubs'} /></FitStage>
+        ? <FitStage w={408} h={858} max={1.02}><Phone app={phoneApp} /></FitStage>
         : <FitStage w={1280} h={800} max={1}><PC /></FitStage>}
     </div>
   );

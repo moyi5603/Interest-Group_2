@@ -57,6 +57,7 @@ function HomeMomentStripItem({ m, onOpenFeed }) {
 function HomeTab() {
   const { nav, store } = useM();
   const upcoming = store.acts.filter(a => a.status === 'upcoming');
+  const upcomingList = DBH.collapseActsForList(upcoming, store.acts);
   // 热门小组：运营 hot 置顶，其余按成员数、累计活动数降序，首页横滑最多 5 条
   const hotGroups = [...store.groups]
     .sort((a, b) => (b.hot ? 1 : 0) - (a.hot ? 1 : 0) || (b.members - a.members) || (b.acts - a.acts))
@@ -76,13 +77,21 @@ function HomeTab() {
     return m ? parseInt(m[1], 10) * 100 + parseInt(m[2], 10) : 9999;
   };
   const recItems = recs.map(r => ({ a: store.acts.find(x => x.id === r.aid), reason: r.reason })).filter(x => x.a);
-  const latestActs = [...upcoming].sort((x, y) => dateKey(x) - dateKey(y)).slice(0, 3);
-  const hotActs = [...upcoming].sort((x, y) => (y.likes - x.likes) || (y.signed - x.signed)).slice(0, 3);
+  const latestActs = [...upcomingList].sort((x, y) => dateKey(x) - dateKey(y)).slice(0, 3);
+  const hotActs = [...upcomingList].sort((x, y) => (y.likes - x.likes) || (y.signed - x.signed)).slice(0, 3);
   const actTabs = [
     { key: 'rec', label: '推荐' },
     { key: 'latest', label: '最新' },
     { key: 'hot', label: '热门' },
   ];
+  const noUpcomingActs = upcomingList.length === 0;
+  const actEmptyGuide = (
+    <Empty
+      text="暂无活动，先去浏览感兴趣的小组吧，加入小组即可"
+      actionLabel="浏览全部小组"
+      onAction={() => nav.go('allGroups')}
+    />
+  );
 
   const headerEntries = [
     { key: 'myActivities', label: '我的活动', icon: 'ticket' },
@@ -118,7 +127,7 @@ function HomeTab() {
           </div>
         </div>
         <div className="noscroll" style={{ display: 'flex', gap: 7, overflowX: 'auto', marginTop: 8 }}>
-          {['周末的羽毛球活动', '适合新人的小组', '本周还有什么活动'].map(s =>
+          {['职场成长的活动有什么', '适合新人的小组', '本周还有什么活动'].map(s =>
             <button key={s} onClick={() => nav.go('aichat')} style={{ whiteSpace: 'nowrap', padding: '6px 12px', borderRadius: 99,
               background: 'var(--surface)', boxShadow: 'var(--shadow-sm)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)',
               display: 'inline-flex', alignItems: 'center', gap: 4 }}><Sparkles size={12} color="var(--ai)" />{s}</button>)}
@@ -140,21 +149,24 @@ function HomeTab() {
           })}
         </div>
         {actTab === 'rec' && (
-          recItems.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-            {recItems.map(({ a, reason }) => (
-              <ActivityCard key={a.id} a={a} recReason={reason} onClick={() => nav.go('activity', { aid: a.id })} />
-            ))}
-          </div> : <Empty text="暂无推荐活动" />
+          noUpcomingActs ? actEmptyGuide
+            : recItems.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+              {recItems.map(({ a, reason }) => (
+                <ActivityCard key={a.id} a={a} recReason={reason} simpleEnrollLabel onClick={() => nav.go('activity', { aid: a.id })} />
+              ))}
+            </div> : <Empty text="暂无推荐活动" />
         )}
         {actTab === 'latest' && (
-          latestActs.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-            {latestActs.map(a => <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />)}
-          </div> : <Empty text="暂无最新活动" />
+          noUpcomingActs ? actEmptyGuide
+            : latestActs.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+              {latestActs.map(a => <ActivityCard key={a._listKey || a.id} a={a} simpleEnrollLabel />)}
+            </div> : <Empty text="暂无最新活动" />
         )}
         {actTab === 'hot' && (
-          hotActs.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-            {hotActs.map(a => <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />)}
-          </div> : <Empty text="暂无热门活动" />
+          noUpcomingActs ? actEmptyGuide
+            : hotActs.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+              {hotActs.map(a => <ActivityCard key={a._listKey || a.id} a={a} simpleEnrollLabel />)}
+            </div> : <Empty text="暂无热门活动" />
         )}
       </div>
 
@@ -162,7 +174,9 @@ function HomeTab() {
       <div style={{ padding: '20px 0 4px' }}>
         <div style={{ padding: '0 16px' }}><SectionHeader title="热门小组" action="全部" onAction={() => nav.go('allGroups')} accent="var(--c-music)" /></div>
         <div className="noscroll" style={{ display: 'flex', gap: 13, overflowX: 'auto', padding: '0 16px 4px', scrollSnapType: 'x mandatory' }}>
-          {hotGroups.map(g => <GroupCard key={g.id} g={g} onClick={() => nav.go('group', { gid: g.id })} />)}
+          {hotGroups.length
+            ? hotGroups.map(g => <GroupCard key={g.id} g={g} onClick={() => nav.go('group', { gid: g.id })} />)
+            : <div style={{ width: '100%', padding: '8px 0 4px' }}><Empty text="暂无小组" /></div>}
         </div>
       </div>
 
@@ -205,7 +219,9 @@ function MomentsFeed({ gid }) {
             共 {list.length} 条精彩瞬间,累计 {totalLikes} 个赞{highlight ? `,${highlight}。` : '。'}
           </div>
         </div>
-        {list.map(m => <MomentCard key={m.id} m={m} />)}
+        {list.length
+          ? list.map(m => <MomentCard key={m.id} m={m} />)
+          : <Empty text="还没有精彩瞬间,参加活动后来这里分享吧" />}
       </div>
     </ScreenScroll>
   );
@@ -724,9 +740,10 @@ function MyActivities() {
   const { nav, store } = useM();
   const [tab, setTab] = React.useState('all');
   const myActs = store.acts.filter(a => a.joinedByMe);
-  const filtered = tab === 'all'     ? myActs
-    : tab === 'upcoming' ? myActs.filter(a => a.status === 'upcoming')
-    :                      myActs.filter(a => a.status === 'ended' || a.status === 'cancelled');
+  const myList = DBH.collapseActsForList(myActs, store.acts);
+  const filtered = tab === 'all'     ? myList
+    : tab === 'upcoming' ? myList.filter(a => a.status === 'upcoming')
+    :                      myList.filter(a => a.status === 'ended' || a.status === 'cancelled');
   const tabDefs = [
     { key: 'all',      label: '全部' },
     { key: 'upcoming', label: '未开始' },
@@ -761,7 +778,7 @@ function MyActivities() {
           </div>
         ) : (
           filtered.map(a => (
-            <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />
+            <ActivityCard key={a._listKey || a.id} a={a} />
           ))
         )}
       </div>
@@ -804,7 +821,7 @@ function AllActivities() {
   };
   
   const byStatus = (acts) => statusFilter === 'all' ? acts : acts.filter(a => a.status === statusFilter);
-  const list = filterActs(byStatus(filterByDate(store.acts)), store.groups, q);
+  const list = filterActs(filterByDate(byStatus(DBH.collapseActsForList(store.acts, store.acts))), store.groups, q);
 
   const statusOptions = [
     { key: 'all', label: '全部' },
@@ -855,8 +872,12 @@ function AllActivities() {
       </div>
       <div style={{ padding: '16px 14px 40px', display: 'flex', flexDirection: 'column', gap: 15 }}>
         {list.length
-          ? list.map(a => <ActivityCard key={a.id} a={a} onClick={() => nav.go('activity', { aid: a.id })} />)
-          : <Empty text={q.trim() ? '没有匹配的活动' : '该状态下暂无活动'} />}
+          ? list.map(a => <ActivityCard key={a._listKey || a.id} a={a} simpleEnrollLabel />)
+          : <Empty
+              text={q.trim() ? '没有匹配的活动' : '暂无活动，可以先浏览小组，找到感兴趣的小组加入'}
+              actionLabel={q.trim() ? undefined : '浏览全部小组'}
+              onAction={q.trim() ? undefined : () => nav.go('allGroups')}
+            />}
       </div>
     </ScreenScroll>
   );
@@ -904,11 +925,52 @@ function AllGroups() {
   );
 }
 
+// ---------- 无数据预览：临时清空 DB，供 Showcase「移动端-无数据」查看空态 ----------
+let _emptyDbSnapshot = null;
+
+function enterEmptyDbMode() {
+  if (_emptyDbSnapshot) return;
+  _emptyDbSnapshot = {
+    acts: DB.acts,
+    groups: DB.groups,
+    moments: DB.moments,
+    comments: DB.comments,
+    notifications: DB.notifications,
+    convos: DB.convos,
+    joinRequests: DB.joinRequests,
+    mineInteractFeed: DB.mineInteractFeed,
+    myRegistrations: DB.myRegistrations,
+  };
+  DB.acts = [];
+  DB.groups = [];
+  DB.moments = [];
+  DB.comments = [];
+  DB.notifications = [];
+  DB.convos = [];
+  DB.joinRequests = [];
+  if (DB.mineInteractFeed) DB.mineInteractFeed = [];
+  if (DB.myRegistrations) DB.myRegistrations = [];
+}
+
+function exitEmptyDbMode() {
+  if (!_emptyDbSnapshot) return;
+  DB.acts = _emptyDbSnapshot.acts;
+  DB.groups = _emptyDbSnapshot.groups;
+  DB.moments = _emptyDbSnapshot.moments;
+  DB.comments = _emptyDbSnapshot.comments;
+  DB.notifications = _emptyDbSnapshot.notifications;
+  DB.convos = _emptyDbSnapshot.convos;
+  DB.joinRequests = _emptyDbSnapshot.joinRequests;
+  if (_emptyDbSnapshot.mineInteractFeed) DB.mineInteractFeed = _emptyDbSnapshot.mineInteractFeed;
+  if (_emptyDbSnapshot.myRegistrations) DB.myRegistrations = _emptyDbSnapshot.myRegistrations;
+  _emptyDbSnapshot = null;
+}
+
 // ---------- shared mobile store / nav ----------
-function useInterestMobileState() {
-  const [acts, setActs] = React.useState(() => DB.acts.map(a => ({ ...a })));
-  const [groups, setGroups] = React.useState(() => DB.groups.map(g => ({ ...g })));
-  const [moments, setMoments] = React.useState(() => DB.moments.map(m => ({ ...m, _liked: false })));
+function useInterestMobileState(empty = false) {
+  const [acts, setActs] = React.useState(() => (empty ? [] : DB.acts.map(a => ({ ...a }))));
+  const [groups, setGroups] = React.useState(() => (empty ? [] : DB.groups.map(g => ({ ...g }))));
+  const [moments, setMoments] = React.useState(() => (empty ? [] : DB.moments.map(m => ({ ...m, _liked: false }))));
   const [stack, setStack] = React.useState([]);
   const nav = {
     go: (name, params = {}) => setStack(s => [...s, { name, params }]),
@@ -1021,7 +1083,7 @@ function useInterestMobileState() {
       setMoments(s => [{ id: 'mx' + Date.now(), gid, aid, author: DB.ME, text, imgs, likes: 0, _liked: false, time: '刚刚' }, ...s]);
     },
   };
-  return { store: { acts, groups, moments }, actions, nav, stack };
+  return { store: { acts, groups, moments }, actions, nav, stack, emptyMode: empty };
 }
 
 function renderMobileScreen(top) {
@@ -1060,6 +1122,18 @@ function MobileStackOverlay({ stack, children }) {
 // ---------- 兴趣小组（仅首页，无底部沟通 Tab）----------
 function MobileApp() {
   const shell = useInterestMobileState();
+  return (
+    <MobileCtx.Provider value={shell}>
+      <MobileStackOverlay stack={shell.stack}><HomeTab /></MobileStackOverlay>
+    </MobileCtx.Provider>
+  );
+}
+
+/** Showcase「移动端-无数据」：不加载 mock，用于验收各页空态 */
+function MobileAppEmpty() {
+  enterEmptyDbMode();
+  React.useEffect(() => () => exitEmptyDbMode(), []);
+  const shell = useInterestMobileState(true);
   return (
     <MobileCtx.Provider value={shell}>
       <MobileStackOverlay stack={shell.stack}><HomeTab /></MobileStackOverlay>
@@ -1426,4 +1500,4 @@ function AppMineApp() {
   );
 }
 
-Object.assign(window, { MobileApp, ImMobileApp, AppMineApp, ScreenScroll, HomeTab, MomentsFeed, PostMoment, AllActivities, AllGroups, MyActivities, MyRegistrations, MyGroups });
+Object.assign(window, { MobileApp, MobileAppEmpty, ImMobileApp, AppMineApp, ScreenScroll, HomeTab, MomentsFeed, PostMoment, AllActivities, AllGroups, MyActivities, MyRegistrations, MyGroups });

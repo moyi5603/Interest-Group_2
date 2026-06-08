@@ -14,6 +14,19 @@
   const NAMES = ['林浅','陈航','苏曼','江野','周棠','许墨','沈星','何夕','顾乔','叶蓁','秦风','安然',
     '罗茜','黎川','温野','傅瑶','邵阳','简一','池夏','卫然','于归','骆铭','邓蔻','穆青'];
   const ME = '林浅'; // 当前员工
+  // PC 管理端 · 员工列表（组长搜索 mock）
+  const employees = [
+    { id: 'E10001', name: '陈航', dept: '人力资源部', title: 'HR 专员' },
+    { id: 'E10002', name: '江野', dept: '产品部', title: '产品经理' },
+    { id: 'E10003', name: '苏曼', dept: '市场部', title: '品牌运营' },
+    { id: 'E10004', name: '周棠', dept: '研发中心', title: '前端工程师' },
+    { id: 'E10005', name: '许墨', dept: '设计部', title: '视觉设计师' },
+    { id: 'E10006', name: '沈星', dept: '产品部', title: '产品运营' },
+    { id: 'E10007', name: '何夕', dept: '人力资源部', title: '培训专员' },
+    { id: 'E10008', name: '顾乔', dept: '行政部', title: '行政主管' },
+    { id: 'E10009', name: '叶蓁', dept: '财务部', title: '财务分析' },
+    { id: 'E10010', name: '林浅', dept: '产品部', title: '产品专员' },
+  ];
 
   const groups = [
     { id: 'g1', name: '城市夜跑团', cat: 'sport', lead: '江野', members: 128, acts: 24,
@@ -398,6 +411,76 @@
       rejectReason: '报名人数已超出本期培训名额，请关注下期活动。' },
   ];
 
+  const PROTO_TODAY_KEY = 6 * 100 + 3; // 原型基准日 06月03日，与活动列表筛选一致
+  const parseActDateKey = (dateStr) => {
+    const m = dateStr && dateStr.match(/(\d{1,2})月(\d{1,2})日/);
+    return m ? parseInt(m[1], 10) * 100 + parseInt(m[2], 10) : null;
+  };
+  const isSessionOpen = (session, actStatus) => {
+    if (!session) return false;
+    if (session.status === 'ended' || session.status === 'cancelled') return false;
+    if (actStatus === 'ended' || actStatus === 'cancelled') return false;
+    const k = parseActDateKey(session.date);
+    return k == null || k >= PROTO_TODAY_KEY;
+  };
+  const seriesListStatus = (eps) => {
+    if (!eps || !eps.length) return 'ended';
+    if (eps.some(e => e.status === 'upcoming')) return 'upcoming';
+    if (eps.every(e => e.status === 'cancelled')) return 'cancelled';
+    return 'ended';
+  };
+  /** 最近一个未结束场次（周期=sessions[]；系列=最近一期 upcoming） */
+  const nextOpenSession = (act, allActs) => {
+    if (!act) return null;
+    if (act.type === 'recurring' && act.sessions && act.sessions.length) {
+      const s = act.sessions.find(x => isSessionOpen(x, act.status)) || act.sessions[act.sessions.length - 1];
+      return { date: s.date, endDate: s.endDate, time: s.time, signed: s.signed, cap: s.cap, _aid: act.id };
+    }
+    if (act.type === 'series' && act.series) {
+      const eps = seriesEps(allActs || [], act);
+      const open = eps.filter(e => e.status === 'upcoming');
+      const ep = open[0] || eps[eps.length - 1];
+      if (!ep) return null;
+      return { date: ep.date, endDate: ep.endDate, time: ep.time, signed: ep.signed, cap: ep.cap, _aid: ep.id };
+    }
+    return { date: act.date, endDate: act.endDate, time: act.time, signed: act.signed, cap: act.cap, _aid: act.id };
+  };
+  const listUnitKey = (act, allActs) => {
+    if (act.type === 'series' && act.series) return `series:${act.gid}:${act.series}`;
+    if (act.type === 'recurring') return `recurring:${act.id}`;
+    return `once:${act.id}`;
+  };
+  /** 列表卡片展示：合并最近场次时间，系列只显示一条 */
+  const forListCard = (act, allActs) => {
+    const all = allActs || acts;
+    const base = (act.type === 'series' && act.series) ? seriesAnchor(all, act) : act;
+    const sess = nextOpenSession(base, all);
+    const card = { ...base, _listKey: listUnitKey(act, all), _detailAid: (sess && sess._aid) || base.id };
+    if (sess) {
+      card.date = sess.date;
+      card.endDate = sess.endDate;
+      card.time = sess.time;
+      if (sess.signed != null) card.signed = sess.signed;
+      if (sess.cap != null) card.cap = sess.cap;
+    }
+    if (base.type === 'series' && base.series) {
+      card.title = base.series;
+      card.status = seriesListStatus(seriesEps(all, base));
+    }
+    return card;
+  };
+  const collapseActsForList = (list, allActs) => {
+    const seen = new Set();
+    const out = [];
+    for (const a of list) {
+      const key = listUnitKey(a, allActs);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(forListCard(a, allActs));
+    }
+    return out;
+  };
+
   // ── 活动时间展示工具（跨天/多天）：PC 与移动端共用 ──
   // 约定：a.date 为开始日期(中文串或「每周X」)，a.endDate 为结束日期；
   //       a.time 为「开始时间 - 结束时间」，开始时间属开始日、结束时间属结束日。
@@ -420,14 +503,14 @@
     const { s, e } = awTimes(a.time);
     return awIsCross(a) ? `${a.date} ${s} —— ${a.endDate} ${e}` : `${a.date} · ${a.time}`;
   };
-  // 列表/卡片：紧凑
+  // 列表/卡片：紧凑（日期统一 x/y，周期规则如「每周四」原样保留）
   const awCompact = (a) => {
     const { s, e } = awTimes(a.time);
-    return awIsCross(a) ? `${awShort(a.date)} ${s} → ${awShort(a.endDate)} ${e}` : `${a.date} · ${a.time}`;
+    return awIsCross(a) ? `${awShort(a.date)} ${s} → ${awShort(a.endDate)} ${e}` : `${awShort(a.date)} · ${a.time}`;
   };
   window.ActWhen = { isCross: awIsCross, days: awDays, daysBadge: awDaysBadge, full: awFull, compact: awCompact, short: awShort };
 
-  window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME, myRegistrations, mineInteractFeed };
+  window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME, employees, myRegistrations, mineInteractFeed };
   window.CATS = CATS;
-  window.DBH = { byId, seriesEps, seriesAnchor, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf, patchGroup, pushSelfJoinRequest, removeJoinRequest };
+  window.DBH = { byId, seriesEps, seriesAnchor, seriesListStatus, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf, patchGroup, pushSelfJoinRequest, removeJoinRequest, parseActDateKey, nextOpenSession, listUnitKey, forListCard, collapseActsForList };
 })();
