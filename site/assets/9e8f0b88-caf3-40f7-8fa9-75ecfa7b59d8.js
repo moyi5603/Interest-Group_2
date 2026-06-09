@@ -513,13 +513,11 @@ const REG_STATUS_TABS_IG = [
   { key: 'all', label: '全部' },
   { key: 'upcoming', label: '未开始' },
   { key: 'ended', label: '已结束' },
+  { key: 'cancelled', label: '已终止' },
 ];
 
 function filterRegList(list, statusTab, mode) {
   if (statusTab === 'all') return list;
-  if (mode === 'ig' && statusTab === 'ended') {
-    return list.filter(r => r.status === 'ended' || r.status === 'cancelled');
-  }
   return list.filter(r => r.status === statusTab);
 }
 
@@ -529,15 +527,30 @@ function MyRegTabList({ list, onCancel, onCardClick, mode = 'culture' }) {
   const filtered = filterRegList(list, statusTab, mode);
   return (
     <>
-      <div className="noscroll" style={{ display: 'flex', gap: 8, padding: '0 14px 12px', overflowX: 'auto' }}>
-        {statusDefs.map(({ key, label }) => (
-          <button key={key} type="button" onClick={() => setStatusTab(key)} style={{
-            flexShrink: 0, padding: '7px 16px', borderRadius: 99, fontSize: 13, fontWeight: 700, border: 'none',
-            background: statusTab === key ? 'var(--brand)' : 'var(--surface-2)',
-            color: statusTab === key ? '#fff' : 'var(--ink-3)',
-          }}>{label}</button>
-        ))}
-      </div>
+      {mode === 'ig' ? (
+        <div style={{ display: 'flex', gap: 4, padding: 4, margin: '0 14px 12px', borderRadius: 12, background: 'var(--bg-2)' }}>
+          {statusDefs.map(({ key, label }) => {
+            const on = statusTab === key;
+            return (
+              <button key={key} type="button" onClick={() => setStatusTab(key)} style={{
+                flex: 1, padding: '7px 0', borderRadius: 9, fontSize: 12.5, fontWeight: 700, border: 'none', cursor: 'pointer',
+                background: on ? 'var(--ink)' : 'transparent', color: on ? '#fff' : 'var(--ink-2)',
+                boxShadow: on ? 'var(--shadow-sm)' : 'none',
+              }}>{label}</button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="noscroll" style={{ display: 'flex', gap: 8, padding: '0 14px 12px', overflowX: 'auto' }}>
+          {statusDefs.map(({ key, label }) => (
+            <button key={key} type="button" onClick={() => setStatusTab(key)} style={{
+              flexShrink: 0, padding: '7px 16px', borderRadius: 99, fontSize: 13, fontWeight: 700, border: 'none',
+              background: statusTab === key ? 'var(--brand)' : 'var(--surface-2)',
+              color: statusTab === key ? '#fff' : 'var(--ink-3)',
+            }}>{label}</button>
+          ))}
+        </div>
+      )}
       <div style={{ padding: '12px 14px 40px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filtered.length === 0 ? (
           <div style={{ paddingTop: 48 }}><Empty text="该状态下暂无报名记录" /></div>
@@ -741,13 +754,16 @@ function MyActivities() {
   const [tab, setTab] = React.useState('all');
   const myActs = store.acts.filter(a => a.joinedByMe);
   const myList = DBH.collapseActsForList(myActs, store.acts);
-  const filtered = tab === 'all'     ? myList
-    : tab === 'upcoming' ? myList.filter(a => a.status === 'upcoming')
-    :                      myList.filter(a => a.status === 'ended' || a.status === 'cancelled');
+  const filtered = tab === 'all'      ? myList
+    : tab === 'upcoming'  ? myList.filter(a => a.status === 'upcoming')
+    : tab === 'ended'     ? myList.filter(a => a.status === 'ended')
+    : tab === 'cancelled' ? myList.filter(a => a.status === 'cancelled')
+    : myList;
   const tabDefs = [
     { key: 'all',      label: '全部' },
     { key: 'upcoming', label: '未开始' },
     { key: 'ended',    label: '已结束' },
+    { key: 'cancelled', label: '已终止' },
   ];
   return (
     <ScreenScroll>
@@ -757,15 +773,17 @@ function MyActivities() {
           <button onClick={nav.back} style={{ display: 'flex' }}><Icon name="back" size={24} /></button>
           <div style={{ fontSize: 17, fontWeight: 800 }}>我的活动</div>
         </div>
-        <div style={{ display: 'flex', gap: 6, padding: '0 14px 12px' }}>
-          {tabDefs.map(({ key, label }) => (
-            <button key={key} onClick={() => setTab(key)} style={{
-              padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 700, border: 'none',
-              cursor: 'pointer',
-              background: tab === key ? 'var(--brand)' : 'var(--surface-2)',
-              color:      tab === key ? '#fff'         : 'var(--ink-3)',
-            }}>{label}</button>
-          ))}
+        <div style={{ display: 'flex', gap: 4, padding: 4, margin: '0 14px 12px', borderRadius: 12, background: 'var(--bg-2)' }}>
+          {tabDefs.map(({ key, label }) => {
+            const on = tab === key;
+            return (
+              <button key={key} onClick={() => setTab(key)} style={{
+                flex: 1, padding: '7px 0', borderRadius: 9, fontSize: 12.5, fontWeight: 700, border: 'none', cursor: 'pointer',
+                background: on ? 'var(--ink)' : 'transparent', color: on ? '#fff' : 'var(--ink-2)',
+                boxShadow: on ? 'var(--shadow-sm)' : 'none', transition: 'background .18s, color .18s',
+              }}>{label}</button>
+            );
+          })}
         </div>
       </div>
       <div style={{ padding: '12px 14px 40px', display: 'flex', flexDirection: 'column', gap: 15 }}>

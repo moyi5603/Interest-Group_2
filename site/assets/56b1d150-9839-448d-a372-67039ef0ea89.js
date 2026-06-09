@@ -63,7 +63,7 @@ function enrollBtnInfo(a, cur, group, opts) {
   const via = needsDetailEnroll(a.type);
   const adjustable = isAdjustableAct(a);
   const gs = groupMemberState(group);
-  if (gs === 'pending') return { label: '审核中', icon: 'clock', variant: 'ghost', disabled: true };
+  if (gs === 'pending') return { label: '立即报名', icon: 'ticket', variant: 'primary', disabled: true };
   if (gs === 'none') return { label: '报名+入组', icon: 'userPlus', variant: 'primary' };
   if (cur.joinedByMe) {
     if (adjustable) return { label: '调整场次', icon: 'ticket', variant: 'soft' };
@@ -77,7 +77,7 @@ function handleActivityEnrollClick(e, a, actions, nav, group, detailAid) {
   e.stopPropagation();
   const aid = detailAid || a.id;
   const gs = groupMemberState(group);
-  if (gs === 'pending') { toast('申请审核中,通过后可报名', { icon: 'clock' }); return; }
+  if (gs === 'pending') { toast('加入小组申请正在审核中，审核通过后方可报名', { icon: 'clock' }); return; }
   if (gs === 'none') {
     if (group.join === 'approve') { actions.applyJoin(group.id); return; }
     // 自由加入：入组后报名

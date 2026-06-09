@@ -276,6 +276,27 @@ function ActivityDetail({ aid, pickEnroll }) {
     setPickOpen(false);
   };
 
+  const isSlotPast = (s) => (DBH.isSlotPast ? DBH.isSlotPast(s, aIn.status) : s.status === 'ended');
+  const endedJoinedEps = isSeries ? episodes.filter(e => e.status === 'ended' && (mode === 'all' ? seriesJoined : e.joinedByMe)) : [];
+  const hasEndedJoinedSessions = sessionsAll ? sessionsAll.some(s => s.joinedByMe && isSlotPast(s)) : false;
+  let showPostMoment = false;
+  let postMomentAid = null;
+  if (viewEndedEp && aIn.joinedByMe) {
+    showPostMoment = true;
+    postMomentAid = aIn.id;
+  } else if (sessionsAll && hasEndedJoinedSessions) {
+    showPostMoment = true;
+    postMomentAid = aid;
+  } else if (isSeries && endedJoinedEps.length) {
+    showPostMoment = true;
+    postMomentAid = endedJoinedEps[0].id;
+  } else if (ended && aIn.joinedByMe) {
+    showPostMoment = true;
+    postMomentAid = aIn.id;
+  }
+  const showEnrollActions = !ended && aIn.status !== 'cancelled';
+  const dualActions = showPostMoment && showEnrollActions;
+
   // 报名门槛：必须先加入活动所属小组
   const gs = groupMemberState(g);
   const onJoinEnroll = () => {
@@ -283,6 +304,25 @@ function ActivityDetail({ aid, pickEnroll }) {
     if (g.join === 'approve') { actions.applyJoin(g.id); return; }
     if (adjustable) { actions.joinGroupFree(g.id); openPickEnroll(); return; }
     actions.signupAndJoinFree(isSeries ? activeEp.id : aid, g.id);
+  };
+
+  const renderEnrollBtn = ({ full = true, size = dualActions ? 'md' : 'lg', style: btnStyle } = {}) => {
+    const flexStyle = dualActions && !full ? { flex: 1, minWidth: 0, ...btnStyle } : btnStyle;
+    const merge = (s) => ({ ...s, ...flexStyle });
+    if (!showEnrollActions) return null;
+    if (gs === 'pending') {
+      return <Btn variant="primary" full={full} size={size} icon="ticket" disabled style={merge({ opacity: 0.55 })}>立即报名</Btn>;
+    }
+    if (gs === 'none') {
+      return <Btn variant="primary" full={full} size={size} icon="userPlus" onClick={onJoinEnroll} style={flexStyle}>报名并加入小组</Btn>;
+    }
+    if (adjustable) {
+      return <Btn variant={joinedCount > 0 ? 'soft' : 'primary'} full={full} size={size} icon="ticket"
+        onClick={openPickEnroll} style={flexStyle}>{joinedCount > 0 ? (dualActions ? '调整场次' : '调整报名场次') : '立即报名'}</Btn>;
+    }
+    return <Btn variant={seriesJoined ? 'ghost' : 'primary'} full={full} size={size}
+      icon={seriesJoined ? 'x' : 'ticket'} style={flexStyle}
+      onClick={() => actions.toggleSignup(isSeries ? activeEp.id : aid)}>{seriesJoined ? '取消报名' : '立即报名'}</Btn>;
   };
 
   const toggleCommentLike = (id) => {
@@ -379,7 +419,7 @@ function ActivityDetail({ aid, pickEnroll }) {
                   </div>
                   <div className="noscroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 2px 2px' }}>
                     {sessions.map(s => (
-                      <SessionSlotTile key={s.id} s={s} active={s.joinedByMe} />
+                      <SessionSlotTile key={s.id} s={s} active={s.joinedByMe} ended={isSlotPast(s)} />
                     ))}
                   </div>
                 </div>
@@ -427,7 +467,7 @@ function ActivityDetail({ aid, pickEnroll }) {
             )}
           </>
         )}
-        {ended && moms.length > 0 && (
+        {moms.length > 0 && (ended || showPostMoment) && (
           <div>
             <SectionHeader title="精彩瞬间" sub={`${moms.length} 位同学分享 · 也已同步到小组圈`} accent="var(--sun)"
               action="全部" onAction={() => nav.go('moments', { gid: a.gid })} />
@@ -474,25 +514,23 @@ function ActivityDetail({ aid, pickEnroll }) {
             color: gs === 'pending' ? 'oklch(0.5 0.13 70)' : 'var(--ink-2)' }}>
             <Icon name={gs === 'pending' ? 'clock' : 'userPlus'} size={15} stroke={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>{gs === 'pending'
-              ? '已提交加入申请,等待小组审核,通过后即可报名'
+              ? '加入小组申请正在审核中，审核通过后方可报名'
               : g && g.join === 'approve' ? '该活动所属小组需审核加入,点击下方按钮提交申请' : '报名将同时加入该小组'}</span>
           </div>
         )}
         {/* main actions */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <LikeButton liked={hero.liked} count={hero.likes} onToggle={() => actions.toggleLike(hero.id)} size={24} />
-          {ended && hero.joinedByMe
-            ? <Btn variant="ai" full icon="camera" onClick={() => nav.go('post', { gid: hero.gid, aid: hero.id })}>发布精彩瞬间</Btn>
-            : ended ? null
-            : gs === 'pending'
-              ? <Btn variant="ghost" full size="lg" icon="clock" disabled style={{ opacity: 0.55 }}>审核中…</Btn>
-            : gs === 'none'
-              ? <Btn variant="primary" full size="lg" icon="userPlus" onClick={onJoinEnroll}>报名并加入小组</Btn>
-            : adjustable
-              ? <Btn variant={joinedCount > 0 ? 'soft' : 'primary'} full size="lg" icon="ticket"
-                onClick={openPickEnroll}>{joinedCount > 0 ? '调整报名场次' : '立即报名'}</Btn>
-              : <Btn variant={seriesJoined ? 'ghost' : 'primary'} full size="lg" icon={seriesJoined ? 'x' : 'ticket'}
-                onClick={() => actions.toggleSignup(isSeries ? activeEp.id : aid)}>{seriesJoined ? '取消报名' : '立即报名'}</Btn>}
+          <div style={{ flex: 1, display: 'flex', gap: 8, minWidth: 0 }}>
+            {showPostMoment && (
+              <Btn variant="ai" size={dualActions ? 'md' : 'lg'} icon="camera" full={!dualActions}
+                style={dualActions ? { flex: 1, minWidth: 0 } : undefined}
+                onClick={() => nav.go('post', { gid: aIn.gid, aid: postMomentAid })}>
+                {dualActions ? '精彩瞬间' : '发布精彩瞬间'}
+              </Btn>
+            )}
+            {showEnrollActions && (dualActions ? renderEnrollBtn({ full: false }) : !showPostMoment && renderEnrollBtn())}
+          </div>
         </div>
       </div>
 
@@ -510,7 +548,7 @@ function ActivityDetail({ aid, pickEnroll }) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   {list.map(s => {
                     const full = s.signed >= s.cap;
-                    const ep = s.status === 'ended';
+                    const ep = isSlotPast(s);
                     const checked = sel.includes(s.id);
                     const disabled = ep || (full && !s.joinedByMe);
                     return (

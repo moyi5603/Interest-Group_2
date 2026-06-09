@@ -62,7 +62,6 @@ function Dashboard() {
                 </div>
               )}
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginBottom: 16 }}>加入小组申请 · 需审核后加入</div>
             {pendingJoins.length === 0 ? (
               <div style={{ padding: '28px 8px', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)' }}>暂无待审核的加入申请</div>
             ) : (
@@ -73,9 +72,9 @@ function Dashboard() {
                     <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklch, var(--c-music) 14%, white)', color: 'var(--c-music)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="userPlus" size={18} stroke={2.2} /></div>
-                      <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setView({ section: 'groupDetail', gid: r.gid, back: { section: 'dashboard' } })}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600 }} className="clamp1">{r.name} 申请加入「{g.name}」</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{[r.dept, r.appliedAt].filter(Boolean).join(' · ')}{r.note ? ` · ${r.note}` : ''}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{[r.dept, r.appliedAt].filter(Boolean).join(' · ')}</div>
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                         <Btn variant="ghost" size="sm" onClick={() => actions.rejectJoin(r.id)}>拒绝</Btn>
@@ -95,7 +94,7 @@ function Dashboard() {
             <div style={{ fontSize: 16, fontWeight: 800 }}>近期活动</div>
             <button onClick={() => setView({ section: 'activities' })} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>查看全部<Icon name="chevR" size={15} /></button>
           </div>
-          <ActTable acts={upcoming.slice(0, 4)} onRow={(a) => setView({ section: 'actDetail', aid: a.id, back: { section: 'dashboard' } })} />
+          <ActTable acts={upcoming.slice(0, 4)} hideAi onRow={(a) => setView({ section: 'actDetail', aid: a.id, back: { section: 'dashboard' } })} />
         </div>
       </div>
     </div>
@@ -130,7 +129,7 @@ function detailAct(unit) {
   return unit.eps[0];
 }
 
-function ActTable({ acts, onRow }) {
+function ActTable({ acts, onRow, hideAi }) {
   const { store } = useA();
   const units = groupActs(acts);
 
@@ -167,7 +166,7 @@ function ActTable({ acts, onRow }) {
                     <div style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}><Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} /></div>
                     <div><div style={{ fontWeight: 700 }} className="clamp1">{a.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{g ? g.name : ''}</div></div>
-                    {a.ai && <AIPill />}
+                    {a.ai && !hideAi && <AIPill />}
                   </div>
                 </td>
                 <td style={{ padding: '13px 22px' }}><TypeTag type={a.type} /></td>
@@ -197,7 +196,7 @@ function ActTable({ acts, onRow }) {
                       <div style={{ fontWeight: 700 }} className="clamp1">{a.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{g ? g.name : ''}</div>
                     </div>
-                    {a.ai && <AIPill />}
+                    {a.ai && !hideAi && <AIPill />}
                   </div>
                 </td>
                 <td style={{ padding: '13px 22px' }}><TypeTag type={a.type} /></td>
@@ -237,7 +236,7 @@ function ActTable({ acts, onRow }) {
                       <div style={{ fontWeight: 700 }} className="clamp1">{first.series || first.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{g ? g.name : ''} · 共 {eps.length} 期</div>
                     </div>
-                    {first.ai && <AIPill />}
+                    {first.ai && !hideAi && <AIPill />}
                   </div>
                 </td>
                 <td style={{ padding: '13px 22px' }}>

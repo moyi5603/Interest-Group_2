@@ -39,7 +39,7 @@
     { id: 'g3', name: '深夜读书会', cat: 'learning', lead: '周棠', members: 64, acts: 31,
       join: 'free', joined: false, tags: ['双周一次','主题共读','不打卡不焦虑'], area: '总部 · 三楼书吧',
       intro: '一本书、一杯茶、一群不催进度的人。每期共读一本,线下围读 + 自由发言,读得慢也没关系。' },
-    { id: 'g4', name: '周五观影会', cat: 'movie', lead: '许墨', members: 73, acts: 13,
+    { id: 'g4', name: '周五观影会', cat: 'movie', lead: '许墨', members: 73, acts: 17,
       join: 'free', joined: false, tags: ['每周放映','影乐分享','偶尔开麦'], area: '总部 · 多功能厅',
       intro: '下班留下来,一起看场电影、聊聊配乐。从经典老片到话题新作,也有同事的现场弹唱开放麦。' },
     { id: 'g5', name: '桌游电竞局', cat: 'game', lead: '沈星', members: 142, acts: 40,
@@ -88,11 +88,14 @@
       cap: 40, signed: 27, liked: true, likes: 86, joinedByMe: true, status: 'upcoming',
       desc: '<p>沿滨江绿道往返 8 公里,按 <b>6′30″ / 6′00″ / 5′30″</b> 分三个配速组。</p><ul><li>出发前 10 分钟动态拉伸,跑后江边拉伸</li><li>跑完自由聚餐(AA),零基础友好,有陪跑员</li><li><b>按场次报名</b>,每期独立选人,不必每期都来</li></ul>',
       tags: ['8 公里','配速分组','按场次报名'], ai: false, repeatMonthDays: [],
-      sessions: recurringSessions('a1', [
+      sessions: [
+        { id: 'a1-s0', date: '05月29日 周四', time: '19:30 - 21:00', cap: 40, signed: 38, joinedByMe: true, status: 'ended' },
+        ...recurringSessions('a1', [
         '06月05日 周四', '06月12日 周四', '06月19日 周四', '06月26日 周四',
         '07月03日 周四', '07月10日 周四', '07月17日 周四', '07月24日 周四',
         '07月31日 周四', '08月07日 周四',
-      ], '19:30 - 21:00', 40, 27, true) },
+      ], '19:30 - 21:00', 40, 27, true) ],
+    },
     { id: 'a10', gid: 'g3', title: '周一晚共读 · 固定围读局', type: 'recurring', cat: 'learning',
       date: '每周一', time: '19:00 - 20:00', repeatMode: 'weekly', repeatWeekdays: [1],
       loc: '三楼书吧', host: '周棠',
@@ -203,6 +206,31 @@
       desc: '<p>Go 语言技术分享系列第 3 期:微服务架构与性能调优。</p><ul><li>独立报名,欢迎只参加本期</li><li>分享 gRPC、链路追踪与 pprof 实战经验</li></ul>',
       tags: ['Go 语言','微服务','按场次报名'], series: 'Go 语言技术分享', seriesIdx: 3, seriesTotal: 3, seriesSignupMode: 'independent', ai: true },
 
+    // ── 系列活动 · 按场次报名 · 自由加入小组（g4 验收用）──
+    { id: 'a22', gid: 'g4', title: '银幕金曲 LIVE · 第 1 期', type: 'series', cat: 'movie',
+      date: '06月07日 周六', time: '19:30 - 21:00', loc: '总部 · 多功能厅', host: '许墨',
+      cap: 40, signed: 22, liked: false, likes: 36, joinedByMe: false, status: 'upcoming',
+      seriesDesc: '<p>「银幕金曲 LIVE」系列共 4 期,每周六晚在多功能厅现场弹唱经典电影配乐。<b>自由加入小组,按场次报名</b>,只报想听的场次即可。</p><ul><li>每期独立主题,不必追进度</li><li>现场开放麦,欢迎自带乐器</li><li>提供茶点,结束后可自由交流</li></ul>',
+      seriesTags: ['银幕金曲','按场次报名','自由加入','现场弹唱'],
+      desc: '<p>第 1 期主题:<b>宫崎骏动画配乐专场</b>。久石让经典曲目现场演绎 + 幕后故事分享。</p><ul><li>适合零基础,来听就好</li><li>19:30 开场,建议提前 10 分钟到场</li></ul>',
+      tags: ['宫崎骏','动画配乐','按场次报名'], series: '银幕金曲 LIVE', seriesIdx: 1, seriesTotal: 4, seriesSignupMode: 'independent', ai: false,
+      deadlineIso: '2026-06-06T18:00:00+08:00' },
+    { id: 'a23', gid: 'g4', title: '银幕金曲 LIVE · 第 2 期', type: 'series', cat: 'movie',
+      date: '06月14日 周六', time: '19:30 - 21:00', loc: '总部 · 多功能厅', host: '许墨',
+      cap: 40, signed: 31, liked: true, likes: 0, joinedByMe: false, status: 'upcoming',
+      desc: '<p>第 2 期主题:<b>港片黄金时代</b>。张国荣、梅艳芳、Beyond 等经典银幕金曲现场重温。</p><ul><li>独立报名,未参加第 1 期也可直接来</li><li>本期含 1 段观众合唱环节</li></ul>',
+      tags: ['港片经典','按场次报名'], series: '银幕金曲 LIVE', seriesIdx: 2, seriesTotal: 4, seriesSignupMode: 'independent', ai: false },
+    { id: 'a24', gid: 'g4', title: '银幕金曲 LIVE · 第 3 期', type: 'series', cat: 'movie',
+      date: '06月21日 周六', time: '19:30 - 21:00', loc: '总部 · 多功能厅', host: '许墨',
+      cap: 40, signed: 14, liked: false, likes: 0, joinedByMe: false, status: 'upcoming',
+      desc: '<p>第 3 期主题:<b>科幻史诗配乐</b>。从《星际穿越》到《沙丘》,用大编制感现场还原银幕氛围。</p><ul><li>含 15 分钟配乐赏析小讲座</li><li>欢迎带朋友一起来听</li></ul>',
+      tags: ['科幻配乐','按场次报名'], series: '银幕金曲 LIVE', seriesIdx: 3, seriesTotal: 4, seriesSignupMode: 'independent', ai: true },
+    { id: 'a25', gid: 'g4', title: '银幕金曲 LIVE · 第 4 期', type: 'series', cat: 'movie',
+      date: '06月28日 周六', time: '19:30 - 21:00', loc: '总部 · 多功能厅', host: '许墨',
+      cap: 40, signed: 8, liked: false, likes: 0, joinedByMe: false, status: 'upcoming',
+      desc: '<p>第 4 期·收官场:<b>员工原创 + 自由点歌</b>。前三期人气曲目返场,开放现场点歌与原创分享。</p><ul><li>按场次报名,收官场名额有限</li><li>系列参与者可获纪念歌单 PDF</li></ul>',
+      tags: ['收官场','自由点歌','按场次报名'], series: '银幕金曲 LIVE', seriesIdx: 4, seriesTotal: 4, seriesSignupMode: 'independent', ai: false },
+
     // ── 单次活动 ──
     { id: 'a3', gid: 'g5', title: '午休快开一局 · 阿瓦隆', type: 'once', cat: 'game',
       date: '06月03日 周二', time: '12:30 - 13:20', loc: '休闲区 3 号桌', host: '沈星',
@@ -227,7 +255,7 @@
     // ── Mock 样例：已终止 ──
     { id: 'a17', gid: 'g7', title: '六一亲子义卖 · 志愿者专场', type: 'once', cat: 'volunteer',
       date: '06月01日 周日', time: '09:00 - 16:00', loc: '滨江社区广场', host: '顾乔',
-      cap: 30, signed: 17, liked: false, likes: 45, joinedByMe: false, status: 'cancelled',
+      cap: 30, signed: 17, liked: false, likes: 45, joinedByMe: true, status: 'cancelled',
       desc: '<p>因天气原因活动已<b>终止</b>,已报名同事将收到通知。</p><ul><li>原定协助布置摊位、引导人流、清点物资</li><li>工会将为已报名同学生成志愿时长说明</li><li>后续将择机重新发布,敬请关注小组动态</li></ul>',
       tags: ['已终止','亲子义卖','有人报名'], ai: false },
 
@@ -303,28 +331,35 @@
     { id: 'c23', aid: 'a8', author: ME, text: '首期云海太震撼了，照片已设成壁纸，系列②继续冲 🌄', likes: 11, time: '5月25日 17:30' },
     { id: 'c24', aid: 'a3', author: ME, text: '午休桌游局带我一个，上次阿瓦隆没玩够哈哈', likes: 2, time: '今天 09:18' },
     { id: 'c25', aid: 'a13', author: ME, text: '有 Go 基础，第 1 期已报，期待并发那块 Demo', likes: 1, time: '昨天 11:20' },
+    { id: 'c26', aid: 'a22', author: '许墨', text: '第 1 期宫崎骏专场曲目单已更新群公告,欢迎只报这一场的同学～', likes: 5, time: '今天 09:00' },
+    { id: 'c27', aid: 'a23', author: '周棠', text: '港片那期我想合唱《当年情》,有一起的吗?', likes: 3, time: '昨天 15:40' },
   ];
 
   // PC 管理端：待审核的加入小组申请（仅 join === 'approve' 的小组）
+  const formatJoinAppliedAt = (d) => {
+    const dt = d instanceof Date ? d : new Date(d);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${dt.getMonth() + 1}/${dt.getDate()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+  };
   const joinRequests = [
-    { id: 'jr1', gid: 'g6', name: '邵阳', dept: '产品部', appliedAt: '10 分钟前', status: 'pending' },
-    { id: 'jr2', gid: 'g2', name: '黎川', dept: '研发部', appliedAt: '1 小时前', status: 'pending', note: '有多次徒步经验' },
-    { id: 'jr3', gid: 'g6', name: '温野', dept: '设计部', appliedAt: '今天 09:30', status: 'pending' },
-    { id: 'jr4', gid: 'g2', name: '傅瑶', dept: '市场部', appliedAt: '今天 14:20', status: 'pending', note: '周末均可出行' },
-    { id: 'jr5', gid: 'g6', name: '简一', dept: '研发部', appliedAt: '昨天 16:20', status: 'pending' },
-    { id: 'jr6', gid: 'g2', name: '池夏', dept: '设计部', appliedAt: '昨天 11:05', status: 'pending' },
-    { id: 'jr7', gid: 'g6', name: '卫然', dept: '运营部', appliedAt: '昨天 08:40', status: 'pending', note: '想参加汇报表达专题' },
-    { id: 'jr8', gid: 'g2', name: '于归', dept: '产品部', appliedAt: '6月2日 17:30', status: 'pending' },
-    { id: 'jr9', gid: 'g6', name: '骆铭', dept: '财务部', appliedAt: '6月2日 10:15', status: 'pending' },
-    { id: 'jr10', gid: 'g2', name: '邓蔻', dept: '人力部', appliedAt: '6月1日 20:00', status: 'pending', note: '有户外急救证' },
-    { id: 'jr11', gid: 'g6', name: '穆青', dept: '法务部', appliedAt: '6月1日 15:45', status: 'pending' },
-    { id: 'jr12', gid: 'g2', name: '秦风', dept: '研发部', appliedAt: '6月1日 09:00', status: 'pending' },
-    { id: 'jr13', gid: 'g6', name: '安然', dept: '设计部', appliedAt: '5月31日 18:20', status: 'pending', note: '同事推荐加入' },
-    { id: 'jr14', gid: 'g2', name: '罗茜', dept: '产品部', appliedAt: '5月30日 16:00', status: 'pending' },
-    { id: 'jr15', gid: 'g6', name: '叶蓁', dept: '市场部', appliedAt: '5月30日 11:30', status: 'pending' },
-    { id: 'jr16', gid: 'g2', name: '陈航', dept: '运营部', appliedAt: '5月29日 14:00', status: 'pending', note: '可担任副领队' },
-    { id: 'jr17', gid: 'g6', name: '苏曼', dept: '研发部', appliedAt: '5月28日 19:10', status: 'pending' },
-    { id: 'jr18', gid: 'g2', name: '顾乔', dept: '产品部', appliedAt: '5月27日 10:45', status: 'pending' },
+    { id: 'jr1', gid: 'g6', name: '邵阳', dept: '产品部', appliedAt: '6/3 10:52:00', status: 'pending' },
+    { id: 'jr2', gid: 'g2', name: '黎川', dept: '研发部', appliedAt: '6/3 09:48:00', status: 'pending', note: '有多次徒步经验' },
+    { id: 'jr3', gid: 'g6', name: '温野', dept: '设计部', appliedAt: '6/3 09:30:00', status: 'pending' },
+    { id: 'jr4', gid: 'g2', name: '傅瑶', dept: '市场部', appliedAt: '6/3 14:20:00', status: 'pending', note: '周末均可出行' },
+    { id: 'jr5', gid: 'g6', name: '简一', dept: '研发部', appliedAt: '6/2 16:20:00', status: 'pending' },
+    { id: 'jr6', gid: 'g2', name: '池夏', dept: '设计部', appliedAt: '6/2 11:05:00', status: 'pending' },
+    { id: 'jr7', gid: 'g6', name: '卫然', dept: '运营部', appliedAt: '6/2 08:40:00', status: 'pending', note: '想参加汇报表达专题' },
+    { id: 'jr8', gid: 'g2', name: '于归', dept: '产品部', appliedAt: '6/2 17:30:00', status: 'pending' },
+    { id: 'jr9', gid: 'g6', name: '骆铭', dept: '财务部', appliedAt: '6/2 10:15:00', status: 'pending' },
+    { id: 'jr10', gid: 'g2', name: '邓蔻', dept: '人力部', appliedAt: '6/1 20:00:00', status: 'pending', note: '有户外急救证' },
+    { id: 'jr11', gid: 'g6', name: '穆青', dept: '法务部', appliedAt: '6/1 15:45:00', status: 'pending' },
+    { id: 'jr12', gid: 'g2', name: '秦风', dept: '研发部', appliedAt: '6/1 09:00:00', status: 'pending' },
+    { id: 'jr13', gid: 'g6', name: '安然', dept: '设计部', appliedAt: '5/31 18:20:00', status: 'pending', note: '同事推荐加入' },
+    { id: 'jr14', gid: 'g2', name: '罗茜', dept: '产品部', appliedAt: '5/30 16:00:00', status: 'pending' },
+    { id: 'jr15', gid: 'g6', name: '叶蓁', dept: '市场部', appliedAt: '5/30 11:30:00', status: 'pending' },
+    { id: 'jr16', gid: 'g2', name: '陈航', dept: '运营部', appliedAt: '5/29 14:00:00', status: 'pending', note: '可担任副领队' },
+    { id: 'jr17', gid: 'g6', name: '苏曼', dept: '研发部', appliedAt: '5/28 19:10:00', status: 'pending' },
+    { id: 'jr18', gid: 'g2', name: '顾乔', dept: '产品部', appliedAt: '5/27 10:45:00', status: 'pending' },
   ];
 
   const notifications = [
@@ -363,7 +398,21 @@
   const seriesAnchor = (acts, a) => seriesEps(acts, a)[0] || a;
   const RECENT_SESSIONS_MAX = 5;
   const recentSessions = (sessions) => sessions ? sessions.slice(0, RECENT_SESSIONS_MAX) : null;
-  const canPostMoment = (act) => !!act && act.status === 'ended' && !!act.joinedByMe;
+  const isSlotPast = (session, actStatus) => {
+    if (!session) return false;
+    if (session.status === 'ended' || session.status === 'cancelled') return true;
+    if (actStatus === 'ended' || actStatus === 'cancelled') return true;
+    const k = parseActDateKey(session.date);
+    return k != null && k < PROTO_TODAY_KEY;
+  };
+  const canPostMoment = (act) => {
+    if (!act) return false;
+    if (act.status === 'ended' && act.joinedByMe) return true;
+    if (act.type === 'recurring' && act.sessions) {
+      return act.sessions.some(s => s.joinedByMe && isSlotPast(s, act.status));
+    }
+    return false;
+  };
   const momentEligibleActs = (acts, gid) => {
     let list = acts.filter(canPostMoment);
     if (gid) list = list.filter(a => a.gid === gid);
@@ -380,7 +429,7 @@
   const patchGroup = (gid, patch) => { const g = byId(groups, gid); if (g) Object.assign(g, patch); };
   const pushSelfJoinRequest = (gid) => {
     if (joinRequests.some(r => r.self && r.gid === gid && r.status === 'pending')) return;
-    joinRequests.unshift({ id: 'jr-self-' + gid, gid, name: ME, dept: '产品部', appliedAt: '刚刚',
+    joinRequests.unshift({ id: 'jr-self-' + gid, gid, name: ME, dept: '产品部', appliedAt: formatJoinAppliedAt(new Date()),
       status: 'pending', self: true, note: '想报名该小组活动' });
   };
   const removeJoinRequest = (id) => { const i = joinRequests.findIndex(r => r.id === id); if (i >= 0) joinRequests.splice(i, 1); };
@@ -520,5 +569,5 @@
 
   window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME, employees, myRegistrations, mineInteractFeed };
   window.CATS = CATS;
-  window.DBH = { byId, seriesEps, seriesAnchor, seriesListStatus, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf, patchGroup, pushSelfJoinRequest, removeJoinRequest, parseActDateKey, nextOpenSession, listUnitKey, forListCard, collapseActsForList };
+  window.DBH = { byId, seriesEps, seriesAnchor, seriesListStatus, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, isSlotPast, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf, patchGroup, pushSelfJoinRequest, removeJoinRequest, parseActDateKey, nextOpenSession, listUnitKey, forListCard, collapseActsForList };
 })();
