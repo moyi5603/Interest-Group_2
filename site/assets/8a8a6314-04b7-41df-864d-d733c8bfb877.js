@@ -716,22 +716,43 @@ function ChatHeader({ title, sub, ai, onBack }) {
 }
 
 const NOTIF_META = {
-  reminder: { icon: 'clock', color: 'var(--brand)' }, signup: { icon: 'ticket', color: 'var(--c-outdoor)' },
-  join: { icon: 'userPlus', color: 'var(--c-music)' }, comment: { icon: 'comment', color: 'var(--c-reading)' },
+  published: { icon: 'megaphone', color: 'var(--brand)' },
+  signup: { icon: 'ticket', color: 'var(--c-outdoor)' },
+  join: { icon: 'userPlus', color: 'var(--c-music)' },
+  join_request: { icon: 'users', color: 'var(--c-photo)' },
+  join_result: { icon: 'check', color: 'var(--c-outdoor)' },
+  terminate: { icon: 'flag', color: 'var(--ink-3)' },
+  disband: { icon: 'layers', color: 'var(--ink-3)' },
+  starting_1h: { icon: 'clock', color: 'var(--brand)' },
+  starting_1d: { icon: 'bell', color: 'var(--brand)' },
+  ended: { icon: 'star', color: 'var(--c-reading)' },
   cancel: { icon: 'x', color: 'var(--ink-3)' },
+  comment_reply: { icon: 'comment', color: 'var(--c-reading)' },
 };
+function notifMeta(n) {
+  if (n.kind === 'join_result' && n.approved === false) return { icon: 'x', color: 'var(--ink-3)' };
+  return NOTIF_META[n.kind] || { icon: 'bell', color: 'var(--ink-3)' };
+}
+function notifClickable(n) {
+  return (n.linkTo === 'activity' && n.aid) || (n.linkTo === 'group' && n.gid);
+}
+function openNotif(nav, n) {
+  if (n.linkTo === 'activity' && n.aid) nav.go('activity', { aid: n.aid });
+  else if (n.linkTo === 'group' && n.gid) nav.go('group', { gid: n.gid });
+}
 function NotifyThread() {
   const { nav } = useM();
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-      <ChatHeader title="沟通引擎" sub="活动 · 报名 · 提醒 · 评论" onBack={nav.back} />
+      <ChatHeader title="沟通引擎" sub="活动 · 报名 · 入组 · 提醒 · 评论" onBack={nav.back} />
       <div className="noscroll" style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
         {DB.notifications.map(n => {
-          const m = NOTIF_META[n.kind];
+          const m = notifMeta(n);
+          const clickable = notifClickable(n);
           return (
-            <div key={n.id} onClick={() => n.aid && nav.go('activity', { aid: n.aid })}
+            <div key={n.id} onClick={() => openNotif(nav, n)}
               style={{ display: 'flex', gap: 12, padding: 13, marginBottom: 9, background: 'var(--surface)', borderRadius: 16,
-                boxShadow: 'var(--shadow-sm)', cursor: n.aid ? 'pointer' : 'default', alignItems: 'center',
+                boxShadow: 'var(--shadow-sm)', cursor: clickable ? 'pointer' : 'default', alignItems: 'center',
                 borderLeft: n.read ? 'none' : `3px solid ${m.color}` }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, background: `color-mix(in oklch, ${m.color} 14%, white)`,
                 color: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={m.icon} size={20} stroke={2.2} /></div>
@@ -739,7 +760,7 @@ function NotifyThread() {
                 <div style={{ fontSize: 13.5, lineHeight: 1.5, color: 'var(--ink)' }}>{n.text}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 4 }}>{n.time}</div>
               </div>
-              {n.aid && <Icon name="chevR" size={18} style={{ color: 'var(--ink-3)' }} />}
+              {clickable && <Icon name="chevR" size={18} style={{ color: 'var(--ink-3)' }} />}
             </div>
           );
         })}
