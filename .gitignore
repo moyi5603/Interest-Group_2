@@ -6,3 +6,4 @@ dist
 *.local
 bun.lock
 bun.lockb
+site/interest-group-standalone.html

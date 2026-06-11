@@ -21,6 +21,14 @@ cd site && node serve.mjs
 
 详见 [site/README.md](site/README.md)。
 
+### Standalone 单文件分享
+
+```bash
+cd site && python3 build_standalone.py
+```
+
+生成 `site/interest-group-standalone.html`，可直接双击用浏览器打开，适合发邮件/网盘。
+
 ## GitHub Pages
 
 部署地址：<https://moyi5603.github.io/Interest-Group_2/>

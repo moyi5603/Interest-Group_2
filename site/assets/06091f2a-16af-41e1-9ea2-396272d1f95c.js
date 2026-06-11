@@ -84,6 +84,101 @@ function Topbar({ title, sub, right }) {
   );
 }
 
+/** PC 管理端 · 列表页统一搜索框 */
+function AdminSearchBar({ value, onChange, placeholder, width = 150 }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', borderRadius: 12, padding: '0 12px', boxShadow: 'inset 0 0 0 1px var(--line)' }}>
+      <Icon name="search" size={18} style={{ color: 'var(--ink-3)' }} />
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{ border: 'none', outline: 'none', padding: '10px 0', fontSize: 13.5, width, background: 'transparent' }} />
+    </div>
+  );
+}
+
+/** PC 管理端 · 列表工具栏：搜索靠左；可选第二行放 Tab 等筛选 */
+function AdminListToolbar({ search, left, secondRow, style }) {
+  return (
+    <div style={{ marginBottom: 18, ...style }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        {search && <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>{search}</div>}
+        {left && <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>{left}</div>}
+      </div>
+      {secondRow && <div style={{ marginTop: 12 }}>{secondRow}</div>}
+    </div>
+  );
+}
+
+/** PC 管理端 · 活动/报名/评论页双搜索 */
+function AdminActSearchBars({ actQ, groupQ, onActQ, onGroupQ }) {
+  return <>
+    <AdminSearchBar value={actQ} onChange={onActQ} placeholder="搜索活动名称" />
+    <AdminSearchBar value={groupQ} onChange={onGroupQ} placeholder="搜索小组名称" />
+  </>;
+}
+
+/** PC 管理端 · 列表分页配置 */
+const ADMIN_PAGE = {
+  groups: { default: 15, options: [15, 50, 100] },
+  moments: { default: 20, options: [20, 50, 100] },
+  std: { default: 10, options: [10, 20, 50, 100] },
+};
+
+function useAdminPagination(total, config, enabled = true) {
+  const defaultSize = config?.default ?? 10;
+  const options = config?.options ?? ADMIN_PAGE.std.options;
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(defaultSize);
+  React.useEffect(() => { setPage(1); }, [total, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const offset = (safePage - 1) * pageSize;
+  return {
+    slice: items => (enabled ? items.slice(offset, offset + pageSize) : items),
+    nav: enabled ? {
+      total, page: safePage, pageSize, totalPages, pageSizeOptions: options,
+      onPageChange: setPage,
+      onPageSizeChange: n => { setPageSize(n); setPage(1); },
+    } : null,
+  };
+}
+
+function AdminPagination({ total, page, pageSize, totalPages, pageSizeOptions, onPageChange, onPageSizeChange, style }) {
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = total === 0 ? 0 : Math.min(page * pageSize, total);
+  const navBtn = disabled => ({
+    width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'var(--surface-2)', color: disabled ? 'var(--ink-3)' : 'var(--ink-2)',
+    opacity: disabled ? 0.45 : 1, cursor: disabled ? 'default' : 'pointer', flexShrink: 0,
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 22px',
+      borderTop: '1px solid var(--line)', flexWrap: 'wrap', ...style }}>
+      <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 600 }}>
+        {total > 0 ? `第 ${start}-${end} 条，共 ${total} 条` : '共 0 条'}
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 600 }}>每页</span>
+          <select value={pageSize} onChange={e => onPageSizeChange(+e.target.value)}
+            style={{ padding: '6px 10px', fontSize: 13, fontWeight: 600, borderRadius: 9, border: '1.5px solid var(--line-2)',
+              background: 'var(--surface)', color: 'var(--ink-2)', cursor: 'pointer', outline: 'none' }}>
+            {pageSizeOptions.map(n => <option key={n} value={n}>{n} 条</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)} style={navBtn(page <= 1)} aria-label="上一页">
+            <Icon name="chevL" size={18} />
+          </button>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', minWidth: 52, textAlign: 'center' }}>{page} / {totalPages}</span>
+          <button type="button" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} style={navBtn(page >= totalPages)} aria-label="下一页">
+            <Icon name="chevR" size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ icon, label, value, delta, color = 'var(--brand)' }) {
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 18, boxShadow: 'var(--shadow-sm)', flex: 1 }}>
@@ -162,7 +257,7 @@ function EmployeeLeadSearch({ value, onChange, placeholder }) {
           style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none' }} />
         <input
           value={query}
-          placeholder={placeholder || '搜索员工姓名、工号或部门'}
+          placeholder={placeholder || ''}
           onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
           onFocus={e => { e.target.style.borderColor = 'var(--brand)'; setOpen(true); }}
           onBlur={e => e.target.style.borderColor = 'var(--line-2)'}
@@ -421,12 +516,8 @@ function AIComposer({ open, onClose, onPublish, store }) {
                     })}
                   </div>
                 </Field>
-                <Field label="时间" hint="周期性活动无需选择具体日期">
+                <Field label="时间" hint="结束时间早于开始时间时，视为次日该时刻结束">
                   <TimeRangePicker start={form.timeStart} end={form.timeEnd} onChange={(a, b) => setForm({ ...form, timeStart: a, timeEnd: b })} />
-                </Field>
-                <Field label="结束于" hint={form.spanDays > 0 ? '通宵/跨天场，结束时间落在开始日的次日' : '当天结束'}>
-                  <Segmented value={String(form.spanDays || 0)} onChange={v => setForm({ ...form, spanDays: +v })} style={{ width: '100%' }}
-                    options={[{ value: '0', label: '当天结束' }, { value: '1', label: '次日结束' }, { value: '2', label: '第 3 天结束' }]} />
                 </Field>
               </>
             )}
@@ -550,4 +641,4 @@ function DeadlinePicker({ mode, date, time, hours, onChange }) {
   );
 }
 
-Object.assign(window, { AdminCtx, useA, NAV, Sidebar, Topbar, StatCard, Field, TextInput, TextArea, EmployeeLeadSearch, AIComposer, DeadlinePicker, inputStyle, useAOpen });
+Object.assign(window, { AdminCtx, useA, NAV, Sidebar, Topbar, AdminSearchBar, AdminListToolbar, AdminActSearchBars, ADMIN_PAGE, useAdminPagination, AdminPagination, StatCard, Field, TextInput, TextArea, EmployeeLeadSearch, AIComposer, DeadlinePicker, inputStyle, useAOpen });

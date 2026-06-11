@@ -19,7 +19,7 @@ site/
 
 ## 运行
 
-页面用 Babel-standalone 在浏览器内编译 JSX，需通过 HTTP 访问（不能直接 `file://` 打开）。任选其一：
+页面用 Babel-standalone 在浏览器内编译 JSX，**`index.html` 需通过 HTTP 访问**（不能直接 `file://` 打开）。任选其一：
 
 ```bash
 # 方式一：Python（系统自带）
@@ -30,6 +30,19 @@ cd site && node serve.mjs   # 默认 http://127.0.0.1:8080/
 ```
 
 然后浏览器打开 http://127.0.0.1:8080/
+
+## Standalone 单文件（可双击打开）
+
+若需发**单个 HTML** 给同事（无需起服务、无需 `assets/` 目录）：
+
+```bash
+cd site && python3 build_standalone.py
+```
+
+生成 **`site/interest-group-standalone.html`**（约 30MB，含字体与脚本内联）。  
+用 Chrome / Edge **双击打开**或拖入浏览器即可（`file://`）。
+
+> 修改 `index.html` 或 `assets/` 后需重新运行上述命令再分享。
 
 ## 内容
 

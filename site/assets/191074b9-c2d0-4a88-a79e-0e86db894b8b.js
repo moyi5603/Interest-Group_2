@@ -1,5 +1,10 @@
 // admin-sections.jsx — signups, comments, moments views, activities section, forms, AdminApp shell.
-
+const useAdminPagination = window.useAdminPagination || ((total, config, enabled) => ({
+  slice: items => items,
+  nav: null,
+}));
+const AdminPagination = window.AdminPagination || (() => null);
+const ADMIN_PAGE = window.ADMIN_PAGE || { groups: { default: 15, options: [15, 50, 100] }, moments: { default: 20, options: [20, 50, 100] }, std: { default: 10, options: [10, 20, 50, 100] } };
 const SIGNUP_BAR = 'var(--brand)';
 const MODE_TAG_STYLE = { background: 'var(--surface-2)', color: 'var(--ink-2)' };
 const SESSION_IDX_STYLE = { background: 'var(--surface-2)', color: 'var(--ink-2)', border: '1px solid var(--line)' };
@@ -37,7 +42,7 @@ function SignupMembersModal({ open, onClose, count, title }) {
   );
 }
 
-function SignupsView({ acts }) {
+function SignupsView({ acts, paginate = true }) {
   const { store } = useA();
   const [memberModal, setMemberModal] = React.useState(null);
 
@@ -57,6 +62,9 @@ function SignupsView({ acts }) {
       units.push({ kind: a.type === 'recurring' ? 'recurring' : 'single', key: a.id, act: a });
     }
   });
+
+  const pg = useAdminPagination(units.length, ADMIN_PAGE.std, paginate);
+  const shownUnits = pg.slice(units);
 
   const [open, setOpen] = React.useState(units[0] ? units[0].key : null);
   const [sessionOpen, setSessionOpen] = React.useState({});
@@ -93,7 +101,7 @@ function SignupsView({ acts }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {units.map(unit => {
+      {shownUnits.map(unit => {
         const isOpen = open === unit.key;
 
         if (unit.kind === 'single') {
@@ -290,6 +298,7 @@ function SignupsView({ acts }) {
         }
         return null;
       })}
+      {pg.nav && <AdminPagination {...pg.nav} style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)' }} />}
       <SignupMembersModal open={!!memberModal} onClose={() => setMemberModal(null)}
         count={memberModal ? memberModal.count : 0} title={memberModal ? memberModal.title : ''} />
     </div>
@@ -302,14 +311,12 @@ function CommentsView({ acts, inline }) {
   const { store, actions } = useA();
   const [page, setPage] = React.useState(1);
   const aids = acts.map(a => a.id);
-  const comments = (store.comments || []).filter(c => aids.includes(c.aid));
+  const comments = (store.comments || []).filter(c => aids.includes(c.aid) && !c.isAI);
+  const pg = useAdminPagination(comments.length, ADMIN_PAGE.std, !inline);
+
   if (!comments.length) return <Empty text="暂无评论" />;
 
   const total = comments.length;
-  // inline mode (inside act detail card): paginate; standalone (global comments section): show all
-  const shown = inline ? comments.slice(0, page * COMMENTS_PAGE) : comments;
-  const hasMore = inline && shown.length < total;
-  const hiddenCount = total - shown.length;
 
   const CommentRow = ({ c, i }) => {
     const a = store.acts.find(x => x.id === c.aid);
@@ -338,26 +345,38 @@ function CommentsView({ acts, inline }) {
     );
   };
 
+  if (inline) {
+    const shown = comments.slice(0, page * COMMENTS_PAGE);
+    const hasMore = shown.length < total;
+    return (
+      <div style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)' }}>
+        {shown.map((c, i) => <CommentRow key={c.id} c={c} i={i} />)}
+        {hasMore && (
+          <div style={{ borderTop: '1px solid var(--line)', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>已显示 {shown.length} / {total} 条</span>
+            <button type="button" onClick={() => setPage(p => p + 1)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--brand)' }}>
+              显示更多<Icon name="chevD" size={15} />
+            </button>
+          </div>
+        )}
+        {!hasMore && total > COMMENTS_PAGE && (
+          <div style={{ borderTop: '1px solid var(--line)', padding: '14px 18px', display: 'flex', justifyContent: 'center' }}>
+            <button type="button" onClick={() => setPage(1)}
+              style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Icon name="chevU" size={15} />收起
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const shown = pg.slice(comments);
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)' }}>
       {shown.map((c, i) => <CommentRow key={c.id} c={c} i={i} />)}
-      {hasMore && (
-        <div style={{ borderTop: '1px solid var(--line)', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>已显示 {shown.length} / {total} 条</span>
-          <button type="button" onClick={() => setPage(p => p + 1)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--brand)' }}>
-            显示更多<Icon name="chevD" size={15} />
-          </button>
-        </div>
-      )}
-      {inline && !hasMore && total > COMMENTS_PAGE && (
-        <div style={{ borderTop: '1px solid var(--line)', padding: '14px 18px', display: 'flex', justifyContent: 'center' }}>
-          <button type="button" onClick={() => setPage(1)}
-            style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="chevU" size={15} />收起
-          </button>
-        </div>
-      )}
+      {pg.nav && <AdminPagination {...pg.nav} />}
     </div>
   );
 }
@@ -441,10 +460,12 @@ function MomentDetailModal({ open, moment: m, onClose, navBack }) {
   );
 }
 
-function MomentsGrid({ moms, navBack }) {
+function MomentsGrid({ moms, navBack, paginate = false, emptyText = '暂无精彩瞬间' }) {
   const [detail, setDetail] = React.useState(null);
   const [imgLb, setImgLb] = React.useState({ open: false, seeds: [], i: 0 });
-  if (!moms.length) return <Empty text="暂无精彩瞬间" />;
+  const pg = useAdminPagination(moms.length, ADMIN_PAGE.moments, paginate);
+  const shown = pg.slice(moms);
+  if (!moms.length) return <Empty text={emptyText} />;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ borderRadius: 16, padding: 2, background: 'var(--ai-grad)' }}>
@@ -454,7 +475,7 @@ function MomentsGrid({ moms, navBack }) {
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: 16 }}>
-        {moms.map(m => {
+        {shown.map(m => {
           const a = DB.acts.find(x => x.id === m.aid);
           return (
             <div key={m.id} role="button" tabIndex={0} onClick={() => setDetail(m)} onKeyDown={e => { if (e.key === 'Enter') setDetail(m); }}
@@ -480,25 +501,67 @@ function MomentsGrid({ moms, navBack }) {
           );
         })}
       </div>
+      {pg.nav && <AdminPagination {...pg.nav} style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)' }} />}
       <MomentDetailModal open={!!detail} moment={detail} onClose={() => setDetail(null)} navBack={navBack} />
       <PhotoLightbox open={imgLb.open} seeds={imgLb.seeds} index={imgLb.i} onClose={() => setImgLb({ open: false, seeds: [], i: 0 })} />
     </div>
   );
 }
 
+function filterMomentsBySearch(moments, acts, groups, actQ, groupQ) {
+  const actTerm = actQ.trim();
+  const groupTerm = groupQ.trim();
+  if (!actTerm && !groupTerm) return moments;
+  const actOf = id => acts.find(a => a.id === id);
+  const groupNameOf = gid => (groups.find(g => g.id === gid) || {}).name || '';
+  return moments.filter(m => {
+    const a = actOf(m.aid);
+    const gid = m.gid || (a ? a.gid : '');
+    const actOk = !actTerm || (a && (a.title.includes(actTerm) || (a.series && a.series.includes(actTerm))));
+    const groupOk = !groupTerm || groupNameOf(gid).includes(groupTerm);
+    return actOk && groupOk;
+  });
+}
+
+function filterActsBySearch(acts, groups, actQ, groupQ) {
+  const actTerm = actQ.trim();
+  const groupTerm = groupQ.trim();
+  if (!actTerm && !groupTerm) return acts;
+  const groupNameOf = gid => (groups.find(g => g.id === gid) || {}).name || '';
+  const matches = a => {
+    const actOk = !actTerm || a.title.includes(actTerm) || (a.series && a.series.includes(actTerm));
+    const groupOk = !groupTerm || groupNameOf(a.gid).includes(groupTerm);
+    return actOk && groupOk;
+  };
+  const seriesKeys = new Set();
+  acts.forEach(a => {
+    if (a.type === 'series' && a.series && matches(a)) seriesKeys.add(a.series + '|||' + a.gid);
+  });
+  return acts.filter(a => {
+    if (a.type === 'series' && a.series && seriesKeys.has(a.series + '|||' + a.gid)) return true;
+    return matches(a);
+  });
+}
+
 function ActivitiesSection() {
   const { store, openActForm, setView } = useA();
   const [type, setType] = React.useState('all');
-  const list = type === 'all' ? store.acts : store.acts.filter(a => a.type === type);
+  const [actQ, setActQ] = React.useState('');
+  const [groupQ, setGroupQ] = React.useState('');
+  const byType = type === 'all' ? store.acts : store.acts.filter(a => a.type === type);
+  const list = filterActsBySearch(byType, store.groups, actQ, groupQ);
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }} className="noscroll">
       <Topbar title="活动管理" sub="支持单次、周期性、指定时间的系列活动"
         right={<><Btn variant="ai" icon="spark" onClick={useAOpen}>AI 策划</Btn><Btn variant="primary" icon="plus" onClick={() => openActForm(null)}>新建活动</Btn></>} />
       <div style={{ padding: 28 }}>
-        <div style={{ marginBottom: 18 }}><Segmented value={type} onChange={setType}
-          options={[{ value: 'all', label: '全部' }, { value: 'once', label: '单次', icon: 'calendar' }, { value: 'recurring', label: '周期性', icon: 'repeat' }, { value: 'series', label: '系列', icon: 'series' }]} /></div>
+        <AdminListToolbar
+          search={<AdminActSearchBars actQ={actQ} groupQ={groupQ} onActQ={setActQ} onGroupQ={setGroupQ} />}
+          secondRow={<Segmented value={type} onChange={setType}
+            options={[{ value: 'all', label: '全部' }, { value: 'once', label: '单次', icon: 'calendar' }, { value: 'recurring', label: '周期性', icon: 'repeat' }, { value: 'series', label: '系列', icon: 'series' }]} />}
+        />
         <div style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-          <ActTable acts={list} onRow={(a) => setView({ section: 'actDetail', aid: a.id, back: { section: 'activities' } })} />
+          <ActTable acts={list} pagination={ADMIN_PAGE.std} onRow={(a) => setView({ section: 'actDetail', aid: a.id, back: { section: 'activities' } })} />
         </div>
       </div>
     </div>
@@ -507,19 +570,30 @@ function ActivitiesSection() {
 
 function GlobalSection({ section }) {
   const { store } = useA();
+  const [actQ, setActQ] = React.useState('');
+  const [groupQ, setGroupQ] = React.useState('');
   const titles = {
     signups: ['报名管理', '查看与审核所有活动的报名情况'],
     comments: ['评论&互动', '查看活动下的员工评论,可删除不当内容'],
     moments: ['精彩瞬间', '成员在活动后分享的高光时刻,自动同步至小组圈'],
   };
   const [t, sub] = titles[section];
+  const baseActs = section === 'signups' ? store.acts.filter(a => a.status === 'upcoming') : store.acts;
+  const acts = (section === 'signups' || section === 'comments')
+    ? filterActsBySearch(baseActs, store.groups, actQ, groupQ) : baseActs;
+  const moms = section === 'moments'
+    ? filterMomentsBySearch(DB.moments, store.acts, store.groups, actQ, groupQ) : DB.moments;
+  const showActSearch = section === 'signups' || section === 'comments' || section === 'moments';
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }} className="noscroll">
       <Topbar title={t} sub={sub} />
       <div style={{ padding: 28 }}>
-        {section === 'signups' && <SignupsView acts={store.acts.filter(a => a.status === 'upcoming')} />}
-        {section === 'comments' && <CommentsView acts={store.acts} />}
-        {section === 'moments' && <MomentsGrid moms={DB.moments} navBack={{ section: 'moments' }} />}
+        {showActSearch && (
+          <AdminListToolbar search={<AdminActSearchBars actQ={actQ} groupQ={groupQ} onActQ={setActQ} onGroupQ={setGroupQ} />} />
+        )}
+        {section === 'signups' && <SignupsView acts={acts} />}
+        {section === 'comments' && <CommentsView acts={acts} />}
+        {section === 'moments' && <MomentsGrid moms={moms} paginate navBack={{ section: 'moments' }} />}
       </div>
     </div>
   );
@@ -585,7 +659,7 @@ function GroupForm({ open, onClose, onSave, init }) {
           <div style={{ flex: 1 }}><Field label="分类">
             <select value={f.cat} onChange={e => setF({ ...f, cat: e.target.value })} style={{ ...inputStyle }}>
               {Object.values(CATS).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field></div>
-          <div style={{ flex: 1 }}><Field label="组长" hint="搜索公司员工姓名、工号或部门">
+          <div style={{ flex: 1 }}><Field label="组长">
             <EmployeeLeadSearch value={f.lead} onChange={lead => setF({ ...f, lead })} /></Field></div>
         </div>
         <Field label="小组简介">
@@ -792,6 +866,10 @@ function formatTimeRange(start, end) {
   const e = end || start;
   return e !== start ? `${start} - ${e}` : start;
 }
+function recurringSpanDays(timeStart, timeEnd) {
+  if (!timeStart || !timeEnd) return 0;
+  return timeEnd < timeStart ? 1 : 0;
+}
 function parseDateCN(str) {
   const m = str && str.match(/(\d{1,2})月(\d{1,2})日/);
   if (!m) return '';
@@ -826,17 +904,18 @@ function actFormPayload(f) {
     : null;
   // 单次/系列：结束日期晚于开始日期才算跨天
   const crossEnd = (dv, edv) => (edv && edv !== dv ? formatDateCN(edv) : undefined);
-  // 周期：结束时间落在开始日后第 spanDays 天 → 推算结束星期标签
+  // 周期：结束时间早于开始时间 → 视为次日结束，推算结束星期标签
+  const spanDays = f.type === 'recurring' ? recurringSpanDays(f.timeStart, f.timeEnd) : 0;
   let recEndDate;
-  if (f.type === 'recurring' && f.spanDays > 0) {
+  if (f.type === 'recurring' && spanDays > 0) {
     const wd = (f.repeatWeekdays || []).slice().sort((a, b) => a - b)[0];
-    if (wd != null) recEndDate = CN_WEEK[(wd + f.spanDays) % 7];
+    if (wd != null) recEndDate = CN_WEEK[(wd + spanDays) % 7];
   }
   return {
     ...f,
     date: formatDateCN(f.dateValue),
     endDate: f.type === 'recurring' ? recEndDate : crossEnd(f.dateValue, f.endDateValue),
-    spanDays: f.type === 'recurring' ? (f.spanDays || 0) : undefined,
+    spanDays: f.type === 'recurring' ? spanDays : undefined,
     time: formatTimeRange(f.timeStart, f.timeEnd),
     sessions: (f.sessions || []).map(s => ({
       ...s, date: formatDateCN(s.dateValue), endDate: crossEnd(s.dateValue, s.endDateValue), time: formatTimeRange(s.timeStart, s.timeEnd),
@@ -1009,7 +1088,7 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
             {f.type === 'recurring' ? (
               <>
                 <Field label="重复规则"><div style={{ ...inputStyle, background: 'var(--bg)', color: 'var(--ink-2)' }}>{initAct.date}</div></Field>
-                <Field label="时间"><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field>
+                <Field label="时间" hint="结束时间早于开始时间时，视为次日该时刻结束"><TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} /></Field>
               </>
             ) : (
               <>
@@ -1066,12 +1145,8 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
                     })}
                   </div>
                 </Field>
-                <Field label="时间" hint="周期性活动无需选择具体日期">
+                <Field label="时间" hint="结束时间早于开始时间时，视为次日该时刻结束">
                   <TimeRangePicker start={f.timeStart} end={f.timeEnd} onChange={(a, b) => setF({ ...f, timeStart: a, timeEnd: b })} />
-                </Field>
-                <Field label="结束于" hint={f.spanDays > 0 ? '通宵/跨天场，结束时间落在开始日的次日' : '当天结束'}>
-                  <Segmented value={String(f.spanDays || 0)} onChange={v => setF({ ...f, spanDays: +v })} style={{ width: '100%' }}
-                    options={[{ value: '0', label: '当天结束' }, { value: '1', label: '次日结束' }, { value: '2', label: '第 3 天结束' }]} />
                 </Field>
               </>
             )}
@@ -1196,7 +1271,7 @@ function AdminApp() {
       }
       if (d.type === 'recurring') {
         setActs(s => [{ ...base, id: 'a' + ts, type: 'recurring', title: d.title,
-          date: formatRepeatDate(d), time: d.time,
+          date: formatRepeatDate(d), endDate: d.endDate, spanDays: d.spanDays, time: d.time,
           repeatMode: d.repeatMode, repeatWeekdays: d.repeatWeekdays, repeatMonthDays: d.repeatMonthDays,
         }, ...s]);
         toast(ai ? 'AI 活动已发布,已推送给小组成员' : '活动已发布', { ai: !!ai });
@@ -1209,7 +1284,8 @@ function AdminApp() {
       const g = groups.find(x => x.id === d.gid);
       setActs(s => s.map(x => x.id === d.id ? {
         ...x, title: d.title, cover: d.cover, gid: d.gid, cat: d.cat, loc: d.loc, cap: +d.cap, desc: d.desc,
-        time: d.time, host: g ? g.lead : x.host, ...(x.type === 'recurring' ? {} : { date: d.date }),
+        time: d.time, host: g ? g.lead : x.host,
+        ...(x.type === 'recurring' ? { endDate: d.endDate, spanDays: d.spanDays } : { date: d.date }),
       } : x));
       toast('活动已更新', { icon: 'check' });
     },

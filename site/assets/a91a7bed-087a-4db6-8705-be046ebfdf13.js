@@ -54,6 +54,9 @@
     { id: 'g8', name: '羽毛球俱乐部', cat: 'sport', lead: '叶蓁', members: 87, acts: 35,
       join: 'free', joined: false, tags: ['每周二四','场地已包','拍可借'], area: '总部 · 体育馆',
       intro: '已包下体育馆 4 片场地,周二周四晚常态开打。从娱乐双打到水平局,都能找到对手。' },
+    { id: 'g9', name: '视觉设计交流组', cat: 'other', lead: '许墨', members: 45, acts: 12,
+      join: 'free', joined: false, tags: ['UI/UX','设计分享','作品互评'], area: '总部 · 设计开放区',
+      intro: 'UI、品牌、插画爱好者的圈子。双周设计分享、作品互评，设计部同事常驻交流。' },
   ];
 
   function fmt(d) { return d; }
@@ -421,7 +424,7 @@
   const actsOf = gid => acts.filter(a => a.gid === gid);
   const momentsOf = aid => moments.filter(m => m.aid === aid);
   const momentsOfGroup = gid => moments.filter(m => m.gid === gid);
-  const commentsOf = aid => comments.filter(c => c.aid === aid);
+  const commentsOf = aid => comments.filter(c => c.aid === aid && !c.isAI);
   const groupOf = aid => groups.find(g => g.id === (byId(acts, aid) || {}).gid);
 
   // 跨端共享：原型中移动端与 PC 互斥渲染,各自切 Tab 时从 DB 重新初始化。

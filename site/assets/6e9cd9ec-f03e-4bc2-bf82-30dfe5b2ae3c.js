@@ -232,7 +232,7 @@ function ActivityDetail({ aid, pickEnroll }) {
   const commentAids = viewEndedEp ? [aIn.id] : (isSeries ? episodes.map(e => e.id) : [aIn.id]);
   const moms = DB.moments.filter(m => commentAids.includes(m.aid));
   const [comments, setComments] = React.useState(
-    () => DB.comments.filter(c => commentAids.includes(c.aid)).map(c => ({ ...c, _liked: false }))
+    () => DB.comments.filter(c => commentAids.includes(c.aid) && !c.isAI).map(c => ({ ...c, _liked: false }))
   );
   const [draft, setDraft] = React.useState('');
   const [replyTo, setReplyTo] = React.useState(null);

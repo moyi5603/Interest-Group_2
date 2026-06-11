@@ -1,5 +1,11 @@
 // admin.jsx — PC admin app: dashboard, groups CRUD, activities, signups, comments, moments.
 const { useState: aUseState } = React;
+const useAdminPagination = window.useAdminPagination || ((total, config, enabled) => ({
+  slice: items => items,
+  nav: null,
+}));
+const AdminPagination = window.AdminPagination || (() => null);
+const ADMIN_PAGE = window.ADMIN_PAGE || { groups: { default: 15, options: [15, 50, 100] }, moments: { default: 20, options: [20, 50, 100] }, std: { default: 10, options: [10, 20, 50, 100] } };
 
 const SIGNUP_BAR = 'var(--brand)';
 const MODE_TAG_STYLE = { background: 'var(--surface-2)', color: 'var(--ink-2)' };
@@ -129,9 +135,11 @@ function detailAct(unit) {
   return unit.eps[0];
 }
 
-function ActTable({ acts, onRow, hideAi }) {
+function ActTable({ acts, onRow, hideAi, pagination }) {
   const { store } = useA();
-  const units = groupActs(acts);
+  const allUnits = groupActs(acts);
+  const pg = useAdminPagination(allUnits.length, pagination || ADMIN_PAGE.std, !!pagination);
+  const units = pg.slice(allUnits);
 
   const StatusPill = ({ a }) => {
     const terminated = a.status === 'cancelled';
@@ -150,6 +158,7 @@ function ActTable({ acts, onRow, hideAi }) {
   });
 
   return (
+    <>
     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
       <thead><tr style={{ background: 'var(--surface-2)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 700 }}>
         {['活动', '类型', '时间', '报名', '状态', ''].map(h => <th key={h} style={{ textAlign: 'left', padding: '11px 22px', fontWeight: 700 }}>{h}</th>)}
@@ -166,7 +175,6 @@ function ActTable({ acts, onRow, hideAi }) {
                     <div style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}><Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} /></div>
                     <div><div style={{ fontWeight: 700 }} className="clamp1">{a.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{g ? g.name : ''}</div></div>
-                    {a.ai && !hideAi && <AIPill />}
                   </div>
                 </td>
                 <td style={{ padding: '13px 22px' }}><TypeTag type={a.type} /></td>
@@ -196,7 +204,6 @@ function ActTable({ acts, onRow, hideAi }) {
                       <div style={{ fontWeight: 700 }} className="clamp1">{a.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{g ? g.name : ''}</div>
                     </div>
-                    {a.ai && !hideAi && <AIPill />}
                   </div>
                 </td>
                 <td style={{ padding: '13px 22px' }}><TypeTag type={a.type} /></td>
@@ -236,7 +243,6 @@ function ActTable({ acts, onRow, hideAi }) {
                       <div style={{ fontWeight: 700 }} className="clamp1">{first.series || first.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{g ? g.name : ''} · 共 {eps.length} 期</div>
                     </div>
-                    {first.ai && !hideAi && <AIPill />}
                   </div>
                 </td>
                 <td style={{ padding: '13px 22px' }}>
@@ -278,6 +284,8 @@ function ActTable({ acts, onRow, hideAi }) {
         })}
       </tbody>
     </table>
+    {pg.nav && <AdminPagination {...pg.nav} />}
+    </>
   );
 }
 
@@ -285,16 +293,24 @@ function ActTable({ acts, onRow, hideAi }) {
 function GroupsSection() {
   const { store, setView, openGroupForm, actions } = useA();
   const [q, setQ] = aUseState('');
+  const [deleteTarget, setDeleteTarget] = aUseState(null);
   const list = store.groups.filter(g => g.name.includes(q) || CATS[g.cat].label.includes(q));
+  const pg = useAdminPagination(list.length, ADMIN_PAGE.groups);
+  const shown = pg.slice(list);
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    actions.delGroup(deleteTarget.id);
+    toast('小组已删除', { icon: 'trash' });
+    setDeleteTarget(null);
+  };
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }} className="noscroll">
       <Topbar title="小组管理" sub={`共 ${store.groups.length} 个小组 · 758 名成员`}
-        right={<><div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', borderRadius: 12, padding: '0 12px', boxShadow: 'inset 0 0 0 1px var(--line)' }}>
-          <Icon name="search" size={18} style={{ color: 'var(--ink-3)' }} />
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="搜索小组" style={{ border: 'none', outline: 'none', padding: '10px 0', fontSize: 13.5, width: 150, background: 'transparent' }} /></div>
-          <Btn variant="primary" icon="plus" onClick={() => openGroupForm(null)}>新建小组</Btn></>} />
-      <div style={{ padding: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(310px,1fr))', gap: 18 }}>
-        {list.map(g => (
+        right={<Btn variant="primary" icon="plus" onClick={() => openGroupForm(null)}>新建小组</Btn>} />
+      <div style={{ padding: 28 }}>
+        <AdminListToolbar search={<AdminSearchBar value={q} onChange={setQ} placeholder="搜索小组名称" />} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(310px,1fr))', gap: 18 }}>
+        {shown.map(g => (
           <div key={g.id} className="rise" style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)', overflow: 'hidden',
             cursor: 'pointer', transition: 'transform .15s, box-shadow .15s' }} onClick={() => setView({ section: 'groupDetail', gid: g.id })}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }}
@@ -305,7 +321,7 @@ function GroupsSection() {
               <div style={{ position: 'absolute', top: 12, left: 12 }}><CatBadge cat={g.cat} size="sm" solid /></div>
               <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6 }}>
                 <button onClick={e => { e.stopPropagation(); openGroupForm(g); }} style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="edit" size={16} /></button>
-                <button onClick={e => { e.stopPropagation(); if (confirm('确认删除该小组?')) { actions.delGroup(g.id); toast('小组已删除', { icon: 'trash' }); } }} style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.55 0.2 25)' }}><Icon name="trash" size={16} /></button>
+                <button onClick={e => { e.stopPropagation(); setDeleteTarget(g); }} style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.55 0.2 25)' }}><Icon name="trash" size={16} /></button>
               </div>
             </div>
             <div style={{ padding: 16 }}>
@@ -320,7 +336,20 @@ function GroupsSection() {
             </div>
           </div>
         ))}
+        </div>
+        {pg.nav && <AdminPagination {...pg.nav} style={{ marginTop: 18, background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)' }} />}
       </div>
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="删除小组" width={420}>
+        <div style={{ padding: '20px 24px 24px' }}>
+          <div style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>
+            确认删除小组「<span style={{ fontWeight: 700, color: 'var(--ink)' }}>{deleteTarget ? deleteTarget.name : ''}</span>」？删除后不可恢复。
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Btn variant="ghost" onClick={() => setDeleteTarget(null)}>取消</Btn>
+            <Btn variant="danger" icon="trash" onClick={confirmDelete}>确认删除</Btn>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -380,7 +409,7 @@ function AdminGroupDetail({ gid }) {
         </div>}
         {tab === 'acts' && <div style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}><ActTable acts={acts} onRow={(a) => setView({ section: 'actDetail', aid: a.id, back: { section: 'groupDetail', gid } })} /></div>}
         {tab === 'members' && <MembersGrid members={members} lead={g.lead} />}
-        {tab === 'signups' && <SignupsView acts={acts} />}
+        {tab === 'signups' && <SignupsView acts={acts} paginate={false} />}
         {tab === 'comments' && <CommentsView acts={acts} />}
         {tab === 'moments' && <MomentsGrid moms={moms} navBack={{ section: 'groupDetail', gid }} />}
       </div>
@@ -412,6 +441,8 @@ function AdminActDetail({ aid, back }) {
   const { store, setView, openActForm, actions } = useA();
   const [sessionOpen, setSessionOpen] = aUseState({});
   const [memberModal, setMemberModal] = aUseState(null);
+  const [deleteOpen, setDeleteOpen] = aUseState(false);
+  const [terminateOpen, setTerminateOpen] = aUseState(false);
   const toggleSession = id => setSessionOpen(s => ({ ...s, [id]: !s[id] }));
   const aIn = store.acts.find(x => x.id === aid);
   if (!aIn) return null;
@@ -445,10 +476,10 @@ function AdminActDetail({ aid, back }) {
     : aIn.date;
   const timeLabel = isSeries ? `共${episodes.length}期` : aIn.time;
   const desc = isSeries ? (a.seriesDesc || a.desc) : aIn.desc;
-  const tags = isSeries ? (a.seriesTags || a.tags) : aIn.tags;
   const likes = isSeries ? episodes.reduce((m, e) => Math.max(m, e.likes || 0), 0) : aIn.likes;
   const commentActs = isSeries ? episodes : [aIn];
-  const commentCount = (store.comments || []).filter(c => commentActs.some(x => x.id === c.aid)).length;
+  const commentCount = (store.comments || []).filter(c => commentActs.some(x => x.id === c.aid) && !c.isAI).length;
+  const momentCount = DB.moments.filter(m => commentActs.some(x => x.id === m.aid)).length;
   const backTo = back || { section: 'activities' };
   const timeIcon = isSeries ? 'series' : aIn.type === 'recurring' ? 'repeat' : 'calendar';
 
@@ -534,7 +565,7 @@ function AdminActDetail({ aid, back }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', fontSize: 13, color: 'var(--ink-2)' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name={timeIcon} size={15} />{isSeries ? `${dateLabel} · ${timeLabel}` : ActWhen.full(aIn)}{!isSeries && ActWhen.daysBadge(aIn) && <span style={{ marginLeft: 2, padding: '1px 7px', borderRadius: 6, background: 'color-mix(in oklch, var(--brand) 12%, white)', color: 'var(--brand)', fontSize: 11, fontWeight: 700 }}>{ActWhen.daysBadge(aIn)}</span>}{aIn.type === 'recurring' && !isSeries && ' (周期)'}</span>
               <button onClick={() => g && setView({ section: 'groupDetail', gid: g.id })} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--ink-2)' }}><Icon name="users" size={15} />{g ? g.name : ''}</button>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="user" size={15} />发起人 {a.host}</span>
+              {g && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="user" size={15} />小组组长 {g.lead}</span>}
               {a.loc && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={15} />{a.loc}</span>}
               {a.signupDeadline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'oklch(0.55 0.13 70)' }}><Icon name="clock" size={15} />报名截止 {a.signupDeadline}</span>}
             </div>
@@ -542,10 +573,10 @@ function AdminActDetail({ aid, back }) {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
             {!terminated && <Btn variant="ghost" icon="edit" onClick={() => openActForm(aIn.gid, aIn)}>编辑</Btn>}
             {canTerminate && (
-              <Btn variant="danger" icon="flag" onClick={() => { if (confirm('确认终止该活动？终止后状态不可恢复。')) { actions.terminateAct(aIn.id); } }}>终止</Btn>
+              <Btn variant="danger" icon="flag" onClick={() => setTerminateOpen(true)}>终止</Btn>
             )}
             {canDelete && (
-              <Btn variant="ghost" icon="trash" onClick={() => { if (confirm('确认删除该活动?')) { actions.delAct(aIn.id); setView(backTo); } }} />
+              <Btn variant="ghost" icon="trash" onClick={() => setDeleteOpen(true)} />
             )}
           </div>
         </div>
@@ -554,9 +585,9 @@ function AdminActDetail({ aid, back }) {
       <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 22 }}>
         <div style={{ display: 'flex', gap: 16 }}>
           <StatCard icon="ticket" label={recentSessions ? '已报名 · 最近5场' : signupBlocksDisplay ? (isSeries && mode === 'all' ? '已报名 · 整场' : '已报名 · 全部场次') : '已报名'} value={`${signed}/${cap}`} color="var(--brand)" />
-          <StatCard icon="trending" label="报名率" value={`${Math.round(signed / cap * 100)}%`} color="var(--c-outdoor)" />
           <StatCard icon="heart" label="点赞" value={likes} color="var(--c-music)" />
           <StatCard icon="comment" label="评论" value={commentCount} color="var(--c-reading)" />
+          <StatCard icon="image" label="精彩瞬间" value={momentCount} color="var(--sun)" />
         </div>
 
         <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
@@ -566,11 +597,6 @@ function AdminActDetail({ aid, back }) {
               {desc
                 ? <div className="richtext" style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--ink)' }} dangerouslySetInnerHTML={{ __html: desc }} />
                 : <div style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>暂无描述</div>}
-              {tags && tags.length > 0 && (
-                <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 14 }}>
-                  {tags.map(t => <span key={t} style={{ padding: '5px 11px', borderRadius: 99, background: 'var(--bg-2)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>#{t}</span>)}
-                </div>
-              )}
             </div>
 
             <div style={{ background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
@@ -628,6 +654,28 @@ function AdminActDetail({ aid, back }) {
       </div>
       <SignupMembersModal open={!!memberModal} onClose={() => setMemberModal(null)}
         count={memberModal ? memberModal.count : 0} title={memberModal ? memberModal.title : ''} />
+      <Modal open={terminateOpen} onClose={() => setTerminateOpen(false)} title="终止活动" width={420}>
+        <div style={{ padding: '20px 24px 24px' }}>
+          <div style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>
+            确认终止活动「<span style={{ fontWeight: 700, color: 'var(--ink)' }}>{title}</span>」？{isSeries ? '将终止该系列全部场次，' : ''}终止后状态不可恢复。
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Btn variant="ghost" onClick={() => setTerminateOpen(false)}>取消</Btn>
+            <Btn variant="danger" icon="flag" onClick={() => { actions.terminateAct(aIn.id); setTerminateOpen(false); }}>确认终止</Btn>
+          </div>
+        </div>
+      </Modal>
+      <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="删除活动" width={420}>
+        <div style={{ padding: '20px 24px 24px' }}>
+          <div style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>
+            确认删除活动「<span style={{ fontWeight: 700, color: 'var(--ink)' }}>{title}</span>」？{isSeries ? '将删除该系列全部场次，' : ''}删除后不可恢复。
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Btn variant="ghost" onClick={() => setDeleteOpen(false)}>取消</Btn>
+            <Btn variant="danger" icon="trash" onClick={() => { actions.delAct(aIn.id); setDeleteOpen(false); setView(backTo); }}>确认删除</Btn>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
