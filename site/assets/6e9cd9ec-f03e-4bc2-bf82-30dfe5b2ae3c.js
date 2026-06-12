@@ -201,7 +201,7 @@ function fmtSeriesRange(eps) {
   return `${short(eps[0].date)} - ${short(eps[eps.length - 1].date)}`;
 }
 
-function ActivityDetail({ aid, pickEnroll }) {
+function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
   const { store, actions, nav } = useM();
   const aIn = store.acts.find(x => x.id === aid);
   if (!aIn) {
@@ -262,9 +262,10 @@ function ActivityDetail({ aid, pickEnroll }) {
     setPickOpen(true);
   };
   React.useEffect(() => {
-    if (!adjustable || ended || !pickEnroll) return;
-    openPickEnroll();
-  }, [aid]);
+    if (!pickEnroll || !adjustable || ended) return;
+    const t = setTimeout(() => openPickEnroll(), 80);
+    return () => clearTimeout(t);
+  }, [aid, pickEnroll]);
   const toggleSel = (s) => {
     if (s.signed >= s.cap && !s.joinedByMe) return; // 已满且非本人不可新增
     setSel(cur => cur.includes(s.id) ? cur.filter(x => x !== s.id) : [...cur, s.id]);
@@ -275,6 +276,13 @@ function ActivityDetail({ aid, pickEnroll }) {
     else if (isSeriesIndep) actions.setEpisodeSignups(episodes.map(e => e.id), sel);
     setPickOpen(false);
   };
+
+  const pickSheetTitle = pickEnrollIntent === 'cancel'
+    ? '取消报名场次'
+    : (joinedCount > 0 ? '调整报名场次' : '选择报名场次');
+  const pickSheetHint = pickEnrollIntent === 'cancel'
+    ? '取消勾选要退出的场次，全部取消勾选即取消报名（已满场次不可新增）'
+    : `勾选新增、取消勾选移除，确认后生效（已满场次不可新增）${sessions ? ` · 仅显示最近 ${DBH.RECENT_SESSIONS_MAX} 场` : ''}`;
 
   const isSlotPast = (s) => (DBH.isSlotPast ? DBH.isSlotPast(s, aIn.status) : s.status === 'ended');
   const endedJoinedEps = isSeries ? episodes.filter(e => e.status === 'ended' && (mode === 'all' ? seriesJoined : e.joinedByMe)) : [];
@@ -535,9 +543,9 @@ function ActivityDetail({ aid, pickEnroll }) {
       </div>
 
       {adjustable && (
-        <Sheet open={pickOpen} onClose={() => setPickOpen(false)} title={joinedCount > 0 ? '调整报名场次' : '选择报名场次'}>
+        <Sheet open={pickOpen} onClose={() => setPickOpen(false)} title={pickSheetTitle}>
           <div style={{ padding: '2px 14px 0', fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.4 }}>
-            勾选新增、取消勾选移除，确认后生效（已满场次不可新增）{sessions ? ` · 仅显示最近 ${DBH.RECENT_SESSIONS_MAX} 场` : ''}
+            {pickSheetHint}
           </div>
           <div style={{ padding: '8px 14px 4px', maxHeight: '52vh', overflowY: 'auto' }} className="noscroll">
             {(slots || []).length === 0 ? (

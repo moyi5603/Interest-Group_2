@@ -474,7 +474,7 @@ function cancelIgRegistration(item, { store, nav, actions }) {
     return;
   }
   if (igActNeedsPickSheet(act)) {
-    nav.go('activity', { aid: act.id, pickEnroll: true });
+    nav.go('activity', { aid: act.id, pickEnroll: true, pickEnrollIntent: 'cancel' });
     return;
   }
   const aid = act.type === 'series' && act.series
@@ -569,14 +569,38 @@ function MyRegistrations() {
   const { nav, store, actions } = useM();
   const [category, setCategory] = React.useState('culture');
   const [cultureList, setCultureList] = React.useState(() => (DB.myRegistrations || []).map(r => ({ ...r })));
+  const [cancelConfirm, setCancelConfirm] = React.useState(null);
   const igList = igActsToRegItems(store.acts, store.groups);
 
-  const handleCultureCancel = (item) => {
-    if (!window.confirm('确认取消报名？')) return;
-    setCultureList(s => s.filter(r => r.id !== item.id));
-    toast('已取消报名', { icon: 'check' });
+  const openCancelConfirm = (item, mode) => setCancelConfirm({ item, mode });
+  const closeCancelConfirm = () => setCancelConfirm(null);
+
+  const executeCancel = () => {
+    if (!cancelConfirm) return;
+    const { item, mode } = cancelConfirm;
+    setCancelConfirm(null);
+    if (mode === 'culture') {
+      setCultureList(s => s.filter(r => r.id !== item.id));
+      toast('已取消报名', { icon: 'check' });
+      return;
+    }
+    cancelIgRegistration(item, { store, nav, actions });
   };
-  const handleIgCancel = (item) => cancelIgRegistration(item, { store, nav, actions });
+
+  const handleCultureCancel = (item) => openCancelConfirm(item, 'culture');
+  const handleIgCancel = (item) => {
+    const act = store.acts.find(x => x.id === item.actId);
+    if (!act) return;
+    if (act.status !== 'upcoming') {
+      toast('该活动当前不可取消报名', { icon: 'alert' });
+      return;
+    }
+    if (igActNeedsPickSheet(act)) {
+      nav.go('activity', { aid: act.id, pickEnroll: true, pickEnrollIntent: 'cancel' });
+      return;
+    }
+    openCancelConfirm(item, 'ig');
+  };
   const handleIgCardClick = (item) => {
     if (item.actId) nav.go('activity', { aid: item.actId });
   };
@@ -587,35 +611,46 @@ function MyRegistrations() {
   ];
 
   return (
-    <ScreenScroll>
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(255,247,241,0.92)',
-        backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 14px 10px' }}>
-          <button type="button" onClick={nav.back} style={{ display: 'flex' }}><Icon name="back" size={24} /></button>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>我的报名</div>
+    <>
+      <ScreenScroll>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(255,247,241,0.92)',
+          backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 14px 10px' }}>
+            <button type="button" onClick={nav.back} style={{ display: 'flex' }}><Icon name="back" size={24} /></button>
+            <div style={{ fontSize: 17, fontWeight: 800 }}>我的报名</div>
+          </div>
+          {/* 一级 Tab：悦文化 / 兴趣小组 */}
+          <div style={{ display: 'flex', borderBottom: '2px solid var(--line)', margin: '0 14px 0' }}>
+            {catDefs.map(({ key, label }) => {
+              const on = category === key;
+              return (
+                <button key={key} type="button" onClick={() => setCategory(key)} style={{
+                  flex: 1, padding: '10px 0', fontSize: 14, fontWeight: on ? 800 : 600, border: 'none',
+                  background: 'transparent', color: on ? 'var(--brand)' : 'var(--ink-3)',
+                  borderBottom: on ? '2px solid var(--brand)' : '2px solid transparent',
+                  marginBottom: -2, transition: 'color .15s',
+                }}>{label}</button>
+              );
+            })}
+          </div>
+          {/* 二级 Tab：状态 */}
         </div>
-        {/* 一级 Tab：悦文化 / 兴趣小组 */}
-        <div style={{ display: 'flex', borderBottom: '2px solid var(--line)', margin: '0 14px 0' }}>
-          {catDefs.map(({ key, label }) => {
-            const on = category === key;
-            return (
-              <button key={key} type="button" onClick={() => setCategory(key)} style={{
-                flex: 1, padding: '10px 0', fontSize: 14, fontWeight: on ? 800 : 600, border: 'none',
-                background: 'transparent', color: on ? 'var(--brand)' : 'var(--ink-3)',
-                borderBottom: on ? '2px solid var(--brand)' : '2px solid transparent',
-                marginBottom: -2, transition: 'color .15s',
-              }}>{label}</button>
-            );
-          })}
-        </div>
-        {/* 二级 Tab：状态 */}
-      </div>
-      {/* 状态 Tab + 内容（组合为子组件，切换一级 Tab 时状态重置）*/}
-      {category === 'culture'
-        ? <MyRegTabList key="culture" mode="culture" list={cultureList} onCancel={handleCultureCancel} />
-        : <MyRegTabList key="ig" mode="ig" list={igList} onCancel={handleIgCancel} onCardClick={handleIgCardClick} />
-      }
-    </ScreenScroll>
+        {/* 状态 Tab + 内容（组合为子组件，切换一级 Tab 时状态重置）*/}
+        {category === 'culture'
+          ? <MyRegTabList key="culture" mode="culture" list={cultureList} onCancel={handleCultureCancel} />
+          : <MyRegTabList key="ig" mode="ig" list={igList} onCancel={handleIgCancel} onCardClick={handleIgCardClick} />
+        }
+      </ScreenScroll>
+      <ConfirmSheet
+        open={!!cancelConfirm}
+        title="取消报名"
+        message={cancelConfirm ? `确认取消「${cancelConfirm.item.title}」的报名？` : ''}
+        cancelLabel="再想想"
+        confirmLabel="确认取消"
+        onCancel={closeCancelConfirm}
+        onConfirm={executeCancel}
+      />
+    </>
   );
 }
 
@@ -1108,7 +1143,7 @@ function renderMobileScreen(top) {
   if (!top) return null;
   const p = top.params;
   switch (top.name) {
-    case 'activity': return <ActivityDetail aid={p.aid} pickEnroll={!!p.pickEnroll} />;
+    case 'activity': return <ActivityDetail aid={p.aid} pickEnroll={!!p.pickEnroll} pickEnrollIntent={p.pickEnrollIntent} />;
     case 'group': return <GroupDetail gid={p.gid} />;
     case 'moments': return <MomentsFeed gid={p.gid} />;
     case 'post': return <PostMoment gid={p.gid} aid={p.aid} />;

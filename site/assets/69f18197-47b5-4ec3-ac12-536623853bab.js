@@ -151,6 +151,26 @@ function Sheet({ open, onClose, children, title, height = 'auto', maxH = '88%' }
   );
 }
 
+// ---- confirm dialog (mobile / in-app, replaces window.confirm) ----
+function ConfirmSheet({ open, title, message, confirmLabel = '确认', cancelLabel = '取消', onConfirm, onCancel, danger = true }) {
+  if (!open) return null;
+  return (
+    <div onClick={onCancel} style={{ position: 'absolute', inset: 0, zIndex: 210, background: 'rgba(30,18,12,0.42)',
+      backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px',
+      animation: 'fadeIn .2s' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 320, background: 'var(--surface)', borderRadius: 20,
+        boxShadow: 'var(--shadow-lg)', padding: '22px 20px 18px', animation: 'pop .3s cubic-bezier(.2,.85,.25,1)' }}>
+        {title && <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 10, fontFamily: 'var(--font-display)' }}>{title}</div>}
+        <div style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--ink-2)', marginBottom: 20 }}>{message}</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Btn variant="ghost" full onClick={onCancel}>{cancelLabel}</Btn>
+          <Btn variant={danger ? 'danger' : 'primary'} full onClick={onConfirm}>{confirmLabel}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- center modal (PC) ----
 function Modal({ open, onClose, children, width = 560, title }) {
   if (!open) return null;
@@ -211,4 +231,4 @@ function TypingDots({ color = 'var(--ai)' }) {
   );
 }
 
-Object.assign(window, { Btn, CatBadge, TypeTag, Chip, AIPill, Segmented, ProgressBar, LikeButton, Sheet, Modal, ToastHost, TypingDots, TYPE_META });
+Object.assign(window, { Btn, CatBadge, TypeTag, Chip, AIPill, Segmented, ProgressBar, LikeButton, Sheet, ConfirmSheet, Modal, ToastHost, TypingDots, TYPE_META });
