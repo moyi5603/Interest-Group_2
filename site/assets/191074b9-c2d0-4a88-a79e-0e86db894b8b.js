@@ -971,8 +971,9 @@ function actFormReady(f, editing) {
   return true;
 }
 
-function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
+function ActForm({ open, onClose, onSave, store, gidInit, initAct, asPage }) {
   const editing = !!initAct;
+  if (!asPage && (!open || !editing)) return null;
   const blank = normalizeActForm({
     title: '', gid: gidInit || 'g1', cat: 'sport', type: 'once',
     dateValue: isoToday(), endDateValue: '', spanDays: 0, timeStart: '19:00', timeEnd: '21:00',
@@ -1017,16 +1018,18 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
     reader.readAsDataURL(file);
   };
   React.useEffect(() => {
+    if (asPage) {
+      setDescGenning(false);
+      applyForm({ ...blank, gid: gidInit || 'g1' });
+      return;
+    }
     if (!open) return;
     setDescGenning(false);
-    if (editing) { applyForm({ ...blank, ...initAct }); return; }
-    applyForm({ ...blank, gid: gidInit || 'g1' });
-  }, [open, gidInit, editing]);
-  return (
-    <Modal open={open} onClose={onClose} title={editing ? '编辑活动' : '新建活动'} width={580}>
-      <div style={{ padding: 24 }}>
-
-        {!editing && (
+    applyForm({ ...blank, ...initAct });
+  }, [asPage, open, gidInit, initAct?.id]);
+  const formInner = (
+    <>
+        {!editing && !asPage && (
           <div style={{ display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 12, background: 'var(--ai-soft)', marginBottom: 10, alignItems: 'center' }}>
             <Sparkles size={18} color="var(--ai)" />
             <span style={{ flex: 1, fontSize: 12.5, color: 'var(--ink-2)' }}>不想手动填？试试用一句话让 AI 生成完整方案</span>
@@ -1216,12 +1219,37 @@ function ActForm({ open, onClose, onSave, store, gidInit, initAct }) {
         </Field>
 
         {/* footer */}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center', marginTop: 8 }}>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center', marginTop: asPage ? 24 : 8,
+          paddingTop: asPage ? 20 : 0, borderTop: asPage ? '1px solid var(--line)' : 'none' }}>
           <Btn variant="ghost" onClick={onClose}>取消</Btn>
           {(() => { const ok = actFormReady(f, editing); return (
           <Btn variant="primary" icon="check" disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }} onClick={() => { onSave({ ...actFormPayload(f), id: editing ? initAct.id : undefined }); onClose(); }}>{editing ? '保存修改' : '发布活动'}</Btn>
           ); })()}
         </div>
+    </>
+  );
+  if (asPage) {
+    return (
+      <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }} className="noscroll">
+        <div style={{ padding: '16px 28px 0', background: 'var(--surface)' }}>
+          <button type="button" onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 14 }}>
+            <Icon name="back" size={17} />返回
+          </button>
+        </div>
+        <Topbar title="新建活动" sub="填写活动信息并发布给小组成员"
+          right={<Btn variant="ai" icon="spark" onClick={useAOpen}>AI 策划</Btn>} />
+        <div style={{ padding: '0 28px 32px' }}>
+          <div style={{ maxWidth: 760, margin: '0 auto', background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)', padding: '28px 32px 32px' }}>
+            {formInner}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <Modal open={open} onClose={onClose} title="编辑活动" width={580}>
+      <div style={{ padding: 24 }}>
+        {formInner}
       </div>
     </Modal>
   );
@@ -1234,15 +1262,25 @@ function AdminApp() {
   const [joinRequests, setJoinRequests] = React.useState(() => (DB.joinRequests || []).map(r => ({ ...r })));
   const [comments, setComments] = React.useState(() => DB.comments.map(c => ({ ...c })));
   const [view, setView] = React.useState({ section: 'dashboard' });
-  const [aiOpen, setAiOpen] = React.useState(false);
   const [groupForm, setGroupForm] = React.useState({ open: false, init: null });
   const [actForm, setActForm] = React.useState({ open: false, gid: null, init: null });
 
   React.useEffect(() => {
-    const h = () => setAiOpen(true);
+    const h = () => {
+      if (view.section === 'actCreate') {
+        setView({ section: 'actAiCreate', back: { section: 'actCreate', gid: view.gid, back: view.back } });
+        return;
+      }
+      const back = view.section === 'groupDetail' && view.gid
+        ? { section: 'groupDetail', gid: view.gid }
+        : view.section === 'dashboard'
+        ? { section: 'dashboard' }
+        : { section: 'activities' };
+      setView({ section: 'actAiCreate', back });
+    };
     window.addEventListener('open-ai-composer', h);
     return () => window.removeEventListener('open-ai-composer', h);
-  }, []);
+  }, [view]);
 
   const actions = {
     delGroup: (gid) => setGroups(s => s.filter(g => g.id !== gid)),
@@ -1358,7 +1396,15 @@ function AdminApp() {
   const store = { groups, acts, joinRequests, comments };
   const ctx = { view, setView, store, actions,
     openGroupForm: (init) => setGroupForm({ open: true, init }),
-    openActForm: (gid, init) => setActForm({ open: true, gid, init: init || null }) };
+    openActForm: (gid, init) => {
+      if (init) setActForm({ open: true, gid, init });
+      else {
+        const back = view.section === 'groupDetail' && view.gid
+          ? { section: 'groupDetail', gid: view.gid }
+          : { section: 'activities' };
+        setView({ section: 'actCreate', gid: gid || (view.section === 'groupDetail' ? view.gid : null), back });
+      }
+    } };
 
   const render = () => {
     switch (view.section) {
@@ -1366,6 +1412,16 @@ function AdminApp() {
       case 'groups': return <GroupsSection />;
       case 'groupDetail': return <AdminGroupDetail gid={view.gid} />;
       case 'actDetail': return <AdminActDetail aid={view.aid} back={view.back} />;
+      case 'actCreate': return (
+        <ActForm asPage gidInit={view.gid} store={store}
+          onClose={() => setView(view.back || { section: 'activities' })}
+          onSave={(d) => actions.addAct(d, false)} />
+      );
+      case 'actAiCreate': return (
+        <AIComposer asPage store={store}
+          onClose={() => setView(view.back || { section: 'activities' })}
+          onPublish={(d) => actions.addAct(d, true)} />
+      );
       case 'activities': return <ActivitiesSection />;
       case 'signups': case 'comments': case 'moments': return <GlobalSection section={view.section} />;
       default: return <Dashboard />;
@@ -1377,9 +1433,8 @@ function AdminApp() {
       <div style={{ display: 'flex', height: '100%', position: 'relative', fontFamily: 'var(--font)', color: 'var(--ink)' }}>
         <Sidebar />
         {render()}
-        <AIComposer open={aiOpen} onClose={() => setAiOpen(false)} store={store} onPublish={(d) => actions.addAct(d, true)} />
         <GroupForm open={groupForm.open} init={groupForm.init} onClose={() => setGroupForm({ open: false, init: null })} onSave={actions.saveGroup} />
-        <ActForm open={actForm.open} gidInit={actForm.gid} initAct={actForm.init} store={store} onClose={() => setActForm({ open: false, gid: null, init: null })} onSave={(d) => actForm.init ? actions.updateAct(d) : actions.addAct(d, false)} />
+        <ActForm open={actForm.open} gidInit={actForm.gid} initAct={actForm.init} store={store} onClose={() => setActForm({ open: false, gid: null, init: null })} onSave={(d) => actions.updateAct(d)} />
         <ToastHost />
       </div>
     </AdminCtx.Provider>

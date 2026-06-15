@@ -15,7 +15,7 @@ const NAV_IG = {
   ],
 };
 const IG_KEYS = NAV_IG.children.map(c => c.k);
-const IG_DETAIL_PARENT = { groupDetail: 'groups', actDetail: 'activities' };
+const IG_DETAIL_PARENT = { groupDetail: 'groups', actDetail: 'activities', actCreate: 'activities', actAiCreate: 'activities' };
 function igActiveChild(section) {
   if (IG_KEYS.includes(section)) return section;
   return IG_DETAIL_PARENT[section] || null;
@@ -251,7 +251,7 @@ function EmployeeLeadSearch({ value, onChange, placeholder }) {
   };
 
   return (
-    <div ref={wrapRef}>
+    <div ref={wrapRef} style={{ position: 'relative' }}>
       <div style={{ position: 'relative' }}>
         <Icon name="search" size={16} stroke={2.1}
           style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none' }} />
@@ -265,8 +265,9 @@ function EmployeeLeadSearch({ value, onChange, placeholder }) {
         />
       </div>
       {open && (
-        <div style={{ marginTop: 6, borderRadius: 10, border: '1.5px solid var(--line-2)', background: 'var(--surface)',
-          boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+        <div className="noscroll" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6, zIndex: 40,
+          borderRadius: 10, border: '1.5px solid var(--line-2)', background: 'var(--surface)',
+          boxShadow: 'var(--shadow-lg)', maxHeight: 240, overflowY: 'auto' }}>
           {results.length ? results.map(emp => {
             const on = emp.name === value;
             return (
@@ -325,13 +326,14 @@ const AI_BLANK = {
   deadlineMode: 'none', deadlineDate: '', deadlineTime: '18:00', deadlineHours: 2,
 };
 
-function AIComposer({ open, onClose, onPublish, store }) {
+function AIComposer({ onClose, onPublish, store, asPage }) {
+  if (!asPage) return null;
   const [phase, setPhase] = React.useState('input'); // input | thinking | result
   const [prompt, setPrompt] = React.useState('');
   const [form, setForm] = React.useState(null);
   const [editorKey, setEditorKey] = React.useState(0);
   const coverRef = React.useRef(null);
-  React.useEffect(() => { if (open) { setPhase('input'); setPrompt(''); setForm(null); } }, [open]);
+  React.useEffect(() => { setPhase('input'); setPrompt(''); setForm(null); }, []);
 
   const pickCover = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -391,26 +393,15 @@ function AIComposer({ open, onClose, onPublish, store }) {
 
   const publish = () => { onPublish(actFormPayload(form)); onClose(); };
 
-  if (!open) return null;
-  return (
-    <Modal open={open} onClose={onClose} width={620}>
-      <div style={{ padding: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 18 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 13, background: 'var(--ai-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={24} color="#fff" /></div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 800 }}>AI 活动策划 <AIPill label="Beta" /></div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>用一句话描述你的想法,帮你生成完整方案</div>
-          </div>
-          <button onClick={onClose} style={{ color: 'var(--ink-3)' }}><Icon name="x" size={22} /></button>
-        </div>
-
+  const composerBody = (
+    <>
         {phase === 'input' && (
           <div className="fade">
             <TextArea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="例如:每周三下班后组织一次滨江夜跑,8 公里,分配速组…" style={{ minHeight: 96 }} />
             <div style={{ margin: '12px 0' }}>
               <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 8, fontWeight: 600 }}>试试这些 ↓</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {examples.map(ex => <button key={ex} onClick={() => setPrompt(ex)} style={{ textAlign: 'left', padding: '10px 13px', borderRadius: 11,
+                {examples.map(ex => <button key={ex} type="button" onClick={() => setPrompt(ex)} style={{ textAlign: 'left', padding: '10px 13px', borderRadius: 11,
                   background: 'var(--surface-2)', fontSize: 13, color: 'var(--ink-2)', fontWeight: 500, display: 'flex', gap: 8, alignItems: 'center' }}>
                   <Sparkles size={14} color="var(--ai)" />{ex}</button>)}
               </div>
@@ -588,16 +579,34 @@ function AIComposer({ open, onClose, onPublish, store }) {
               <RichText key={editorKey} value={form.desc} onChange={html => setForm(s => ({ ...s, desc: html }))} placeholder="活动安排、注意事项…" />
             </Field>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--line)', justifyContent: 'flex-end' }}>
               <Btn variant="ghost" icon="repeat" onClick={() => setPhase('input')}>重新生成</Btn>
               {(() => { const ok = actFormReady(form, false); return (
-                <Btn variant="ai" full icon="check" disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }} onClick={publish}>确认并发布活动</Btn>
+                <Btn variant="ai" icon="check" disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }} onClick={publish}>确认并发布活动</Btn>
               ); })()}
             </div>
           </div>
         )}
+    </>
+  );
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }} className="noscroll">
+      <div style={{ padding: '16px 28px 0', background: 'var(--surface)' }}>
+        <button type="button" onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 14 }}>
+          <Icon name="back" size={17} />返回
+        </button>
       </div>
-    </Modal>
+      <Topbar
+        title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>AI 活动策划 <AIPill label="Beta" /></span>}
+        sub="用一句话描述你的想法，帮你生成完整方案"
+      />
+      <div style={{ padding: '0 28px 32px' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', background: 'var(--surface)', borderRadius: 18, boxShadow: 'var(--shadow-sm)', padding: '28px 32px 32px' }}>
+          {composerBody}
+        </div>
+      </div>
+    </div>
   );
 }
 
