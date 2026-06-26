@@ -551,6 +551,34 @@
     }
     return out;
   };
+  /** 活动阶段：未开始 / 进行中 / 已结束 / 已终止（相对 PROTO_TODAY 与场次时间） */
+  const actPhase = (act, allActs) => {
+    if (!act) return 'ended';
+    const all = allActs || acts;
+    const base = act._listKey ? act : forListCard(act, all);
+    if (base.status === 'cancelled') return 'cancelled';
+    if (base.status === 'ended') return 'ended';
+
+    const src = byId(all, base._detailAid || base.id) || act;
+    if (base.type === 'recurring' && src.sessions && src.sessions.length) {
+      const open = src.sessions.filter(s => isSessionOpen(s, base.status));
+      if (!open.length) return 'ended';
+      if (open.some(s => parseActDateKey(s.date) === PROTO_TODAY_KEY)) return 'ongoing';
+      const hasFuture = open.some(s => {
+        const k = parseActDateKey(s.date);
+        return k != null && k > PROTO_TODAY_KEY;
+      });
+      return hasFuture ? 'upcoming' : 'ended';
+    }
+
+    const startKey = parseActDateKey(base.date);
+    const endKey = parseActDateKey(base.endDate || base.date);
+    if (startKey == null) return base.status === 'upcoming' ? 'upcoming' : 'ended';
+    if (startKey <= PROTO_TODAY_KEY && endKey != null && endKey >= PROTO_TODAY_KEY) return 'ongoing';
+    if (startKey > PROTO_TODAY_KEY) return 'upcoming';
+    if (startKey === PROTO_TODAY_KEY) return 'ongoing';
+    return 'ended';
+  };
 
   // ── 活动时间展示工具（跨天/多天）：PC 与移动端共用 ──
   // 约定：a.date 为开始日期(中文串或「每周X」)，a.endDate 为结束日期；
@@ -591,5 +619,5 @@
 
   window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME, employees, myRegistrations, mineInteractFeed };
   window.CATS = CATS;
-  window.DBH = { byId, seriesEps, seriesAnchor, seriesListStatus, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, isSlotPast, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf, patchGroup, pushSelfJoinRequest, removeJoinRequest, parseActDateKey, nextOpenSession, listUnitKey, forListCard, collapseActsForList };
+  window.DBH = { byId, seriesEps, seriesAnchor, seriesListStatus, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, isSlotPast, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf, patchGroup, pushSelfJoinRequest, removeJoinRequest, parseActDateKey, nextOpenSession, listUnitKey, forListCard, collapseActsForList, actPhase };
 })();

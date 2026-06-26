@@ -873,12 +873,16 @@ function AllActivities() {
     });
   };
   
-  const byStatus = (acts) => statusFilter === 'all' ? acts : acts.filter(a => a.status === statusFilter);
+  const byStatus = (acts) => {
+    if (statusFilter === 'all') return acts;
+    return acts.filter(a => DBH.actPhase(a, store.acts) === statusFilter);
+  };
   const list = filterActs(filterByDate(byStatus(DBH.collapseActsForList(store.acts, store.acts))), store.groups, q);
 
   const statusOptions = [
     { key: 'all', label: '全部' },
     { key: 'upcoming', label: '未开始' },
+    { key: 'ongoing', label: '进行中' },
     { key: 'ended', label: '已结束' },
     { key: 'cancelled', label: '已终止' },
   ];
@@ -902,7 +906,7 @@ function AllActivities() {
             const on = statusFilter === key;
             return (
               <button key={key} onClick={() => setStatusFilter(key)} style={{
-                flex: 1, padding: '7px 0', borderRadius: 9, fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer',
+                flex: 1, padding: '6px 0', borderRadius: 9, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
                 background: on ? 'var(--ink)' : 'transparent', color: on ? '#fff' : 'var(--ink-2)',
                 boxShadow: on ? 'var(--shadow-sm)' : 'none', transition: 'background .18s, color .18s',
               }}>{label}</button>
