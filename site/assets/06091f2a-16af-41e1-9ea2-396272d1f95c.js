@@ -8,6 +8,7 @@ const NAV_IG = {
   children: [
     { k: 'dashboard', label: '工作台', icon: 'grid' },
     { k: 'groups', label: '小组管理', icon: 'users' },
+    { k: 'categories', label: '分类管理', icon: 'layers' },
     { k: 'activities', label: '活动管理', icon: 'calendar' },
     { k: 'signups', label: '报名管理', icon: 'ticket' },
     { k: 'comments', label: '评论&互动', icon: 'comment' },
@@ -71,7 +72,21 @@ function Sidebar() {
 // helper to open AI composer from anywhere via window event
 function useAOpen() { window.dispatchEvent(new CustomEvent('open-ai-composer')); }
 
-function Topbar({ title, sub, right }) {
+function Topbar({ title, sub, right, compact }) {
+  if (compact) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        padding: '10px 14px', borderBottom: '1px solid var(--line)', background: 'var(--surface)', flexShrink: 0,
+      }}>
+        <div style={{ minWidth: 0 }}>
+          {title ? <div style={{ fontSize: 16, fontWeight: 800 }}>{title}</div> : null}
+          {sub ? <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 1 }}>{sub}</div> : null}
+        </div>
+        {right && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>{right}</div>}
+      </div>
+    );
+  }
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px',
       borderBottom: '1px solid var(--line)', background: 'var(--surface)', flexShrink: 0 }}>
@@ -179,18 +194,29 @@ function AdminPagination({ total, page, pageSize, totalPages, pageSizeOptions, o
   );
 }
 
-function StatCard({ icon, label, value, delta, color = 'var(--brand)' }) {
+function StatCard({ icon, label, value, delta, color = 'var(--brand)', compact, onClick, style }) {
+  const iconBox = compact ? 20 : 40;
+  const Tag = onClick ? 'button' : 'div';
   return (
-    <div style={{ background: 'var(--surface)', borderRadius: 18, padding: 18, boxShadow: 'var(--shadow-sm)', flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: `color-mix(in oklch, ${color} 14%, white)`, color,
-          display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={icon} size={21} stroke={2.2} /></div>
-        {delta && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-outdoor)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-          <Icon name="trending" size={14} stroke={2.6} />{delta}</span>}
-      </div>
-      <div style={{ fontSize: 30, fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: -1, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 6, fontWeight: 600 }}>{label}</div>
-    </div>
+    <Tag type={onClick ? 'button' : undefined} onClick={onClick}
+      style={{ background: 'var(--surface)', borderRadius: compact ? 8 : 18, padding: compact ? 6 : 18, boxShadow: 'var(--shadow-sm)', flex: 1, minWidth: 0,
+        border: 'none', textAlign: 'left', cursor: onClick ? 'pointer' : 'default', font: 'inherit', color: 'inherit', ...style }}>
+      {!compact && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ width: iconBox, height: iconBox, borderRadius: 12, background: `color-mix(in oklch, ${color} 14%, white)`, color,
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={icon} size={21} stroke={2.2} /></div>
+          {delta && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-outdoor)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+            <Icon name="trending" size={14} stroke={2.6} />{delta}</span>}
+        </div>
+      )}
+      {compact && (
+        <div style={{ width: iconBox, height: iconBox, borderRadius: 6, marginBottom: 4, background: `color-mix(in oklch, ${color} 14%, white)`, color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={icon} size={11} stroke={2.2} /></div>
+      )}
+      <div style={{ fontSize: compact ? 15 : 30, fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: compact ? 9 : 13, color: 'var(--ink-3)', marginTop: compact ? 2 : 6, fontWeight: 600,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: compact ? 'nowrap' : 'normal' }}>{label}</div>
+    </Tag>
   );
 }
 
@@ -346,8 +372,10 @@ function AIComposer({ onClose, onPublish, store, asPage }) {
     const next = { ...s, type: v };
     if (!next.timeStart) { next.timeStart = '19:00'; next.timeEnd = '21:00'; }
     if (v === 'once' && !next.dateValue) next.dateValue = isoToday();
-    if (v === 'recurring' && !(next.repeatWeekdays || []).length && !(next.repeatMonthDays || []).length) {
-      next.repeatMode = 'weekly'; next.repeatWeekdays = [3];
+    if (v === 'recurring') {
+      next.repeatMode = 'weekly';
+      next.repeatWeekdays = [];
+      next.repeatMonthDays = [];
     }
     if (v === 'series' && !(next.sessions || []).length) {
       next.sessions = [{ dateValue: isoToday(), timeStart: '19:00', timeEnd: '21:00' }];
@@ -375,7 +403,7 @@ function AIComposer({ onClose, onPublish, store, asPage }) {
         poster: '🌄 四点半的黑暗,是为了五点半的光。\n这个周末,把闹钟交给我们,把日出交给你。\n中级强度|含拼车|领队全程保障', tags: ['看日出系列', '中级强度', '含拼车'],
       } : isRun ? {
         title: '滨江 8K 夜跑 · 江风配速团', cat: 'sport', type: 'recurring', gid: 'g1',
-        repeatMode: 'weekly', repeatWeekdays: [1, 3, 5], time: '19:30 - 21:00', loc: '滨江园区南门集合', cap: 40,
+        repeatMode: 'weekly', repeatWeekdays: [4], time: '19:30 - 21:00', loc: '滨江园区南门集合', cap: 40,
         desc: '<p>沿滨江绿道往返 8 公里,按 <b>6′30″ / 6′00″ / 5′30″</b> 分三个配速组。</p><ul><li>出发前 10 分钟动态拉伸,跑后江边拉伸</li><li>跑完自由聚餐(AA),零基础友好,有陪跑员</li></ul>',
         poster: '🏃 下班别急着回家,江风在等你。\n8 公里,三档配速,总有一个适合你。\n每周三场|零基础友好|跑完撸串', tags: ['8 公里', '配速分组', '跑后聚餐'],
       } : {
@@ -466,7 +494,7 @@ function AIComposer({ onClose, onPublish, store, asPage }) {
             <div style={{ display: 'flex', gap: 14 }}>
               <div style={{ flex: 1 }}><Field label="所属小组"><select value={form.gid} onChange={e => { const ng = store.groups.find(x => x.id === e.target.value); setForm({ ...form, gid: e.target.value, cat: ng ? ng.cat : form.cat }); }} style={inputStyle}>
                 {store.groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field></div>
-              <div style={{ flex: 1 }}><Field label="分类"><select value={form.cat} onChange={e => setForm({ ...form, cat: e.target.value })} style={inputStyle}>{Object.values(CATS).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field></div>
+              <div style={{ flex: 1 }}><Field label="分类"><select value={form.cat} onChange={e => setForm({ ...form, cat: e.target.value })} style={inputStyle}><option value="">未分类</option>{(typeof catsList === 'function' ? catsList() : Object.values(CATS)).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field></div>
             </div>
 
             <Field label="活动类型" hint="单次=指定日期;周期性=按周/月重复;系列=多场次各自定时间">
@@ -493,13 +521,16 @@ function AIComposer({ onClose, onPublish, store, asPage }) {
 
             {form.type === 'recurring' && (
               <>
-                <Field label="重复规则" hint="选择每周重复的具体日期">
+                <Field label="重复规则" hint={typeof recurringRepeatHint === 'function' ? recurringRepeatHint(form.repeatWeekdays) : '选择每周重复的具体日期'}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {WEEKDAYS.map(d => {
                       const on = (form.repeatWeekdays || []).includes(d.v);
                       return (
                         <button key={d.v} type="button" onClick={() => setForm(s => ({
-                          ...s, repeatMode: 'weekly', repeatWeekdays: on ? s.repeatWeekdays.filter(x => x !== d.v) : [...(s.repeatWeekdays || []), d.v].sort((a, b) => a - b),
+                          ...s, repeatMode: 'weekly',
+                          repeatWeekdays: typeof toggleRepeatWeekday === 'function'
+                            ? toggleRepeatWeekday(s.repeatWeekdays, d.v)
+                            : ((s.repeatWeekdays || []).length === 1 && (s.repeatWeekdays || [])[0] === d.v ? [] : [d.v]),
                         }))} style={{ minWidth: 44, height: 34, borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
                           background: on ? 'var(--brand-tint)' : 'var(--bg)', color: on ? 'var(--brand-600)' : 'var(--ink-2)',
                           border: on ? '1.5px solid var(--brand)' : '1.5px solid var(--line-2)' }}>{d.label}</button>
@@ -507,7 +538,7 @@ function AIComposer({ onClose, onPublish, store, asPage }) {
                     })}
                   </div>
                 </Field>
-                <Field label="时间" hint="结束时间早于开始时间时，视为次日该时刻结束">
+                <Field label="时间" hint={form.timeStart && form.timeEnd && form.timeEnd < form.timeStart ? `结束已过 0 点，视为次日 ${form.timeEnd}` : '结束时间早于开始时间时，视为次日该时刻结束'}>
                   <TimeRangePicker start={form.timeStart} end={form.timeEnd} onChange={(a, b) => setForm({ ...form, timeStart: a, timeEnd: b })} />
                 </Field>
               </>
@@ -650,4 +681,4 @@ function DeadlinePicker({ mode, date, time, hours, onChange }) {
   );
 }
 
-Object.assign(window, { AdminCtx, useA, NAV, Sidebar, Topbar, AdminSearchBar, AdminListToolbar, AdminActSearchBars, ADMIN_PAGE, useAdminPagination, AdminPagination, StatCard, Field, TextInput, TextArea, EmployeeLeadSearch, AIComposer, DeadlinePicker, inputStyle, useAOpen });
+Object.assign(window, { AdminCtx, useA, NAV, Sidebar, Topbar, AdminSearchBar, AdminListToolbar, AdminActSearchBars, ADMIN_PAGE, useAdminPagination, AdminPagination, StatCard, Field, TextInput, TextArea, EmployeeLeadSearch, AIComposer, DeadlinePicker, inputStyle, useAOpen, makeAiPoster });

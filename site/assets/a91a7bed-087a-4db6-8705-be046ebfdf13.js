@@ -1,14 +1,34 @@
 // data.js — mock dataset for 兴趣小组. Exposed as window.DB / window.CATS / helpers.
 (function () {
   const CATS = {
-    sport:     { key: 'sport',     label: '运动健身', icon: 'zap',      color: 'var(--c-sport)' },
-    learning:  { key: 'learning',  label: '学习充电', icon: 'bookmark', color: 'var(--c-reading)' },
-    career:    { key: 'career',    label: '职场成长', icon: 'trending', color: 'var(--c-photo)' },
-    team:      { key: 'team',      label: '团队拓展', icon: 'users',    color: 'var(--c-outdoor)' },
-    volunteer: { key: 'volunteer', label: '公益志愿', icon: 'heart',    color: 'var(--c-food)' },
-    game:      { key: 'game',      label: '桌游电竞', icon: 'star',     color: 'var(--c-game)' },
-    movie:     { key: 'movie',     label: '电影音乐', icon: 'mic',      color: 'var(--c-music)' },
-    other:     { key: 'other',     label: '其他',     icon: 'dots',     color: 'var(--c-other)' },
+    sport:     { key: 'sport',     label: '运动健身', icon: 'zap',      color: 'var(--c-sport)',    order: 10 },
+    learning:  { key: 'learning',  label: '学习充电', icon: 'bookmark', color: 'var(--c-reading)',  order: 20 },
+    career:    { key: 'career',    label: '职场成长', icon: 'trending', color: 'var(--c-photo)',    order: 30 },
+    team:      { key: 'team',      label: '团队拓展', icon: 'users',    color: 'var(--c-outdoor)',  order: 40 },
+    volunteer: { key: 'volunteer', label: '公益志愿', icon: 'heart',    color: 'var(--c-food)',     order: 50 },
+    game:      { key: 'game',      label: '桌游电竞', icon: 'cards',    color: 'var(--c-game)',     order: 60 },
+    movie:     { key: 'movie',     label: '电影音乐', icon: 'ticket',   color: 'var(--c-music)',    order: 70 },
+    other:     { key: 'other',     label: '其他',     icon: 'dots',     color: 'var(--c-other)',    order: 80 },
+  };
+  const UNCATEGORIZED = { key: '', label: '未分类', icon: 'dots', color: 'var(--ink-3)', order: 9999 };
+  const getCat = (key) => {
+    if (key == null || key === '') return UNCATEGORIZED;
+    return (window.CATS && window.CATS[key]) || CATS[key] || UNCATEGORIZED;
+  };
+  /** order 升序；同 order 按 createdAt 倒序（新在前） */
+  const compareCats = (a, b) => {
+    const oa = a && a.order != null ? Number(a.order) : 0;
+    const ob = b && b.order != null ? Number(b.order) : 0;
+    if (oa !== ob) return oa - ob;
+    const ta = (a && a.createdAt) || 0;
+    const tb = (b && b.createdAt) || 0;
+    return tb - ta;
+  };
+  const catsList = () => Object.values(window.CATS || CATS).slice().sort(compareCats);
+  const syncWindowCats = (list) => {
+    const obj = {};
+    (list || []).forEach(c => { if (c && c.key) obj[c.key] = c; });
+    window.CATS = obj;
   };
 
   const NAMES = ['林浅','陈航','苏曼','江野','周棠','许墨','沈星','何夕','顾乔','叶蓁','秦风','安然',
@@ -31,31 +51,40 @@
   const groups = [
     { id: 'g1', name: '城市夜跑团', cat: 'sport', lead: '江野', members: 128, acts: 24,
       join: 'free', joined: true, tags: ['每周三场','零基础友好','配速分组'], area: '总部 · 滨江园区',
+      cover: 'assets/covers/groups/g1-night-run.jpg',
       intro: '下班后甩开屏幕,用脚步丈量城市。我们按配速分组,从 6′30″ 到 5′00″ 都有搭子,跑完一起撸串复盘。',
       hot: true },
     { id: 'g2', name: '周末徒步野行', cat: 'sport', lead: '苏曼', members: 96, acts: 18,
       join: 'approve', joined: true, tags: ['周末出行','装备互助','AA 拼车'], area: '近郊 · 多线路',
+      cover: 'assets/covers/groups/g2-hiking.jpg',
       intro: '逃离工位,走进山野。每月 2-3 条线路,从溪谷轻徒步到登顶看日出,领队持证、全程保障。' },
     { id: 'g3', name: '深夜读书会', cat: 'learning', lead: '周棠', members: 64, acts: 31,
       join: 'free', joined: false, tags: ['双周一次','主题共读','不打卡不焦虑'], area: '总部 · 三楼书吧',
+      cover: 'assets/covers/groups/g3-reading.jpg',
       intro: '一本书、一杯茶、一群不催进度的人。每期共读一本,线下围读 + 自由发言,读得慢也没关系。' },
     { id: 'g4', name: '周五观影会', cat: 'movie', lead: '许墨', members: 73, acts: 17,
       join: 'free', joined: false, tags: ['每周放映','影乐分享','偶尔开麦'], area: '总部 · 多功能厅',
+      cover: 'assets/covers/groups/g4-cinema.jpg',
       intro: '下班留下来,一起看场电影、聊聊配乐。从经典老片到话题新作,也有同事的现场弹唱开放麦。' },
     { id: 'g5', name: '桌游电竞局', cat: 'game', lead: '沈星', members: 142, acts: 40,
       join: 'free', joined: true, tags: ['每周开局','新手教学','五黑常驻'], area: '总部 · 休闲区',
+      cover: 'assets/covers/groups/g5-boardgame.jpg',
       intro: '剧本杀、阿瓦隆、狼人杀、五黑上分,午休和下班后随时开局,菜也没关系,快乐第一。', hot: true },
     { id: 'g6', name: '职场成长营', cat: 'career', lead: '何夕', members: 58, acts: 16,
       join: 'approve', joined: false, tags: ['双周一次','经验分享','简历互助'], area: '总部 · 学习室',
+      cover: 'assets/covers/groups/g6-career.jpg',
       intro: '把同事的经验变成你的捷径。每期一个主题:汇报表达、向上沟通、项目复盘,老带新少走弯路。' },
     { id: 'g7', name: '暖心公益志愿队', cat: 'volunteer', lead: '顾乔', members: 110, acts: 29,
       join: 'free', joined: false, tags: ['月度活动','工会支持','人人可参与'], area: '城市 · 各公益点',
+      cover: 'assets/covers/groups/g7-volunteer.jpg',
       intro: '用业余时间做点暖心的事。社区助老、山区捐书、公益义卖,工会提供保障,报名即可参与。' },
     { id: 'g8', name: '羽毛球俱乐部', cat: 'sport', lead: '叶蓁', members: 87, acts: 35,
       join: 'free', joined: false, tags: ['每周二四','场地已包','拍可借'], area: '总部 · 体育馆',
+      cover: 'assets/covers/groups/g8-badminton.jpg',
       intro: '已包下体育馆 4 片场地,周二周四晚常态开打。从娱乐双打到水平局,都能找到对手。' },
     { id: 'g9', name: '视觉设计交流组', cat: 'other', lead: '许墨', members: 45, acts: 12,
       join: 'free', joined: false, tags: ['UI/UX','设计分享','作品互评'], area: '总部 · 设计开放区',
+      cover: 'assets/covers/groups/g9-design.jpg',
       intro: 'UI、品牌、插画爱好者的圈子。双周设计分享、作品互评，设计部同事常驻交流。' },
   ];
 
@@ -80,9 +109,41 @@
     { id: 'a16', gid: 'g4', title: '初夏滨江摄影 Walk · 试点场', type: 'once', cat: 'movie',
       date: '06月18日 周三', time: '17:30 - 19:00', loc: '滨江步道 · 南门集合', host: '许墨',
       cap: 15, signed: 0, liked: false, likes: 0, joinedByMe: false, status: 'upcoming',
-      desc: '<p>沿滨江步道拍摄日落与街景,<b>零基础可报名</b>,现场提供构图小贴士。</p><ul><li>自备手机或相机即可,无需专业设备</li><li>活动结束后可选交片参与内部评选</li><li><b>当前暂无人报名</b>,管理端可删除或继续招募</li></ul>',
+      cover: 'assets/covers/acts/18-photo-walk.jpg',
+      desc: [
+        '<p>初夏傍晚的滨江，光线软、风也刚好。<b>摄影 Walk 试点场</b>带你沿步道边走边拍：日落金线、江面反光、行人剪影与城市天际线，一门课吃透「黄金时段」构图。</p>',
+        '<p style="margin:12px 0 0"><img src="assets/covers/acts/20-river-sunset.jpg" alt="滨江日落" style="max-width:100%;border-radius:12px;display:block"/></p>',
+        '<p><b>适合谁来？</b>零基础友好。手机、微单、旁轴都行——不拼器材，拼观察。现场由设计部同事许墨带队，每停一处会讲 1–2 个可立刻上手的小技巧。</p>',
+        '<ul><li>17:30 南门集合，发放简要拍摄任务卡</li><li>17:45–18:40 三段式漫步：桥下光影 → 江堤长焦 → 晚霞广角</li><li>18:40–19:00 现场互评 3 张「今日最佳」，自愿交片进小组圈</li></ul>',
+        '<p style="margin:12px 0 0"><img src="assets/covers/acts2/38-camera-lens.jpg" alt="镜头细节" style="max-width:100%;border-radius:12px;display:block"/></p>',
+        '<p><b>带什么？</b>充满电的手机 / 相机、一瓶水即可。有脚架可带（非必须）。建议穿舒适步行鞋，滨江有时风大，薄外套更安心。</p>',
+        '<p style="margin:12px 0 0"><img src="assets/covers/acts2/40-city-night.jpg" alt="城市夜景" style="max-width:100%;border-radius:12px;display:block"/></p>',
+        '<p><b>试点场说明</b>：本场用于验证路线与节奏，名额刻意收紧。结束后我们会根据反馈迭代下一场主题（人像 / 建筑 / 夜景）。欢迎在评论区留下你想拍的题材。</p>',
+        '<p style="margin:12px 0 0"><img src="assets/covers/groups/g10-photo.jpg" alt="外拍氛围" style="max-width:100%;border-radius:12px;display:block"/></p>',
+        '<p>报名截止：活动开始前 1.5 小时。迟到超过 10 分钟可能错过第一段讲解，请尽量准时到南门集合点。</p>',
+      ].join(''),
       tags: ['摄影','试点场','无人报名'], ai: false,
       deadlineIso: '2026-06-18T16:00:00+08:00' },
+
+    // 周期 · 跨 3 天（连续周二→周四，规则层 + 场次均为 3 自然日）— 置顶便于验收
+    { id: 'a26', gid: 'g2', title: '周末连营徒步 · 周二入营周四撤营', type: 'recurring', cat: 'sport',
+      date: '每周二、周三、周四', endDate: '周四', spanDays: 3, time: '18:00 - 16:00',
+      repeatMode: 'weekly', repeatWeekdays: [2, 3, 4],
+      loc: '近郊 · 云栖谷营地', host: '苏曼',
+      cap: 24, signed: 14, liked: false, likes: 21, joinedByMe: false, status: 'upcoming',
+      desc: '<p>每<b>周二 18:00 入营</b>,周三全天徒步, <b>周四 16:00 撤营返程</b>。连续 3 天 2 夜,按周重复。</p><ul><li>含营位与路餐,需自备睡袋与登山鞋</li><li>周期规则为连续三天,不可跳选中间日期</li><li>按场次报名,每期独立成营</li></ul>',
+      tags: ['跨3天','连营徒步','按场次报名'], ai: false, repeatMonthDays: [],
+      sessions: [
+        { id: 'a26-s0', date: '05月27日 周二', endDate: '05月29日 周四', time: '18:00 - 16:00', cap: 24, signed: 24, joinedByMe: false, status: 'ended' },
+        { id: 'a26-s1', date: '06月02日 周二', endDate: '06月04日 周四', time: '18:00 - 16:00', cap: 24, signed: 18, joinedByMe: false, status: 'ongoing' },
+        ...recurringSessions('a26', [
+          '06月09日 周二', '06月16日 周二', '06月23日 周二', '06月30日 周二',
+          '07月07日 周二', '07月14日 周二', '07月21日 周二',
+        ], '18:00 - 16:00', 24, 14, false, [
+          '06月11日 周四', '06月18日 周四', '06月25日 周四', '07月02日 周四',
+          '07月09日 周四', '07月16日 周四', '07月23日 周四',
+        ]).map((s, i) => ({ ...s, id: `a26-s${i + 2}` })),
+      ] },
 
     // ── 周期活动（按场次独立报名，sessions[] 内各场 signed 不同）──
     { id: 'a1', gid: 'g1', title: '滨江 8K 夜跑 · 江风配速团', type: 'recurring', cat: 'sport',
@@ -133,20 +194,38 @@
         '07月04日 周五', '07月11日 周五', '07月18日 周五', '07月25日 周五',
         '08月01日 周五', '08月08日 周五',
       ], '14:00 - 16:30', 12, 9, false) },
-    // 周期 · 跨天（通宵场,结束在次日）
+    // 周期 · 单日（规则层不跨天；具体场次仍可跨夜）
     { id: 'a19', gid: 'g5', title: '通宵桌游马拉松 · 周五不眠局', type: 'recurring', cat: 'game',
-      date: '每周五', endDate: '周六', spanDays: 1, time: '22:00 - 02:00', repeatMode: 'weekly', repeatWeekdays: [5],
+      date: '每周五', time: '22:00 - 02:00', repeatMode: 'weekly', repeatWeekdays: [5],
       loc: '总部 · 休闲区', host: '沈星',
-      cap: 16, signed: 10, liked: false, likes: 34, joinedByMe: false, status: 'upcoming',
+      cap: 16, signed: 11, liked: false, likes: 34, joinedByMe: true, status: 'upcoming',
       desc: '<p>周五夜不归宿,从晚上 22:00 一路开到<b>次日凌晨 02:00</b>。</p><ul><li>剧本杀 / 阿瓦隆 / 狼人杀轮换,新手有教学</li><li>提供宵夜与饮料,跨天场地已申请</li><li>按场次报名,来一次算一次</li></ul>',
       tags: ['跨天','通宵局','按场次报名'], ai: false, repeatMonthDays: [],
-      sessions: recurringSessions('a19', [
-        '06月06日 周五', '06月13日 周五', '06月20日 周五', '06月27日 周五',
-        '07月04日 周五', '07月11日 周五', '07月18日 周五', '07月25日 周五',
-      ], '22:00 - 02:00', 16, 10, false, [
-        '06月07日 周六', '06月14日 周六', '06月21日 周六', '06月28日 周六',
-        '07月05日 周六', '07月12日 周六', '07月19日 周六', '07月26日 周六',
-      ]) },
+      sessions: [
+        { id: 'a19-s0', date: '05月30日 周五', endDate: '05月31日 周六', time: '22:00 - 02:00', cap: 16, signed: 16, joinedByMe: false, status: 'ended' },
+        ...recurringSessions('a19', [
+          '06月06日 周五', '06月13日 周五', '06月20日 周五', '06月27日 周五',
+          '07月04日 周五', '07月11日 周五', '07月18日 周五', '07月25日 周五',
+        ], '22:00 - 02:00', 16, 11, true, [
+          '06月07日 周六', '06月14日 周六', '06月21日 周六', '06月28日 周六',
+          '07月05日 周六', '07月12日 周六', '07月19日 周六', '07月26日 周六',
+        ]).map((s, i) => {
+          if (i === 0) return { ...s, signed: 11, cap: 16 };
+          // 跨多天示例：周五入营 → 周日撤营（3 个自然日）
+          if (i === 2) {
+            return {
+              ...s,
+              id: 'a19-s3',
+              date: '06月20日 周五',
+              endDate: '06月22日 周日',
+              time: '18:00 - 16:00',
+              signed: 8,
+              joinedByMe: false,
+            };
+          }
+          return s;
+        }),
+      ] },
 
     // ── 系列活动 · 整场报名（各期 signed 相同,同一批人）──
     { id: 'a8', gid: 'g2', title: '云栖谷溪行 · 看日出系列 ①', type: 'series', cat: 'sport',
@@ -249,7 +328,7 @@
       deadlineIso: '2026-06-12T17:00:00+08:00' },
     // 单次 · 跨多天（连续日程）
     { id: 'a18', gid: 'g2', title: '年度团队户外拓展训练营', type: 'once', cat: 'team',
-      date: '06月18日 周三', endDate: '06月20日 周五', time: '09:00 - 16:00', loc: '近郊 · 怀谷拓展基地', host: '苏曼',
+      date: '06月18日 周三', endDate: '06月20日 周五', spanDays: 3, time: '09:00 - 16:00', loc: '近郊 · 怀谷拓展基地', host: '苏曼',
       cap: 40, signed: 23, liked: false, likes: 18, joinedByMe: false, status: 'upcoming',
       desc: '<p>连续三天两夜的团队拓展训练营,<b>06月18日 09:00 集合出发,06月20日 16:00 返程解散</b>。</p><ul><li>含住宿与三餐,统一大巴往返</li><li>破冰、高空项目、协作沙盘、复盘分享</li><li>跨天活动,请按行程安排好工作交接</li></ul>',
       tags: ['跨多天','含食宿','团队拓展'], ai: false,
@@ -277,7 +356,7 @@
 
   const acts = actsRaw.map(a => ({
     ...a,
-    cover: `assets/covers/${a.id}.jpg`,
+    cover: a.cover || `assets/covers/${a.id}.jpg`,
     repeatMonthDays: a.repeatMonthDays || [],
   }));
 
@@ -306,6 +385,16 @@
       likes: 54, time: '5月25日 20:10' },
     { id: 'm5', aid: 'a9', gid: 'g5', author: '沈星', text: '七连胜截图来了,这波指挥我可以吹一年。',
       imgs: ['game-win'], likes: 28, time: '5月28日 23:18' },
+  ];
+
+  // 精彩瞬间评论（朋友圈式）
+  const momentComments = [
+    { id: 'mc1', mid: 'm2', author: '江野', text: '配速太稳了，下次跟你一组！', time: '5月29日 22:10' },
+    { id: 'mc2', mid: 'm2', author: '周棠', text: 'PB 恭喜 🎉', time: '5月29日 22:15' },
+    { id: 'mc3', mid: 'm2', author: '林浅', text: '一起啊一起啊', replyTo: 'mc1', replyAuthor: '江野', time: '5月29日 22:20' },
+    { id: 'mc4', mid: 'm1', author: '林浅', text: '合影太有气势了', time: '5月29日 21:50' },
+    { id: 'mc5', mid: 'm3', author: '江野', text: '那一刻真的会哭', time: '5月25日 08:00' },
+    { id: 'mc6', mid: 'm3', author: '苏曼', text: '下次还爬！', replyTo: 'mc5', replyAuthor: '江野', time: '5月25日 08:12' },
   ];
 
   const comments = [
@@ -424,8 +513,8 @@
     if (!session) return false;
     if (session.status === 'ended' || session.status === 'cancelled') return true;
     if (actStatus === 'ended' || actStatus === 'cancelled') return true;
-    const k = parseActDateKey(session.date);
-    return k != null && k < PROTO_TODAY_KEY;
+    const endK = sessionEndKey(session);
+    return endK != null && endK < PROTO_TODAY_KEY;
   };
   const canPostMoment = (act) => {
     if (!act) return false;
@@ -471,6 +560,16 @@
     { id: 'mf11', kind: 'comments', category: 'article', title: '冬季办公区节能与用电安全提示', commentCount: 3, date: '2025年11月15日', coverSeed: 'reg-outdoor' },
   ];
 
+  // App · 我的账单（悦生活员工端 mock）
+  const myBills = [
+    { id: 'bl1', type: 'expense', title: '悦全食·午餐套餐', amount: '-28.50', time: '2026-06-03 12:18', channel: '悦豆支付', balance: '286.15' },
+    { id: 'bl2', type: 'expense', title: '职工之家·咖啡', amount: '-16.00', time: '2026-06-02 09:42', channel: '余额支付', balance: '314.65' },
+    { id: 'bl3', type: 'income', title: '6月福利豆发放', amount: '+200.00', time: '2026-06-01 08:00', channel: '系统入账', balance: '330.65' },
+    { id: 'bl4', type: 'expense', title: '悦文化·活动报名', amount: '-50.00', time: '2026-05-28 19:06', channel: '悦豆支付', balance: '130.65' },
+    { id: 'bl5', type: 'refund', title: '订单退款·图书兑换', amount: '+38.00', time: '2026-05-25 14:30', channel: '原路退回', balance: '180.65' },
+    { id: 'bl6', type: 'expense', title: '悦全食·晚餐', amount: '-32.80', time: '2026-05-24 18:55', channel: '余额支付', balance: '142.65' },
+  ];
+
   // App · 我的报名（悦生活员工端 mock）
   const myRegistrations = [
     { id: 'mr1', status: 'pending', title: '2026年度团队户外拓展训练营', dateTime: '2026-12-28 09:00',
@@ -487,12 +586,13 @@
     const m = dateStr && dateStr.match(/(\d{1,2})月(\d{1,2})日/);
     return m ? parseInt(m[1], 10) * 100 + parseInt(m[2], 10) : null;
   };
+  const sessionEndKey = (session) => parseActDateKey(session.endDate || session.date);
   const isSessionOpen = (session, actStatus) => {
     if (!session) return false;
     if (session.status === 'ended' || session.status === 'cancelled') return false;
     if (actStatus === 'ended' || actStatus === 'cancelled') return false;
-    const k = parseActDateKey(session.date);
-    return k == null || k >= PROTO_TODAY_KEY;
+    const endK = sessionEndKey(session);
+    return endK == null || endK >= PROTO_TODAY_KEY;
   };
   const seriesListStatus = (eps) => {
     if (!eps || !eps.length) return 'ended';
@@ -531,6 +631,7 @@
       card.date = sess.date;
       card.endDate = sess.endDate;
       card.time = sess.time;
+      if (base.type === 'recurring' && base.spanDays > 1) card.spanDays = base.spanDays;
       if (sess.signed != null) card.signed = sess.signed;
       if (sess.cap != null) card.cap = sess.cap;
     }
@@ -563,7 +664,13 @@
     if (base.type === 'recurring' && src.sessions && src.sessions.length) {
       const open = src.sessions.filter(s => isSessionOpen(s, base.status));
       if (!open.length) return 'ended';
-      if (open.some(s => parseActDateKey(s.date) === PROTO_TODAY_KEY)) return 'ongoing';
+      const todayInRange = open.some(s => {
+        const sk = parseActDateKey(s.date);
+        const ek = sessionEndKey(s);
+        if (sk == null) return false;
+        return sk <= PROTO_TODAY_KEY && (ek == null || ek >= PROTO_TODAY_KEY);
+      });
+      if (todayInRange) return 'ongoing';
       const hasFuture = open.some(s => {
         const k = parseActDateKey(s.date);
         return k != null && k > PROTO_TODAY_KEY;
@@ -587,16 +694,28 @@
   const awCnMd = (cn) => { const m = cn && cn.match(/(\d{1,2})月(\d{1,2})日/); return m ? { mo: +m[1], d: +m[2] } : null; };
   const awShort = (cn) => { if (!cn) return ''; const md = awCnMd(cn); return md ? `${md.mo}/${md.d}` : cn; };
   const awIsCross = (a) => !!(a && a.endDate && a.endDate !== a.date);
-  const awDays = (a) => {
-    if (!awIsCross(a)) return 0;
+  /** 跨日期跨度：含起止日的自然日数（跨夜=2，跨多天≥3） */
+  const awSpanDays = (a) => {
+    if (!awIsCross(a)) return 1;
+    if (a.spanDays != null && a.spanDays > 1) return a.spanDays;
     const s = awCnMd(a.date), e = awCnMd(a.endDate);
-    if (!s || !e) return 0;
+    if (!s || !e) return a.spanDays > 0 ? Math.max(2, a.spanDays) : 2;
     const y = new Date().getFullYear();
     const ds = new Date(y, s.mo - 1, s.d), de = new Date(y, e.mo - 1, e.d);
     const n = Math.round((de - ds) / 86400000) + 1;
+    return n > 1 ? n : 2;
+  };
+  const awDays = (a) => {
+    const n = awSpanDays(a);
     return n > 1 ? n : 0;
   };
   const awDaysBadge = (a) => { const n = awDays(a); return n > 1 ? `共 ${n} 天` : null; };
+  /** 场次/卡片短标签：跨天 vs 跨3天 */
+  const awCrossTag = (a) => {
+    if (!awIsCross(a)) return null;
+    const n = awSpanDays(a);
+    return n >= 3 ? `跨${n}天` : '跨天';
+  };
   // 详情页：起止全量（日期统一 x/y）
   const awFull = (a) => {
     if (!a) return '';
@@ -615,9 +734,14 @@
     return `${awShort(eps[0].date)} - ${awShort(eps[eps.length - 1].date)}`;
   };
   const awSeriesWhen = (eps) => `${awSeriesRange(eps)} · 共${eps.length}期`;
-  window.ActWhen = { isCross: awIsCross, days: awDays, daysBadge: awDaysBadge, full: awFull, compact: awCompact, short: awShort, seriesRange: awSeriesRange, seriesWhen: awSeriesWhen };
+  window.ActWhen = { isCross: awIsCross, spanDays: awSpanDays, crossTag: awCrossTag, days: awDays, daysBadge: awDaysBadge, full: awFull, compact: awCompact, short: awShort, seriesRange: awSeriesRange, seriesWhen: awSeriesWhen };
 
-  window.DB = { groups, acts, moments, comments, joinRequests, notifications, convos, NAMES, ME, employees, myRegistrations, mineInteractFeed };
+  window.DB = { groups, acts, moments, momentComments, comments, joinRequests, notifications, convos, NAMES, ME, employees, myRegistrations, mineInteractFeed, myBills };
   window.CATS = CATS;
+  window.UNCATEGORIZED = UNCATEGORIZED;
+  window.getCat = getCat;
+  window.catsList = catsList;
+  window.compareCats = compareCats;
+  window.syncWindowCats = syncWindowCats;
   window.DBH = { byId, seriesEps, seriesAnchor, seriesListStatus, recentSessions, RECENT_SESSIONS_MAX, actsOf, canPostMoment, isSlotPast, momentEligibleActs, momentsOf, momentsOfGroup, commentsOf, groupOf, patchGroup, pushSelfJoinRequest, removeJoinRequest, parseActDateKey, nextOpenSession, listUnitKey, forListCard, collapseActsForList, actPhase };
 })();

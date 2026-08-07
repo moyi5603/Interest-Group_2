@@ -65,9 +65,10 @@ function HomeTab() {
   const recentMoments = DB.moments.slice(0, 4);
 
   const recs = [
+    { aid: 'a26', reason: '跨 3 天连营 · 周期规则示例' },
+    { aid: 'a19', reason: '跨天通宵局 · 场次展示示例' },
     { aid: 'a1', reason: '因为你常参加「城市夜跑团」' },
     { aid: 'a5', reason: '同部门 6 位同学已报名' },
-    { aid: 'a3', reason: '午休时段 · 离你工位 2 分钟' },
   ];
 
   // ---- 活动 Tab：推荐 / 最新 / 热门 ----
@@ -98,12 +99,13 @@ function HomeTab() {
     { key: 'myGroups', label: '我的小组', icon: 'star' },
   ];
 
+  const { role, setRole } = useM();
+
   return (
     <ScreenScroll insetBottom={16}>
-      {/* home header: title + 我的活动 / 我的小组 icon entries */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 2px' }}>
-        <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-display)' }}>兴趣小组</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* identity + shortcut entries */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '16px 16px 2px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, minWidth: 0 }}>
           {headerEntries.map(({ key, label, icon }) => (
             <button key={key} type="button" onClick={() => nav.go(key)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 11px',
@@ -114,21 +116,28 @@ function HomeTab() {
             </button>
           ))}
         </div>
+        {typeof RoleIdentitySwitcher === 'function'
+          ? <RoleIdentitySwitcher role={role || 'employee'} onChange={r => setRole && setRole(r)} style={{ flexShrink: 0 }} />
+          : <div />}
       </div>
 
-      {/* AI natural language entry */}
+      {/* AI entry whole: bar + chips */}
       <div style={{ padding: '10px 16px 4px' }}>
-        <div onClick={() => nav.go('aichat')} style={{ borderRadius: 14, padding: 1.5, background: 'var(--ai-grad)', cursor: 'pointer', boxShadow: '0 6px 18px oklch(0.66 0.21 4 / 0.18)' }}>
+        <div role="button" tabIndex={0} onClick={() => nav.go('aichat')}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav.go('aichat'); } }}
+          style={{ borderRadius: 14, padding: 1.5, background: 'var(--ai-grad)', cursor: 'pointer', boxShadow: '0 6px 18px oklch(0.66 0.21 4 / 0.18)' }}>
           <div style={{ background: 'var(--surface)', borderRadius: 12.5, padding: '8px 11px', display: 'flex', alignItems: 'center', gap: 8, minHeight: 40 }}>
             <Sparkles size={18} color="var(--ai)" style={{ animation: 'sparkle 2.4s infinite', flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink-3)', fontWeight: 500, lineHeight: 1.3 }}>推荐小组、查询活动…</span>
-            <div style={{ padding: '5px 10px', borderRadius: 9, background: 'var(--ai-grad)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+            <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink-3)', fontWeight: 500, lineHeight: 1.3, minWidth: 0, pointerEvents: 'none', userSelect: 'none' }}>
+              和AI助手聊聊，找到适合你的活动
+            </span>
+            <div style={{ padding: '5px 10px', borderRadius: 9, background: 'var(--ai-grad)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0, pointerEvents: 'none' }}>
               <Icon name="mic" size={14} stroke={2.4} />问</div>
           </div>
         </div>
         <div className="noscroll" style={{ display: 'flex', gap: 7, overflowX: 'auto', marginTop: 8 }}>
           {['职场成长的活动有什么', '适合新人的小组', '本周还有什么活动'].map(s =>
-            <button key={s} onClick={() => nav.go('aichat')} style={{ whiteSpace: 'nowrap', padding: '6px 12px', borderRadius: 99,
+            <button key={s} type="button" onClick={() => nav.go('aichat')} style={{ whiteSpace: 'nowrap', padding: '6px 12px', borderRadius: 99,
               background: 'var(--surface)', boxShadow: 'var(--shadow-sm)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)',
               display: 'inline-flex', alignItems: 'center', gap: 4 }}><Sparkles size={12} color="var(--ai)" />{s}</button>)}
         </div>
@@ -654,6 +663,72 @@ function MyRegistrations() {
   );
 }
 
+// ---------- App · 我的账单 ----------
+const MY_BILL_TYPE_META = {
+  expense: { label: '支出', color: 'var(--ink)', sign: '' },
+  income: { label: '收入', color: '#22C55E', sign: '+' },
+  refund: { label: '退款', color: '#3B82F6', sign: '+' },
+};
+
+function MyBillRow({ item }) {
+  const meta = MY_BILL_TYPE_META[item.type] || MY_BILL_TYPE_META.expense;
+  const amtColor = item.type === 'expense' ? 'var(--ink)' : meta.color;
+  return (
+    <div style={{ padding: '14px 0', borderBottom: '1px solid var(--line)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{item.title}</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>{item.time} · {item.channel}</div>
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: amtColor, fontFamily: 'var(--font-display)' }}>{item.amount}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 4 }}>余额 {item.balance}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MyBills() {
+  const { nav } = useM();
+  const [tab, setTab] = React.useState('all');
+  const list = (DB.myBills || []).filter(item => tab === 'all' || item.type === tab);
+  const tabDefs = [
+    { key: 'all', label: '全部' },
+    { key: 'expense', label: '支出' },
+    { key: 'income', label: '收入' },
+    { key: 'refund', label: '退款' },
+  ];
+  return (
+    <ScreenScroll>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(255,247,241,0.92)',
+        backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 14px 10px' }}>
+          <button type="button" onClick={nav.back} style={{ display: 'flex' }}><Icon name="back" size={24} /></button>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>我的账单</div>
+        </div>
+        <div style={{ display: 'flex', gap: 4, padding: 4, margin: '0 14px 12px', borderRadius: 12, background: 'var(--bg-2)' }}>
+          {tabDefs.map(({ key, label }) => {
+            const on = tab === key;
+            return (
+              <button key={key} type="button" onClick={() => setTab(key)} style={{
+                flex: 1, padding: '7px 0', borderRadius: 9, fontSize: 12.5, fontWeight: 700, border: 'none',
+                background: on ? 'var(--ink)' : 'transparent', color: on ? '#fff' : 'var(--ink-2)',
+                boxShadow: on ? 'var(--shadow-sm)' : 'none', transition: 'background .18s, color .18s',
+              }}>{label}</button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ padding: '4px 14px 40px' }}>
+        {list.length
+          ? list.map(item => <MyBillRow key={item.id} item={item} />)
+          : <div style={{ paddingTop: 48 }}><Empty text="暂无账单记录" /></div>}
+      </div>
+    </ScreenScroll>
+  );
+}
+
 // ---------- App · 我的互动（点赞 / 收藏 / 评论）----------
 const MINE_INTERACT_TABS = [
   { key: 'likes', label: '点赞' },
@@ -991,6 +1066,7 @@ function enterEmptyDbMode() {
     acts: DB.acts,
     groups: DB.groups,
     moments: DB.moments,
+    momentComments: DB.momentComments,
     comments: DB.comments,
     notifications: DB.notifications,
     convos: DB.convos,
@@ -1001,6 +1077,7 @@ function enterEmptyDbMode() {
   DB.acts = [];
   DB.groups = [];
   DB.moments = [];
+  DB.momentComments = [];
   DB.comments = [];
   DB.notifications = [];
   DB.convos = [];
@@ -1014,6 +1091,7 @@ function exitEmptyDbMode() {
   DB.acts = _emptyDbSnapshot.acts;
   DB.groups = _emptyDbSnapshot.groups;
   DB.moments = _emptyDbSnapshot.moments;
+  DB.momentComments = _emptyDbSnapshot.momentComments;
   DB.comments = _emptyDbSnapshot.comments;
   DB.notifications = _emptyDbSnapshot.notifications;
   DB.convos = _emptyDbSnapshot.convos;
@@ -1028,6 +1106,7 @@ function useInterestMobileState(empty = false) {
   const [acts, setActs] = React.useState(() => (empty ? [] : DB.acts.map(a => ({ ...a }))));
   const [groups, setGroups] = React.useState(() => (empty ? [] : DB.groups.map(g => ({ ...g }))));
   const [moments, setMoments] = React.useState(() => (empty ? [] : DB.moments.map(m => ({ ...m, _liked: false }))));
+  const [momentComments, setMomentComments] = React.useState(() => (empty ? [] : (DB.momentComments || []).map(c => ({ ...c }))));
   const [stack, setStack] = React.useState([]);
   const nav = {
     go: (name, params = {}) => setStack(s => [...s, { name, params }]),
@@ -1139,8 +1218,31 @@ function useInterestMobileState(empty = false) {
       }
       setMoments(s => [{ id: 'mx' + Date.now(), gid, aid, author: DB.ME, text, imgs, likes: 0, _liked: false, time: '刚刚' }, ...s]);
     },
+    delMoment: (mid) => {
+      setMoments(s => {
+        const m = s.find(x => x.id === mid);
+        if (!m || m.author !== DB.ME) return s;
+        return s.filter(x => x.id !== mid);
+      });
+      setMomentComments(s => s.filter(c => c.mid !== mid));
+    },
+    postMomentComment: ({ mid, text, replyTo, replyAuthor }) => {
+      const t = (text || '').trim();
+      if (!t) return;
+      setMomentComments(s => [{
+        id: 'mc' + Date.now(), mid, author: DB.ME, text: t,
+        replyTo: replyTo || null, replyAuthor: replyAuthor || null, time: '刚刚',
+      }, ...s]);
+    },
+    delMomentComment: (cid) => {
+      setMomentComments(s => {
+        const c = s.find(x => x.id === cid);
+        if (!c || c.author !== DB.ME) return s;
+        return s.filter(x => x.id !== cid);
+      });
+    },
   };
-  return { store: { acts, groups, moments }, actions, nav, stack, emptyMode: empty };
+  return { store: { acts, groups, moments, momentComments }, actions, nav, stack, emptyMode: empty };
 }
 
 function renderMobileScreen(top) {
@@ -1157,6 +1259,7 @@ function renderMobileScreen(top) {
     case 'myActivities': return <MyActivities />;
     case 'myRegistrations': return <MyRegistrations />;
     case 'mineInteract': return <AppMineInteract initialTab={p.tab || 'likes'} />;
+    case 'myBills': return <MyBills />;
     case 'myGroups': return <MyGroups />;
     case 'allActs': return <AllActivities />;
     case 'allGroups': return <AllGroups />;
@@ -1177,10 +1280,26 @@ function MobileStackOverlay({ stack, children }) {
 }
 
 // ---------- 兴趣小组（仅首页，无底部沟通 Tab）----------
+const APP_ROLE_KEY = 'exp-app-role';
+function readAppRole() {
+  try {
+    const r = localStorage.getItem(APP_ROLE_KEY);
+    return r === 'manager' ? 'manager' : 'employee';
+  } catch (e) { return 'employee'; }
+}
+function writeAppRole(r) {
+  try { localStorage.setItem(APP_ROLE_KEY, r); } catch (e) { /* ignore */ }
+}
+
 function MobileApp() {
+  const [role, setRoleState] = React.useState(readAppRole);
+  const setRole = (r) => { writeAppRole(r); setRoleState(r); };
   const shell = useInterestMobileState();
+  if (role === 'manager' && typeof AdminApp === 'function') {
+    return <AdminApp variant="mobile" role={role} onRoleChange={setRole} />;
+  }
   return (
-    <MobileCtx.Provider value={shell}>
+    <MobileCtx.Provider value={{ ...shell, role, setRole }}>
       <MobileStackOverlay stack={shell.stack}><HomeTab /></MobileStackOverlay>
     </MobileCtx.Provider>
   );
@@ -1199,17 +1318,35 @@ function MobileAppEmpty() {
 }
 
 // ---------- IM 消息（原「沟通」）----------
-function ImMobileApp() {
+function ImMessagePage({ showAvatar = true }) {
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 5, padding: '14px 14px 12px',
+        background: 'rgba(255,247,241,0.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ fontSize: 17, fontWeight: 800 }}>消息</div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto' }} className="noscroll">
+        <ConvoList showAvatar={showAvatar} />
+      </div>
+    </div>
+  );
+}
+
+function ImMobileApp({ showAvatar = true }) {
   const shell = useInterestMobileState();
   return (
     <MobileCtx.Provider value={shell}>
       <MobileStackOverlay stack={shell.stack}>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, overflowY: 'auto' }} className="noscroll"><ConvoList /></div>
+          <ImMessagePage showAvatar={showAvatar} />
         </div>
       </MobileStackOverlay>
     </MobileCtx.Provider>
   );
+}
+
+function ImMobileAppNoIcon() {
+  return <ImMobileApp showAvatar={false} />;
 }
 
 // ---------- App · 我的（悦生活员工端）----------
@@ -1405,6 +1542,7 @@ function AppMineApp() {
   const [guideOpen, setGuideOpen] = React.useState(true);
   const noop = () => {};
   const goRegistrations = () => { setGuideOpen(false); nav.go('myRegistrations'); };
+  const goBills = () => { setGuideOpen(false); nav.go('myBills'); };
   const goInteract = (tab) => { setGuideOpen(false); nav.go('mineInteract', { tab }); };
   const interactStats = appMineInteractStats(shell.store.acts);
 
@@ -1519,12 +1657,12 @@ function AppMineApp() {
               </div>
             </div>
 
-            {/* 用户账单 */}
-            <button type="button" onClick={noop} style={{ ...card, width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', marginBottom: 12, textAlign: 'left' }}>
+            {/* 我的账单 */}
+            <button type="button" onClick={guideOpen ? noop : goBills} style={{ ...card, width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', marginBottom: 12, textAlign: 'left' }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklch, var(--brand) 14%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="receipt" size={20} style={{ color: 'var(--brand)' }} />
               </div>
-              <span style={{ flex: 1, fontSize: 15, fontWeight: 700 }}>用户账单</span>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 700 }}>我的账单</span>
               <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}>查看<Icon name="chevR" size={15} /></span>
             </button>
 
@@ -1557,4 +1695,4 @@ function AppMineApp() {
   );
 }
 
-Object.assign(window, { MobileApp, MobileAppEmpty, ImMobileApp, AppMineApp, ScreenScroll, HomeTab, MomentsFeed, PostMoment, AllActivities, AllGroups, MyActivities, MyRegistrations, MyGroups });
+Object.assign(window, { MobileApp, MobileAppEmpty, ImMobileApp, ImMobileAppNoIcon, ImMessagePage, AppMineApp, ScreenScroll, HomeTab, MomentsFeed, PostMoment, AllActivities, AllGroups, MyActivities, MyRegistrations, MyGroups });

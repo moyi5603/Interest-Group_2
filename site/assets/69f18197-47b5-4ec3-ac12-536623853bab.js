@@ -40,7 +40,7 @@ function Btn({ children, variant = 'primary', size = 'md', icon, iconR, full, st
 }
 
 function CatBadge({ cat, size = 'md', solid = false }) {
-  const c = CATS[cat]; if (!c) return null;
+  const c = (typeof getCat === 'function' ? getCat(cat) : CATS[cat]) || { label: '未分类', icon: 'dots', color: 'var(--ink-3)' };
   const s = size === 'sm' ? { fs: 11.5, ic: 13, pad: '3px 9px 3px 7px', gap: 4 }
     : { fs: 13, ic: 15, pad: '5px 11px 5px 9px', gap: 5 };
   return (

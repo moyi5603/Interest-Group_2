@@ -33,9 +33,11 @@ function AvatarStack({ names = [], n = 4, size = 24, extra }) {
 
 function MetaRow({ icon, children, wrap }) {
   return (
-    <div style={{ display: 'flex', alignItems: wrap ? 'flex-start' : 'center', gap: 7, fontSize: 13, color: 'var(--ink-2)', fontWeight: 500 }}>
-      <Icon name={icon} size={15} stroke={2} style={{ color: 'var(--ink-3)', flexShrink: 0, marginTop: wrap ? 2 : 0 }} />
-      <span className={wrap ? undefined : 'clamp1'}>{children}</span>
+    <div style={{ display: 'flex', alignItems: wrap ? 'flex-start' : 'center', gap: 10, fontSize: 13.5, color: 'var(--ink-2)', fontWeight: 500 }}>
+      <span style={{ width: 20, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: wrap ? 2 : 0 }}>
+        <Icon name={icon} size={15} stroke={2} style={{ color: 'var(--ink-3)' }} />
+      </span>
+      <span className={wrap ? undefined : 'clamp1'} style={{ flex: 1, minWidth: 0 }}>{children}</span>
     </div>
   );
 }

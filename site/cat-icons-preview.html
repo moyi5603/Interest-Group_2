@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>分类图标预览 · 20</title>
+  <style>
+    :root {
+      --bg: #f6f1ea;
+      --surface: #fff;
+      --ink: #2a2118;
+      --ink-2: #6b5c4d;
+      --ink-3: #9a8b7a;
+      --line: #e8ddd0;
+      --brand: #e85d2a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 28px 20px 48px;
+      font-family: "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+      background: var(--bg); color: var(--ink);
+    }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    .sub { font-size: 13px; color: var(--ink-3); margin-bottom: 22px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      max-width: 960px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px 12px 14px;
+      text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .icon-wrap {
+      width: 64px; height: 64px; border-radius: 14px;
+      background: color-mix(in srgb, var(--brand) 10%, white);
+      color: var(--brand);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card[data-n="7"] .icon-wrap,
+    .card[data-n="8"] .icon-wrap {
+      width: 72px; height: 72px;
+      box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--brand) 35%, white);
+    }
+    .key { font-size: 13px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; }
+    .use { font-size: 12px; color: var(--ink-2); }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 11px; border-radius: 99px; font-size: 12.5px; font-weight: 700;
+      background: color-mix(in srgb, var(--brand) 14%, white); color: var(--brand);
+    }
+  </style>
+</head>
+<body>
+  <h1>兴趣小组 · 分类图标预览</h1>
+  <p class="sub">共 20 个 · 与原型 Icon 同源（线稿）</p>
+  <div class="grid" id="grid"></div>
+  <script>
+    const ICONS = {
+      zap: 'M13 3 4 14h6l-1 7 9-11h-6z',
+      sun: 'M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
+      bookmark: 'M6 4h12v17l-6-4-6 4z',
+      camera: 'M4 8.5A1.5 1.5 0 0 1 5.5 7H8l1.2-2h5.6L16 7h2.5A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5zM12 16a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z',
+      mic: 'M12 15a3.5 3.5 0 0 0 3.5-3.5V7a3.5 3.5 0 1 0-7 0v4.5A3.5 3.5 0 0 0 12 15zM5.5 11.5a6.5 6.5 0 0 0 13 0M12 18.5V21',
+      ticket: 'M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4zM14 6v12',
+      cards: 'M12 1.8 20.5 4.6 17.2 18.2 8.7 15.4Z M4.5 6.2A1.5 1.5 0 0 1 6 4.7h9.2A1.5 1.5 0 0 1 16.7 6.2v13.1A1.5 1.5 0 0 1 15.2 20.8H6A1.5 1.5 0 0 1 4.5 19.3zM10.8 10.8c1.4-1.7 3.9-1.4 3.9 1.35 0 2.1-2.15 3.75-3.9 5-1.75-1.25-3.9-2.9-3.9-5 0-2.75 2.5-3.05 3.9-1.35z',
+      controller: 'M21.58 16.09l-1.09-7.66C20.21 6.46 18.52 5 16.53 5H7.47C5.48 5 3.79 6.46 3.51 8.43l-1.09 7.66C2.2 17.63 3.39 19 4.94 19c.68 0 1.32-.27 1.8-.75L9 16h6l2.25 2.25c.48.48 1.13.75 1.8.75 1.55 0 2.74-1.37 2.53-2.91zM11 11H9v2H7v-2H5V9h2V7h2v2h2v2zM15.5 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
+      heart: 'M12 20s-7-4.6-9.3-9.2C1.2 7.6 3 4.5 6.2 4.5c2 0 3.2 1.2 3.8 2.3.6-1.1 1.8-2.3 3.8-2.3 3.2 0 5 3.1 3.5 6.3C19 15.4 12 20 12 20z',
+      users: 'M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15 4.1a3.5 3.5 0 0 1 0 6.8',
+      trending: 'M3 17l5-5 3.5 3.5L20 8M20 8h-4M20 8v4',
+      award: 'M12 14a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM8.5 13l-1.5 8 5-3 5 3-1.5-8',
+      pin: 'M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+      plane: 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z',
+      gift: 'M4 11h16v9H4zM3.5 7h17v4h-17zM12 7v13M12 7S10.5 3.5 8 4.5 9 7 12 7zM12 7s1.5-3.5 4-2.5S15 7 12 7z',
+      calendar: 'M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19zM4 9.5h16M8 3.5v3M16 3.5v3',
+      lightbulb: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5V15h8v-1.5A6 6 0 0 0 12 3z',
+      image: 'M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v11A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5zM4 16l4.5-4 4 3.5L16 11l4 4M9 9.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4z',
+      chat: 'M4 5h16v11H8l-4 4z',
+      flag: 'M5 21V4h13l-2.5 4L18 12H5',
+    };
+    const LAYERS = {
+      cards: [
+        'M12 1.8 20.5 4.6 17.2 18.2 8.7 15.4Z',
+        { d: 'M4.5 6.2A1.5 1.5 0 0 1 6 4.7h9.2A1.5 1.5 0 0 1 16.7 6.2v13.1A1.5 1.5 0 0 1 15.2 20.8H6A1.5 1.5 0 0 1 4.5 19.3z', front: true },
+        'M10.8 10.8c1.4-1.7 3.9-1.4 3.9 1.35 0 2.1-2.15 3.75-3.9 5-1.75-1.25-3.9-2.9-3.9-5 0-2.75 2.5-3.05 3.9-1.35z',
+      ],
+    };
+    const ITEMS = [
+      ['zap', '运动健身'], ['sun', '户外徒步'], ['bookmark', '读书学习'], ['camera', '摄影外拍'],
+      ['mic', '音乐唱歌'], ['ticket', '电影演出'], ['cards', '桌游电竞'], ['controller', '游戏开黑'],
+      ['heart', '公益志愿'], ['users', '社交组局'], ['trending', '职场成长'], ['award', '赛事挑战'],
+      ['pin', '同城出行'], ['plane', '旅行探店'], ['gift', '亲子福利'], ['calendar', '周期活动'],
+      ['lightbulb', '创意手作'], ['image', '美术影像'], ['chat', '分享交流'], ['flag', '打卡挑战'],
+    ];
+    function iconSvg(key, size, sw) {
+      const layers = LAYERS[key];
+      if (layers) {
+        const paths = layers.map(L => {
+          const d = typeof L === 'string' ? L : L.d;
+          const front = typeof L === 'object' && L.front;
+          return `<path d="${d}" fill="${front ? '#fff' : 'none'}" />`;
+        }).join('');
+        return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+      }
+      return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[key]}" /></svg>`;
+    }
+    const grid = document.getElementById('grid');
+    ITEMS.forEach(([key, use], i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.n = String(i + 1);
+      const sz = (i === 6 || i === 7) ? 34 : 28;
+      card.innerHTML = `
+        <div class="icon-wrap">${iconSvg(key, sz, 2)}</div>
+        <div class="key">${i + 1}. ${key}</div>
+        <div class="use">${use}</div>
+        <span class="pill">${iconSvg(key, 14, 2.2)}${use}</span>`;
+      grid.appendChild(card);
+    });
+  </script>
+</body>
+</html>

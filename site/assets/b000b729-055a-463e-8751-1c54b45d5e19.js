@@ -61,9 +61,39 @@ const ICONS = {
   coin: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v10M8 11h8',
   alert: 'M12 8v5M12 16h.01M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
   sun: 'M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
+  gamepad: 'M6 10c-2.5 0-4.5 1.8-4.5 4S3.5 18 6 18h1l1.2 2.2h7.6L17 18h1c2.5 0 4.5-1.8 4.5-4S19.5 10 17 10H6zM9 12.8v3.4M7.3 14.5h3.4M15.2 13.2a1 1 0 1 0 0-0.01M17.8 15.2a1 1 0 1 0 0-0.01',
+  laptop: 'M2 5.5A1.5 1.5 0 0 1 3.5 4h17A1.5 1.5 0 0 1 22 5.5V14H2V5.5zM1 16h22l-2 3.5H3z',
+  controller: 'M21.58 16.09l-1.09-7.66C20.21 6.46 18.52 5 16.53 5H7.47C5.48 5 3.79 6.46 3.51 8.43l-1.09 7.66C2.2 17.63 3.39 19 4.94 19c.68 0 1.32-.27 1.8-.75L9 16h6l2.25 2.25c.48.48 1.13.75 1.8.75 1.55 0 2.74-1.37 2.53-2.91zM11 11H9v2H7v-2H5V9h2V7h2v2h2v2zM15.5 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
+  dice: 'M5 5h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8.5 9.5h.01M15.5 9.5h.01M12 14h.01M8.5 18.5h.01M15.5 18.5h.01',
+  cards: 'M12 1.8 20.5 4.6 17.2 18.2 8.7 15.4Z M4.5 6.2A1.5 1.5 0 0 1 6 4.7h9.2A1.5 1.5 0 0 1 16.7 6.2v13.1A1.5 1.5 0 0 1 15.2 20.8H6A1.5 1.5 0 0 1 4.5 19.3zM10.8 10.8c1.4-1.7 3.9-1.4 3.9 1.35 0 2.1-2.15 3.75-3.9 5-1.75-1.25-3.9-2.9-3.9-5 0-2.75 2.5-3.05 3.9-1.35z',
+  lightbulb: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5V15h8v-1.5A6 6 0 0 0 12 3z',
+  plane: 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z',
+};
+
+/** 分层图标：front 铺底色挡住下层（扑克牌叠放） */
+const ICONS_LAYERS = {
+  cards: [
+    { d: 'M12 1.8 20.5 4.6 17.2 18.2 8.7 15.4Z' },
+    { d: 'M4.5 6.2A1.5 1.5 0 0 1 6 4.7h9.2A1.5 1.5 0 0 1 16.7 6.2v13.1A1.5 1.5 0 0 1 15.2 20.8H6A1.5 1.5 0 0 1 4.5 19.3z', front: true },
+    { d: 'M10.8 10.8c1.4-1.7 3.9-1.4 3.9 1.35 0 2.1-2.15 3.75-3.9 5-1.75-1.25-3.9-2.9-3.9-5 0-2.75 2.5-3.05 3.9-1.35z' },
+  ],
 };
 
 function Icon({ name, size = 22, stroke = 2, fill = false, style, className }) {
+  const layers = ICONS_LAYERS[name];
+  if (layers) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth={stroke} strokeLinecap="round"
+        strokeLinejoin="round" style={{ flexShrink: 0, display: 'block', ...style }} className={className}>
+        {layers.map((layer, i) => (
+          <path key={i} d={layer.d}
+            fill={layer.front ? 'var(--surface)' : 'none'}
+            style={layer.front ? { fill: 'var(--surface)' } : undefined} />
+        ))}
+      </svg>
+    );
+  }
   const d = ICONS[name] || '';
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={fill ? 'currentColor' : 'none'}
@@ -120,10 +150,20 @@ function Photo({ seed = '', label, icon, radius = 0, style, children, dim = fals
   );
 }
 
-// Cover image with graceful fallback to the gradient placeholder.
-function Cover({ src, seed = '', icon, dim = false, radius = 0, style }) {
-  if (src) {
-    return <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: radius, ...style }} />;
+// Cover image with graceful fallback to gradient placeholder (optional secondary src).
+function Cover({ src, seed = '', icon, dim = false, radius = 0, style, fallbackSrc }) {
+  const [phase, setPhase] = React.useState(0); // 0 primary, 1 fallback, 2 photo
+  React.useEffect(() => { setPhase(0); }, [src, fallbackSrc]);
+  const show = phase === 0 ? src : (phase === 1 ? fallbackSrc : '');
+  if (show) {
+    return (
+      <img
+        src={show}
+        alt=""
+        onError={() => setPhase(p => (p === 0 && fallbackSrc ? 1 : 2))}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: radius, ...style }}
+      />
+    );
   }
   return <Photo seed={seed} icon={icon} dim={dim} radius={radius} style={style} />;
 }

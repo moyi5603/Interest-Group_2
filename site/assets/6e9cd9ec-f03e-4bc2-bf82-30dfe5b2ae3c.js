@@ -21,8 +21,8 @@ function DeadlineCountdown({ deadlineIso }) {
 
 function FloatBtn({ icon, onClick, style }) {
   return <button onClick={onClick} style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.92)',
-    backdropFilter: 'blur(6px)', boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: 'var(--ink)', ...style }}><Icon name={icon} size={20} stroke={2.4} /></button>;
+    backdropFilter: 'blur(6px)', boxShadow: '0 4px 14px rgba(0,0,0,0.16)', border: 'none', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', ...style }}><Icon name={icon} size={20} stroke={2.4} /></button>;
 }
 
 function ImgGrid({ seeds = [], onImgClick }) {
@@ -46,28 +46,179 @@ function MomentCard({ m }) {
   const { store, actions, nav } = useM();
   const cur = store.moments.find(x => x.id === m.id) || m;
   const act = DB.acts.find(a => a.id === m.aid);
+  const mine = m.author === DB.ME;
+  const comments = (store.momentComments || []).filter(c => c.mid === m.id);
   const [lb, setLb] = React.useState({ open: false, i: 0 });
+  const [confirmDel, setConfirmDel] = React.useState(false);
+  const [delComment, setDelComment] = React.useState(null);
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const [compose, setCompose] = React.useState({ open: false, replyTo: null, replyAuthor: null, text: '' });
+  const inputRef = React.useRef(null);
+
+  const openCompose = (replyTo = null, replyAuthor = null) => {
+    setMoreOpen(false);
+    setCompose({ open: true, replyTo, replyAuthor, text: '' });
+    setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 80);
+  };
+  const closeCompose = () => setCompose({ open: false, replyTo: null, replyAuthor: null, text: '' });
+  const sendComment = () => {
+    const t = (compose.text || '').trim();
+    if (!t) return;
+    actions.postMomentComment({
+      mid: m.id, text: t,
+      replyTo: compose.replyTo, replyAuthor: compose.replyAuthor,
+    });
+    closeCompose();
+    toast(compose.replyAuthor ? '回复已发布' : '评论已发布', { icon: 'check' });
+  };
+  const onTapComment = (c) => {
+    if (c.author === DB.ME) setDelComment(c);
+    else openCompose(c.id, c.author);
+  };
+  const doDeleteMoment = () => {
+    actions.delMoment(m.id);
+    setConfirmDel(false);
+    toast('已删除', { icon: 'trash' });
+  };
+  const doDeleteComment = () => {
+    if (!delComment) return;
+    actions.delMomentComment(delComment.id);
+    setDelComment(null);
+    toast('评论已删除', { icon: 'trash' });
+  };
+
   return (
-    <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: 15 }}>
-      <div style={{ display: 'flex', gap: 11, marginBottom: 11, alignItems: 'flex-start' }}>
-        <Avatar name={m.author} size={42} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 700 }}>{m.author}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{m.time}</div>
+    <>
+      <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: 15 }}>
+        <div style={{ display: 'flex', gap: 11, marginBottom: 11, alignItems: 'flex-start' }}>
+          <Avatar name={m.author} size={42} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700 }}>{m.author}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{m.time}</div>
+          </div>
         </div>
-        <LikeButton liked={cur._liked} count={cur.likes} onToggle={() => actions.toggleMomentLike(m.id)} size={20} />
+        <div style={{ fontSize: 14.5, lineHeight: 1.6, marginBottom: 11 }}>{m.text}</div>
+        {m.imgs && m.imgs.length > 0 && <>
+          <ImgGrid seeds={m.imgs} onImgClick={i => setLb({ open: true, i })} />
+          <PhotoLightbox open={lb.open} seeds={m.imgs} index={lb.i} onClose={() => setLb({ open: false, i: 0 })} />
+        </>}
+        {/* 活动标签 + ···（赞 / 评）同排 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 11 }}>
+          {act && (
+            <button type="button" onClick={() => nav.go('activity', { aid: act.id })} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 11px', borderRadius: 10,
+              background: 'var(--bg-2)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)',
+              border: 'none', cursor: 'pointer', minWidth: 0, flex: '1 1 auto',
+            }}>
+              <Icon name={getCat(act.cat).icon} size={14} stroke={2.2} style={{ color: getCat(act.cat).color, flexShrink: 0 }} />
+              <span className="clamp1" style={{ minWidth: 0 }}>来自 · {act.title}</span>
+              <Icon name="chevR" size={14} style={{ flexShrink: 0 }} />
+            </button>
+          )}
+          <div style={{ position: 'relative', flexShrink: 0, marginLeft: act ? 0 : 'auto' }}>
+            <button type="button" aria-label="更多" onClick={() => setMoreOpen(v => !v)}
+              style={{ width: 32, height: 28, borderRadius: 8, background: 'var(--bg-2)', color: 'var(--ink-2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, letterSpacing: 1, border: 'none', cursor: 'pointer' }}>
+              ···
+            </button>
+            {moreOpen && (
+              <>
+                <div onClick={() => setMoreOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                <div style={{
+                  position: 'absolute', right: 0, top: '100%', marginTop: 6,
+                  zIndex: 41, display: 'flex', flexWrap: 'nowrap', alignItems: 'stretch',
+                  width: 'max-content', maxWidth: 'none',
+                  borderRadius: 8, overflow: 'hidden', whiteSpace: 'nowrap',
+                  background: 'rgba(70,70,70,0.95)', boxShadow: 'var(--shadow-md)',
+                }}>
+                  <button type="button" onClick={() => { actions.toggleMomentLike(m.id); setMoreOpen(false); }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', color: '#fff',
+                      fontSize: 13, fontWeight: 600, borderRight: '1px solid rgba(255,255,255,0.15)',
+                      border: 'none', background: 'transparent', cursor: 'pointer',
+                      flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <Icon name="heart" size={15} fill={!!cur._liked} />{cur._liked ? '取消' : '赞'}
+                  </button>
+                  <button type="button" onClick={() => openCompose()}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', color: '#fff',
+                      fontSize: 13, fontWeight: 600, border: 'none', background: 'transparent', cursor: 'pointer',
+                      flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <Icon name="comment" size={15} /><span>评论</span>
+                  </button>
+                  {mine && (
+                    <button type="button" onClick={() => { setMoreOpen(false); setConfirmDel(true); }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', color: '#fff',
+                        fontSize: 13, fontWeight: 600, borderLeft: '1px solid rgba(255,255,255,0.15)',
+                        border: 'none', background: 'transparent', cursor: 'pointer',
+                        flexShrink: 0, whiteSpace: 'nowrap' }}>
+                      <Icon name="trash" size={15} />删除
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* 灰底：赞摘要 + 评论列表 */}
+        {(cur.likes > 0 || comments.length > 0) && (
+          <div style={{ marginTop: 10, borderRadius: 10, background: 'var(--bg-2)', padding: '8px 10px' }}>
+            {cur.likes > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600,
+                color: 'var(--brand-600)', paddingBottom: comments.length ? 7 : 0,
+                borderBottom: comments.length ? '1px solid var(--line)' : 'none', marginBottom: comments.length ? 6 : 0 }}>
+                <Icon name="heart" size={13} fill style={{ color: 'var(--brand)' }} />
+                {cur._liked ? `你${cur.likes > 1 ? ` 等 ${cur.likes} 人` : ''}` : `${cur.likes} 人`}觉得很赞
+              </div>
+            )}
+            {comments.map(c => (
+              <button key={c.id} type="button" onClick={() => onTapComment(c)}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '3px 0',
+                  fontSize: 13, lineHeight: 1.5, color: 'var(--ink)', background: 'transparent', border: 'none' }}>
+                <span style={{ fontWeight: 700, color: 'var(--brand-600)' }}>{c.author}</span>
+                {c.replyAuthor && <>
+                  <span style={{ color: 'var(--ink-3)', fontWeight: 500 }}> 回复 </span>
+                  <span style={{ fontWeight: 700, color: 'var(--brand-600)' }}>{c.replyAuthor}</span>
+                </>}
+                <span style={{ fontWeight: 500 }}>：{c.text}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      <div style={{ fontSize: 14.5, lineHeight: 1.6, marginBottom: 11 }}>{m.text}</div>
-      {m.imgs && m.imgs.length > 0 && <>
-        <ImgGrid seeds={m.imgs} onImgClick={i => setLb({ open: true, i })} />
-        <PhotoLightbox open={lb.open} seeds={m.imgs} index={lb.i} onClose={() => setLb({ open: false, i: 0 })} />
-      </>}
-      {act && <button onClick={() => nav.go('activity', { aid: act.id })} style={{ display: 'inline-flex', alignItems: 'center',
-        gap: 5, marginTop: 11, padding: '6px 11px', borderRadius: 10, background: 'var(--bg-2)', fontSize: 12.5,
-        fontWeight: 600, color: 'var(--ink-2)' }}>
-        <Icon name={CATS[act.cat].icon} size={14} stroke={2.2} style={{ color: CATS[act.cat].color }} />
-        来自 · {act.title}<Icon name="chevR" size={14} /></button>}
-    </div>
+
+      {/* 评论输入 */}
+      <Sheet open={compose.open} onClose={closeCompose} title={compose.replyAuthor ? `回复 ${compose.replyAuthor}` : '发表评论'}>
+        <div style={{ padding: '8px 16px 20px', display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <input ref={inputRef} value={compose.text}
+            onChange={e => setCompose(s => ({ ...s, text: e.target.value }))}
+            onKeyDown={e => { if (e.key === 'Enter') sendComment(); }}
+            placeholder={compose.replyAuthor ? `回复 ${compose.replyAuthor}…` : '说点什么…'}
+            style={{ flex: 1, border: 'none', outline: 'none', background: 'var(--bg-2)', borderRadius: 12,
+              padding: '11px 13px', fontSize: 14.5, color: 'var(--ink)' }} />
+          <Btn variant="primary" size="sm" disabled={!compose.text.trim()} onClick={sendComment}
+            style={{ opacity: compose.text.trim() ? 1 : 0.45 }}>发送</Btn>
+        </div>
+      </Sheet>
+
+      <ConfirmSheet
+        open={confirmDel}
+        title="删除精彩瞬间"
+        message="确认删除这条精彩瞬间？删除后不可恢复。"
+        cancelLabel="取消"
+        confirmLabel="确认删除"
+        onCancel={() => setConfirmDel(false)}
+        onConfirm={doDeleteMoment}
+      />
+      <ConfirmSheet
+        open={!!delComment}
+        title="删除评论"
+        message="确认删除这条评论？"
+        cancelLabel="取消"
+        confirmLabel="确认删除"
+        onCancel={() => setDelComment(null)}
+        onConfirm={doDeleteComment}
+      />
+    </>
   );
 }
 
@@ -97,7 +248,7 @@ function AISummaryCard({ title = '小趣的总结', points, foot, showAiPill = t
 
 function CommentItem({ c, onLike, onReply }) {
   return (
-    <div style={{ display: 'flex', gap: 11, padding: '13px 0', borderBottom: '1px solid var(--line)' }}>
+    <div style={{ display: 'flex', gap: 11, padding: '15px 0', borderBottom: '1px solid var(--line)' }}>
       {c.isAI ? <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--ai-grad)', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={20} color="#fff" /></div>
         : <Avatar name={c.author} size={38} />}
@@ -136,13 +287,41 @@ function sessionDateShort(dateStr) {
   return m ? `${parseInt(m[1], 10)}/${parseInt(m[2], 10)}` : (dateStr || '');
 }
 
-function sessionTimeShort(timeStr) {
-  return timeStr.replace(/\s*-\s*/, '–');
+function sessionTimes(timeStr) {
+  const parts = (timeStr || '').split(/\s*-\s*/).map(x => x.trim()).filter(Boolean);
+  return { start: parts[0] || '', end: parts[1] || parts[0] || '' };
+}
+
+/** 场次格日期：跨天显示 6/6→6/7 */
+function sessionDateLine(s) {
+  if (!ActWhen.isCross(s)) return sessionDateShort(s.date);
+  const start = sessionDateShort(s.date);
+  const end = sessionDateShort(s.endDate);
+  return end && end !== start ? `${start}→${end}` : start;
+}
+
+/** 场次格时间：M/D 几点 → M/D 几点 */
+function sessionWhenRange(s) {
+  const { start, end } = sessionTimes(s.time);
+  const ds = sessionDateShort(s.date);
+  if (!ActWhen.isCross(s)) {
+    if (!start) return ds;
+    return end && end !== start ? `${ds} ${start} – ${end}` : `${ds} ${start}`;
+  }
+  const de = sessionDateShort(s.endDate);
+  if (!start) return `${ds} – ${de}`;
+  return `${ds} ${start} – ${de} ${end}`;
+}
+
+function sessionCrossTag(s) {
+  if (typeof ActWhen.crossTag === 'function') return ActWhen.crossTag(s);
+  return ActWhen.isCross(s) ? '跨天' : null;
 }
 
 /** 与详情页「最近场次」一致的场次方块 */
 function SessionSlotTile({ s, active, disabled, onClick, grid, cancelMode, topLabel, ended }) {
   const full = s.signed >= s.cap;
+  const cross = ActWhen.isCross(s);
   const mine = !ended && (cancelMode ? active : (s.joinedByMe || active));
   const statusColor = ended ? 'var(--ink-3)'
     : cancelMode && !active ? 'var(--ink-3)' : mine ? 'var(--brand)' : full ? 'var(--ink-3)' : 'var(--c-outdoor)';
@@ -154,10 +333,11 @@ function SessionSlotTile({ s, active, disabled, onClick, grid, cancelMode, topLa
     <Tag type={onClick ? 'button' : undefined} onClick={disabled ? undefined : onClick} disabled={disabled}
       style={{
         width: grid ? '100%' : undefined,
-        minWidth: grid ? 0 : 96,
-        aspectRatio: grid ? '1' : undefined,
+        minWidth: grid ? 0 : (cross ? 188 : 112),
+        aspectRatio: grid && !cross ? '1' : undefined,
+        minHeight: grid ? (cross ? 78 : undefined) : 72,
         flexShrink: grid ? undefined : 0,
-        padding: grid ? '7px 5px' : '8px 11px',
+        padding: grid ? (cross ? '8px 6px' : '7px 5px') : '12px 14px',
         borderRadius: 13,
         background: mine ? 'var(--brand-tint)' : 'var(--bg-2)',
         border: mine ? '1.5px solid var(--brand)' : '1.5px solid transparent',
@@ -171,8 +351,14 @@ function SessionSlotTile({ s, active, disabled, onClick, grid, cancelMode, topLa
       }}>
       {topLabel && <div style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.2, marginBottom: 1,
         color: mine ? 'var(--brand)' : 'var(--c-outdoor)' }}>{topLabel}</div>}
-      <div style={{ fontSize: grid ? 12 : 12.5, fontWeight: 800, lineHeight: 1.25 }}>{sessionDateShort(s.date)}{ActWhen.isCross(s) && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--brand)', marginLeft: 3 }}>跨天</span>}</div>
-      <div style={{ fontSize: 11, color: 'var(--ink-3)', margin: '2px 0 2px', lineHeight: 1.25 }}>{ActWhen.isCross(s) ? `${sessionTimeShort(s.time)}→次日` : sessionTimeShort(s.time)}</div>
+      <div style={{ fontSize: grid ? 12 : 12.5, fontWeight: 800, lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+        {sessionDateLine(s)}
+        {sessionCrossTag(s) && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--brand)', marginLeft: 3 }}>{sessionCrossTag(s)}</span>}
+      </div>
+      <div style={{
+        fontSize: cross && grid ? 9.5 : (cross ? 10 : 10.5), color: 'var(--ink-3)', margin: '2px 0 2px', lineHeight: 1.3,
+        whiteSpace: 'nowrap', letterSpacing: cross && grid ? -0.2 : undefined,
+      }}>{sessionWhenRange(s)}</div>
       <div style={{ fontSize: grid ? 10 : 11, fontWeight: 700, color: statusColor, lineHeight: 1.2 }}>{statusText}</div>
     </Tag>
   );
@@ -209,7 +395,7 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
       <ScreenScroll>
         <div style={{ padding: '48px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <Empty text="未找到该活动" />
-          <Btn variant="soft" size="sm" onClick={nav.back}>返回</Btn>
+          <FloatBtn icon="back" onClick={nav.back} />
         </div>
       </ScreenScroll>
     );
@@ -226,7 +412,7 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
   const hero = viewEndedEp ? aIn : a;
   const title = showAsSeries ? a.series : aIn.title;
   const dateLabel = showAsSeries ? fmtSeriesRange(episodes) : aIn.date;
-  const timeLabel = showAsSeries ? `共${episodes.length}期` : aIn.time;
+  const timeLabel = showAsSeries ? `共 ${episodes.length} 场` : aIn.time;
   const desc = showAsSeries ? (a.seriesDesc || a.desc) : aIn.desc;
   const tags = showAsSeries ? (a.seriesTags || a.tags) : aIn.tags;
   const commentAids = viewEndedEp ? [aIn.id] : (isSeries ? episodes.map(e => e.id) : [aIn.id]);
@@ -255,6 +441,12 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
     : aIn.cap;
   const [pickOpen, setPickOpen] = React.useState(false);
   const [sel, setSel] = React.useState([]);
+  const [commentSheetOpen, setCommentSheetOpen] = React.useState(false);
+  const [navSolid, setNavSolid] = React.useState(false);
+  const onDetailScroll = (e) => {
+    const y = e.currentTarget.scrollTop;
+    setNavSolid(y > 200);
+  };
   const origSel = (slots || []).filter(s => s.joinedByMe).map(s => s.id);
   // 打开「调整报名场次」弹窗：预选已报名的场次/期,可勾选新增、取消勾选移除
   const openPickEnroll = () => {
@@ -338,17 +530,25 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
       ? { ...c, _liked: !c._liked, likes: (c.likes || 0) + (c._liked ? -1 : 1) }
       : c));
   };
+  const openCommentCompose = () => {
+    setReplyTo(null);
+    setDraft('');
+    setCommentSheetOpen(true);
+  };
   const startReply = (c) => {
     setReplyTo(c);
     setDraft('');
+    setCommentSheetOpen(true);
   };
   const cancelReply = () => {
     setReplyTo(null);
     setDraft('');
+    setCommentSheetOpen(false);
   };
   const send = () => {
     const text = draft.trim();
     if (!text) return;
+    const wasReply = !!replyTo;
     setComments(cs => [...cs, {
       id: 'cx' + Date.now(),
       aid: commentAid,
@@ -362,119 +562,158 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
     }]);
     setDraft('');
     setReplyTo(null);
-    toast(replyTo ? '回复已发布' : '评论已发布', { icon: 'check' });
+    setCommentSheetOpen(false);
+    toast(wasReply ? '回复已发布' : '评论已发布', { icon: 'check' });
   };
+  const replyName = replyTo ? replyTo.author.replace(/ · AI$/, '') : '';
+  const enrolledBadge = viewEndedEp ? aIn.joinedByMe : (isSeries ? seriesJoined : aIn.joinedByMe);
+
+  const slotJoinedHint = sessions
+    ? (joinedCount > 0 ? `已报 ${joinedCount} 场` : null)
+    : (showAsSeries && mode === 'independent' && episodes.filter(e => e.joinedByMe).length > 0
+      ? `已报 ${episodes.filter(e => e.joinedByMe).length} 场` : null);
+  const slotSectionTitle = (sessions || showAsSeries) ? '场次' : null;
 
   return (
-    <ScreenScroll>
-      <div style={{ position: 'relative', height: 210 }}>
-        {hero.cover
-          ? <img src={hero.cover} alt={hero.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          : <Photo seed={hero.id + hero.cat} icon={CATS[hero.cat].icon} dim />}
-        <div style={{ position: 'absolute', top: 14, left: 14 }}>
+    <ScreenScroll onScroll={onDetailScroll}>
+      <div style={{ position: 'relative', height: 340 }}>
+        <Cover
+          src={hero.cover}
+          fallbackSrc={g && g.cover}
+          seed={hero.id + hero.cat}
+          icon={CATS[hero.cat].icon}
+          dim
+        />
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 42%, rgba(0,0,0,0.55) 100%)',
+        }} />
+        <div style={{ position: 'absolute', top: 14, left: 14, zIndex: 1 }}>
           <FloatBtn icon="back" onClick={nav.back} />
         </div>
-        <div style={{ position: 'absolute', bottom: 14, left: 16, display: 'flex', gap: 7 }}>
+        <div style={{ position: 'absolute', bottom: 14, left: 16, display: 'flex', gap: 7, zIndex: 1 }}>
           <CatBadge cat={hero.cat} size="sm" solid /><TypeTag type={hero.type} />
         </div>
       </div>
 
-      <div style={{ padding: '18px 16px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        display: 'flex', alignItems: 'center', gap: 10,
+        height: navSolid ? 'auto' : 0,
+        overflow: 'hidden',
+        padding: navSolid ? '10px 12px' : 0,
+        background: 'rgba(255,255,255,0.94)',
+        backdropFilter: 'blur(10px)',
+        borderBottom: navSolid ? '1px solid var(--line)' : 'none',
+        boxShadow: navSolid ? '0 4px 14px rgba(0,0,0,0.06)' : 'none',
+        opacity: navSolid ? 1 : 0,
+        pointerEvents: navSolid ? 'auto' : 'none',
+        transition: 'opacity .2s ease',
+      }}>
+        <FloatBtn icon="back" onClick={nav.back} style={{ width: 34, height: 34, boxShadow: 'var(--shadow-sm)' }} />
+        <div className="clamp1" style={{ flex: 1, fontSize: 15, fontWeight: 800, minWidth: 0 }}>{title}</div>
+      </div>
+
+      <div style={{ padding: '16px 16px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.28, letterSpacing: -0.3 }}>{title}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+            {ended && (
+              <span style={{ padding: '2px 8px', borderRadius: 8, background: 'var(--bg-2)', fontSize: 11, fontWeight: 700, color: 'var(--ink-3)' }}>已结束</span>
+            )}
+            {!ended && enrolledBadge && (
+              <span style={{ padding: '2px 8px', borderRadius: 8, background: 'var(--brand-soft)', fontSize: 11, fontWeight: 700, color: 'var(--brand-600)' }}>已报名</span>
+            )}
+          </div>
           {g && (
-            <button onClick={() => nav.go('group', { gid: g.id })} style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-              marginTop: 9, fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)' }}>
+            <button type="button" onClick={() => nav.go('group', { gid: g.id })} style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+              marginTop: 10, fontSize: 13, fontWeight: 600, color: 'var(--ink-3)', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}>
               <Icon name={CATS[g.cat].icon} size={15} style={{ color: CATS[g.cat].color }} stroke={2.2} />{g.name}<Icon name="chevR" size={14} />
             </button>
           )}
         </div>
 
-        {/* 已结束时折叠活动详情 */}
         {ended && !detailExpanded ? (
-          <button onClick={() => setDetailExpanded(true)}
+          <button type="button" onClick={() => setDetailExpanded(true)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '10px 0', borderRadius: 14, background: 'var(--surface-2)',
-              fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', border: '1px dashed var(--line-2)' }}>
+              padding: '12px 0', borderRadius: 14, background: 'var(--surface-2)',
+              fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', border: '1px dashed var(--line-2)', cursor: 'pointer' }}>
             <Icon name="chevD" size={16} style={{ color: 'var(--ink-3)' }} />查看活动详情
           </button>
         ) : (
           <>
-            {/* info card */}
-            <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: '12px 14px',
-              display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: '14px 16px',
+              display: 'flex', flexDirection: 'column', gap: 12 }}>
               <MetaRow wrap={!showAsSeries && ActWhen.isCross(aIn)} icon={showAsSeries ? 'series' : aIn.type === 'recurring' ? 'repeat' : 'calendar'}>{showAsSeries ? `${dateLabel} · ${timeLabel}` : ActWhen.full(aIn)}{!showAsSeries && ActWhen.daysBadge(aIn) && <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 6, background: 'color-mix(in oklch, var(--brand) 12%, white)', color: 'var(--brand)', fontSize: 11, fontWeight: 700 }}>{ActWhen.daysBadge(aIn)}</span>}{aIn.type === 'recurring' && !isSeries && <span style={{ marginLeft: 4, fontSize: 11, color: 'var(--ink-3)' }}>(周期)</span>}</MetaRow>
               <MetaRow icon="pin">{hero.loc}</MetaRow>
               <MetaRow icon="user">发起人 {hero.host}</MetaRow>
-              {showAsSeries && mode === 'all' && <MetaRow icon="ticket">整场报名 · 共 {episodes.length} 期</MetaRow>}
+              {showAsSeries && mode === 'all' && <MetaRow icon="ticket">整场报名 · 共 {episodes.length} 场</MetaRow>}
               {showAsSeries && mode === 'independent' && <MetaRow icon="ticket">按场次报名</MetaRow>}
-              <div style={{ height: 1, background: 'var(--line)' }} />
-              {sessions ? (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 700, marginBottom: 9 }}>
-                    <span>最近场次{joinedCount > 0 && <span style={{ color: 'var(--brand)', marginLeft: 6 }}>已报 {joinedCount} 场</span>}</span>
-                    {!ended && aIn.deadlineIso && (() => {
-                      const secs = Math.floor((new Date(aIn.deadlineIso) - Date.now()) / 1000);
-                      const urgent = secs > 0 && secs < 3600, warn = secs > 0 && secs < 86400;
-                      const color = secs <= 0 ? 'var(--ink-3)' : urgent ? 'oklch(0.50 0.20 25)' : warn ? 'oklch(0.50 0.15 55)' : 'var(--brand)';
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Icon name="clock" size={13} stroke={2} style={{ color, flexShrink: 0 }} />
-                          <span style={{ fontSize: 12, color, fontWeight: 700 }}><DeadlineCountdown deadlineIso={aIn.deadlineIso} /></span>
-                        </div>
-                      );
-                    })()}
+              {aIn.deadlineIso && !ended && (
+                <MetaRow icon="clock"><DeadlineCountdown deadlineIso={aIn.deadlineIso} /></MetaRow>
+              )}
+              {!sessions && !showAsSeries && (
+                <>
+                  <div style={{ height: 1, background: 'var(--line)' }} />
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, marginBottom: 7 }}>
+                      <span>已报名 {displaySigned}/{displayCap}</span>
+                      <span style={{ color: displaySigned >= displayCap ? 'var(--brand)' : 'var(--ink-3)' }}>{displaySigned >= displayCap ? '已满员' : `余 ${displayCap - displaySigned} 位`}</span>
+                    </div>
+                    <ProgressBar value={displaySigned} max={displayCap} color={CATS[a.cat].color} height={8} />
+                    <div style={{ marginTop: 11 }}><AvatarStack names={DB.NAMES} n={6} size={28} extra={Math.max(0, displaySigned - 6)} /></div>
                   </div>
-                  <div className="noscroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 2px 2px' }}>
-                    {sessions.map(s => (
-                      <SessionSlotTile key={s.id} s={s} active={s.joinedByMe} ended={isSlotPast(s)} />
-                    ))}
-                  </div>
-                </div>
-              ) : showAsSeries ? (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 700, marginBottom: 9 }}>
-                    <span>系列场次 · 共 {episodes.length} 期{mode === 'independent' && episodes.filter(e => e.joinedByMe).length > 0 && <span style={{ color: 'var(--brand)', marginLeft: 6 }}>已报 {episodes.filter(e => e.joinedByMe).length} 场</span>}</span>
-                    {!ended && aIn.deadlineIso && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Icon name="clock" size={13} stroke={2} style={{ color: 'var(--brand)', flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: 'var(--brand)', fontWeight: 700 }}><DeadlineCountdown deadlineIso={aIn.deadlineIso} /></span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="noscroll" style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 2px 2px' }}>
-                    {episodes.map(ep => (
-                      <SessionSlotTile key={ep.id} s={ep} active={ep.joinedByMe} ended={ep.status === 'ended'} />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, marginBottom: 7 }}>
-                    <span>已报名 {displaySigned}/{displayCap}</span>
-                    <span style={{ color: displaySigned >= displayCap ? 'var(--brand)' : 'var(--ink-3)' }}>{displaySigned >= displayCap ? '已满员' : `余 ${displayCap - displaySigned} 位`}</span>
-                  </div>
-                  <ProgressBar value={displaySigned} max={displayCap} color={CATS[a.cat].color} height={8} />
-                  <div style={{ marginTop: 11 }}><AvatarStack names={DB.NAMES} n={6} size={28} extra={Math.max(0, displaySigned - 6)} /></div>
-                </div>
+                </>
               )}
             </div>
 
-            <div className="richtext" style={{ fontSize: 14.5, lineHeight: 1.7, color: 'var(--ink)' }} dangerouslySetInnerHTML={{ __html: desc || '' }} />
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-              {(tags || []).map(t => <span key={t} style={{ padding: '5px 11px', borderRadius: 99, background: 'var(--bg-2)',
-                fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>#{t}</span>)}
-            </div>
+            {(sessions || showAsSeries) && (
+              <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: '14px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800 }}>
+                    {slotSectionTitle}
+                    {slotJoinedHint && <span style={{ color: 'var(--brand)', marginLeft: 8, fontSize: 12.5, fontWeight: 700 }}>{slotJoinedHint}</span>}
+                  </div>
+                </div>
+                <div className="noscroll" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 2px 4px' }}>
+                  {sessions
+                    ? sessions.map(s => (
+                      <SessionSlotTile key={s.id} s={s} active={s.joinedByMe} ended={isSlotPast(s)} />
+                    ))
+                    : episodes.map(ep => (
+                      <SessionSlotTile key={ep.id} s={ep} active={ep.joinedByMe} ended={ep.status === 'ended'} />
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {((desc && desc.trim()) || (tags || []).length > 0) && (
+              <div>
+                {desc && desc.trim() && (
+                  <>
+                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>活动简介</div>
+                    <div className="richtext" style={{ fontSize: 14.5, lineHeight: 1.7, color: 'var(--ink)' }} dangerouslySetInnerHTML={{ __html: desc }} />
+                  </>
+                )}
+                {(tags || []).length > 0 && (
+                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: desc && desc.trim() ? 14 : 0 }}>
+                    {(tags || []).map(t => <span key={t} style={{ padding: '5px 11px', borderRadius: 99, background: 'var(--bg-2)',
+                      fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>#{t}</span>)}
+                  </div>
+                )}
+              </div>
+            )}
 
             {ended && (
-              <button onClick={() => setDetailExpanded(false)}
+              <button type="button" onClick={() => setDetailExpanded(false)}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  padding: '8px 0', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)' }}>
+                  padding: '8px 0', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)', border: 'none', background: 'transparent', cursor: 'pointer' }}>
                 <Icon name="chevU" size={15} style={{ color: 'var(--ink-3)' }} />收起活动详情
               </button>
             )}
           </>
         )}
+
         {moms.length > 0 && (ended || showPostMoment) && (
           <div>
             <SectionHeader title="精彩瞬间" sub={`${moms.length} 位同学分享 · 也已同步到小组圈`} accent="var(--sun)"
@@ -485,37 +724,23 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
           </div>
         )}
 
-        {/* comments */}
         <div>
-          <SectionHeader title={`评论 ${comments.length}`} accent="var(--brand)" />
-          <div>{comments.map(c => <CommentItem key={c.id} c={c} onLike={toggleCommentLike} onReply={startReply} />)}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+            <div style={{ fontSize: 16, fontWeight: 800 }}>
+              评论 <span style={{ color: 'var(--ink-3)', fontWeight: 700 }}>{comments.length}</span>
+            </div>
+            <Btn variant="soft" size="sm" icon="edit" onClick={openCommentCompose}>写评论</Btn>
+          </div>
+          {comments.length
+            ? <div>{comments.map(c => <CommentItem key={c.id} c={c} onLike={toggleCommentLike} onReply={startReply} />)}</div>
+            : <div style={{ padding: '28px 0', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)', fontWeight: 600 }}>还没有评论，来抢沙发吧</div>}
         </div>
       </div>
 
-      {/* sticky action bar */}
-      <div style={{ position: 'sticky', bottom: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.94)',
-        backdropFilter: 'blur(10px)', borderTop: '1px solid var(--line)', padding: '11px 14px', display: 'flex',
+      <div style={{ position: 'sticky', bottom: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(12px)', boxShadow: '0 -6px 20px rgba(0,0,0,0.06)', borderTop: '1px solid var(--line)',
+        padding: '12px 14px calc(12px + env(safe-area-inset-bottom, 0px))', display: 'flex',
         flexDirection: 'column', gap: 9, zIndex: 5 }}>
-        {/* comment compose */}
-        {replyTo && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 2px' }}>
-            <span style={{ fontSize: 12.5, color: 'var(--ink-2)', fontWeight: 600 }}>
-              回复 <span style={{ color: 'var(--brand)' }}>@{replyTo.author.replace(/ · AI$/, '')}</span>
-            </span>
-            <button type="button" onClick={cancelReply}
-              style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer' }}>
-              取消
-            </button>
-          </div>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-2)', borderRadius: 14, padding: '6px 6px 6px 14px' }}>
-          <input value={draft} onChange={e => setDraft(e.target.value)} placeholder={replyTo ? `回复 ${replyTo.author.replace(/ · AI$/, '')}…` : '说点什么…'}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 14, outline: 'none', padding: '6px 0' }} />
-          <button onClick={send} style={{ width: 34, height: 34, borderRadius: 10, background: draft.trim() ? 'var(--brand)' : 'var(--line-2)',
-            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="send" size={17} /></button>
-        </div>
-        {/* 需先加入小组才能报名的提示 */}
         {!ended && gs !== 'member' && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '8px 11px', borderRadius: 12,
             background: gs === 'pending' ? 'var(--sun-soft)' : 'var(--bg-2)', fontSize: 12, lineHeight: 1.45,
@@ -526,8 +751,7 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
               : g && g.join === 'approve' ? '该活动所属小组需审核加入,点击下方按钮提交申请' : '报名将同时加入该小组'}</span>
           </div>
         )}
-        {/* main actions */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <LikeButton liked={hero.liked} count={hero.likes} onToggle={() => actions.toggleLike(hero.id)} size={24} />
           <div style={{ flex: 1, display: 'flex', gap: 8, minWidth: 0 }}>
             {showPostMoment && (
@@ -550,10 +774,12 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
           <div style={{ padding: '8px 14px 4px', maxHeight: '52vh', overflowY: 'auto' }} className="noscroll">
             {(slots || []).length === 0 ? (
               <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'var(--ink-3)' }}>暂无可报名场次</div>
-            ) : groupSessionsByMonth(slots || []).map(([month, list]) => (
+            ) : groupSessionsByMonth(slots || []).map(([month, list]) => {
+              const crossCols = list.some(s => ActWhen.isCross(s));
+              return (
               <section key={month} style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 8 }}>{month}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: crossCols ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
                   {list.map(s => {
                     const full = s.signed >= s.cap;
                     const ep = isSlotPast(s);
@@ -566,7 +792,8 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
                   })}
                 </div>
               </section>
-            ))}
+              );
+            })}
           </div>
           <div style={{ padding: '8px 14px calc(12px + env(safe-area-inset-bottom))', position: 'sticky', bottom: 0, background: 'var(--surface)' }}>
             <Btn variant={sel.length === 0 ? 'ghost' : 'primary'} full size="md"
@@ -576,6 +803,22 @@ function ActivityDetail({ aid, pickEnroll, pickEnrollIntent }) {
           </div>
         </Sheet>
       )}
+
+      <Sheet open={commentSheetOpen} onClose={cancelReply} title={replyTo ? `回复 @${replyName}` : '写评论'}>
+        <div style={{ padding: '8px 14px calc(12px + env(safe-area-inset-bottom))' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-2)', borderRadius: 14, padding: '6px 6px 6px 14px' }}>
+            <input value={draft} onChange={e => setDraft(e.target.value)}
+              placeholder={replyTo ? `回复 ${replyName}…` : '说点什么…'}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+              style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 14, outline: 'none', padding: '10px 0' }} />
+            <button type="button" onClick={send} style={{
+              width: 38, height: 38, borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: draft.trim() ? 'var(--brand)' : 'var(--line-2)',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}><Icon name="send" size={17} /></button>
+          </div>
+        </div>
+      </Sheet>
     </ScreenScroll>
   );
 }
@@ -594,9 +837,13 @@ function GroupDetail({ gid }) {
 
   return (
     <ScreenScroll>
-      <div style={{ position: 'relative', height: 180 }}>
-        <Photo seed={g.id + g.cat} icon={CATS[g.cat].icon} dim />
-        <div style={{ position: 'absolute', top: 14, left: 14 }}>
+      <div style={{ position: 'relative', height: 340 }}>
+        <Cover src={g.cover} seed={g.id + g.cat} icon={CATS[g.cat].icon} dim />
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.28) 0%, transparent 45%, rgba(0,0,0,0.4) 100%)',
+        }} />
+        <div style={{ position: 'absolute', top: 14, left: 14, zIndex: 1 }}>
           <FloatBtn icon="back" onClick={nav.back} />
         </div>
       </div>
@@ -612,11 +859,15 @@ function GroupDetail({ gid }) {
             {g.tags.map(t => <span key={t} style={{ padding: '5px 11px', borderRadius: 99, background: 'var(--bg-2)',
               fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>{t}</span>)}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, fontSize: 12.5, color: 'var(--ink-2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: g.area ? 8 : 14, fontSize: 12.5, color: 'var(--ink-2)' }}>
             <span><b style={{ fontSize: 16, color: 'var(--ink)' }}>{g.members}</b> 成员</span>
             <span><b style={{ fontSize: 16, color: 'var(--ink)' }}>{g.acts}</b> 活动</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="pin" size={14} />{g.area}</span>
           </div>
+          {g.area ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 14, fontSize: 12.5, color: 'var(--ink-2)' }}>
+              <Icon name="pin" size={14} />{g.area}
+            </div>
+          ) : null}
           {(() => {
             const gs = groupMemberState(g);
             if (gs === 'pending') return <Btn variant="ghost" full icon="clock" disabled style={{ opacity: 0.55 }}>审核中…</Btn>;

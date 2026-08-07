@@ -3495,7 +3495,7 @@ input, textarea { font-family: inherit; }
 .clamp1 { display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
 .clamp2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .clamp3 { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-.richtext img { max-width:100%; border-radius:8px; margin:8px 0; display:block; }
+.richtext img { max-width:100%; width:100%; border-radius:12px; margin:12px 0; display:block; }
 .richtext ul { padding-left:20px; margin:6px 0; list-style:disc; }
 .richtext ol { padding-left:20px; margin:6px 0; list-style:decimal; }
 .richtext p { margin:0 0 6px; }
@@ -3521,16 +3521,16 @@ input, textarea { font-family: inherit; }
 <script src="assets/18f1525c-d0a2-4429-a24d-1f601d3b2fff.js"></script>
 <script src="assets/34429a79-bf9c-4550-bea2-23dd0eae2ba5.js"></script>
 
-<script src="assets/a91a7bed-087a-4db6-8705-be046ebfdf13.js"></script>
-<script type="text/babel" src="assets/b000b729-055a-463e-8751-1c54b45d5e19.js"></script>
+<script src="assets/a91a7bed-087a-4db6-8705-be046ebfdf13.js?v=20260806bi"></script>
+<script type="text/babel" src="assets/b000b729-055a-463e-8751-1c54b45d5e19.js?v=20260806bh"></script>
 <script type="text/babel" src="assets/69f18197-47b5-4ec3-ac12-536623853bab.js"></script>
-<script type="text/babel" src="assets/56b1d150-9839-448d-a372-67039ef0ea89.js"></script>
-<script type="text/babel" src="assets/6e9cd9ec-f03e-4bc2-bf82-30dfe5b2ae3c.js"></script>
-<script type="text/babel" src="assets/8a8a6314-04b7-41df-864d-d733c8bfb877.js"></script>
-<script type="text/babel" src="assets/9e8f0b88-caf3-40f7-8fa9-75ecfa7b59d8.js"></script>
-<script type="text/babel" src="assets/06091f2a-16af-41e1-9ea2-396272d1f95c.js"></script>
-<script type="text/babel" src="assets/5f3ec28e-1203-4053-854e-db9d64aac7b6.js"></script>
-<script type="text/babel" src="assets/191074b9-c2d0-4a88-a79e-0e86db894b8b.js"></script>
+<script type="text/babel" src="assets/56b1d150-9839-448d-a372-67039ef0ea89.js?v=20260806u"></script>
+<script type="text/babel" src="assets/6e9cd9ec-f03e-4bc2-bf82-30dfe5b2ae3c.js?v=20260806w"></script>
+<script type="text/babel" src="assets/8a8a6314-04b7-41df-864d-d733c8bfb877.js?v=20260728a"></script>
+<script type="text/babel" src="assets/9e8f0b88-caf3-40f7-8fa9-75ecfa7b59d8.js?v=20260806a"></script>
+<script type="text/babel" src="assets/06091f2a-16af-41e1-9ea2-396272d1f95c.js?v=20260806j"></script>
+<script type="text/babel" src="assets/5f3ec28e-1203-4053-854e-db9d64aac7b6.js?v=20260806an"></script>
+<script type="text/babel" src="assets/191074b9-c2d0-4a88-a79e-0e86db894b8b.js?v=20260806bi"></script>
 <script type="text/babel" src="assets/51d81f6e-f956-4ccd-bc91-7e9ef80b81f0.jsx"></script>
 
 <script type="text/babel">
@@ -3573,7 +3573,11 @@ function StatusBar() {
 }
 
 function Phone({ app = 'clubs' }) {
-  const AppBody = app === 'im' ? ImMobileApp : app === 'appmy' ? AppMineApp : app === 'clubsEmpty' ? MobileAppEmpty : MobileApp;
+  const AppBody = app === 'im' ? ImMobileApp
+    : app === 'imNoIcon' ? ImMobileAppNoIcon
+    : app === 'appmy' ? AppMineApp
+    : app === 'clubsEmpty' ? MobileAppEmpty
+    : MobileApp;
   return (
     <div style={{ width: 408, height: 858, borderRadius: 56, background: 'linear-gradient(145deg,#2a2a2e,#454549)',
       padding: 13, boxShadow: '0 40px 90px rgba(60,30,15,0.32), 0 0 0 2px rgba(255,255,255,0.06) inset', flexShrink: 0 }}>
@@ -3595,17 +3599,31 @@ function PC() {
   );
 }
 
+function AppDecoPC() {
+  return (
+    <div style={{ width: 1280, height: 800, background: '#fff', boxShadow: '0 24px 64px rgba(0,0,0,0.12)', borderRadius: 8, overflow: 'hidden' }}>
+      <AppDecoAdmin />
+    </div>
+  );
+}
+
 function Showcase() {
   const [view, setView] = useState('mobile');
   const viewHint = {
     mobile: '兴趣小组 · 员工视角 · 林浅',
     pc: '管理控制台 · HR · 陈航',
-    im: 'IM消息 · 员工视角 · 林浅',
+    appDeco: 'App装修 · 导航管理 · 组件面板',
+    im: 'IM消息 · 带头像 · 林浅',
+    imNoIcon: 'IM消息 · 无头像 · 林浅',
     appmy: 'App · 我的 · 林浅',
     mobileEmpty: '移动员工端 · 无数据空态预览',
   };
-  const isPhone = view !== 'pc';
-  const phoneApp = view === 'im' ? 'im' : view === 'appmy' ? 'appmy' : view === 'mobileEmpty' ? 'clubsEmpty' : 'clubs';
+  const isPhone = view !== 'pc' && view !== 'appDeco';
+  const phoneApp = view === 'im' ? 'im'
+    : view === 'imNoIcon' ? 'imNoIcon'
+    : view === 'appmy' ? 'appmy'
+    : view === 'mobileEmpty' ? 'clubsEmpty'
+    : 'clubs';
   return (
     <div className="stage-bg" style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* top bar */}
@@ -3623,7 +3641,9 @@ function Showcase() {
           <Segmented value={view} onChange={setView} options={[
             { value: 'mobile', label: '移动员工端', icon: 'home' },
             { value: 'pc', label: 'PC 管理端', icon: 'grid' },
-            { value: 'im', label: 'IM消息', icon: 'chat' },
+            { value: 'appDeco', label: 'App装修', icon: 'layers' },
+            { value: 'im', label: 'IM-有头像', icon: 'chat' },
+            { value: 'imNoIcon', label: 'IM-无头像', icon: 'chat' },
             { value: 'appmy', label: 'App-我的', icon: 'user' },
             { value: 'mobileEmpty', label: '移动端-无数据', icon: 'layers' },
           ]} />
@@ -3635,12 +3655,21 @@ function Showcase() {
 
       {isPhone
         ? <FitStage w={408} h={858} max={1.02}><Phone app={phoneApp} /></FitStage>
-        : <FitStage w={1280} h={800} max={1}><PC /></FitStage>}
+        : view === 'appDeco'
+          ? <FitStage w={1280} h={800} max={1}><AppDecoPC /></FitStage>
+          : <FitStage w={1280} h={800} max={1}><PC /></FitStage>}
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<Showcase />);
+function bootShowcase() {
+  if (typeof MobileApp === 'undefined' || typeof ImMobileAppNoIcon === 'undefined' || typeof AppDecoAdmin === 'undefined') {
+    setTimeout(bootShowcase, 16);
+    return;
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Showcase />);
+}
+bootShowcase();
 </script>
 
 

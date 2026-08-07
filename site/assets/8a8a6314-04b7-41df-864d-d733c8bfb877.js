@@ -32,7 +32,7 @@ function ConvoAvatar({ c }) {
   );
 }
 
-function ConvoList() {
+function ConvoList({ showAvatar = true }) {
   const { nav } = useM();
   const [q, setQ] = React.useState('');
   const [filter, setFilter] = React.useState('全部');
@@ -72,23 +72,29 @@ function ConvoList() {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {list.length ? list.map(c => (
           <div key={c.id} onClick={() => openConvo(c)}
-            style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px', cursor: 'pointer' }}
+            style={{ display: 'flex', gap: showAvatar ? 12 : 0, alignItems: 'flex-start', padding: '12px 14px', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <div style={{ position: 'relative' }}>
-              <ConvoAvatar c={c} />
-              {c.unread > 0 && <div style={{ position: 'absolute', top: -4, right: -4, minWidth: 19, height: 19, padding: '0 5px',
-                borderRadius: 99, background: 'var(--brand)', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex',
-                alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px var(--bg)' }}>{c.unread > 99 ? '99+' : c.unread}</div>}
-              {c.online && <div style={{ position: 'absolute', bottom: -1, right: -1, width: 12, height: 12, borderRadius: '50%',
-                background: 'var(--c-outdoor)', border: '2px solid var(--bg)' }} />}
-            </div>
+            {showAvatar && (
+              <div style={{ position: 'relative' }}>
+                <ConvoAvatar c={c} />
+                {c.unread > 0 && <div style={{ position: 'absolute', top: -4, right: -4, minWidth: 19, height: 19, padding: '0 5px',
+                  borderRadius: 99, background: 'var(--brand)', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px var(--bg)' }}>{c.unread > 99 ? '99+' : c.unread}</div>}
+                {c.online && <div style={{ position: 'absolute', bottom: -1, right: -1, width: 12, height: 12, borderRadius: '50%',
+                  background: 'var(--c-outdoor)', border: '2px solid var(--bg)' }} />}
+              </div>
+            )}
             <div style={{ flex: 1, minWidth: 0, borderBottom: '1px solid var(--line)', paddingBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  {!showAvatar && c.online && <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: 'var(--c-outdoor)' }} />}
                   <span style={{ fontSize: 15, fontWeight: 700 }} className="clamp1">{c.name}</span>
                   {c.official && <span style={{ flexShrink: 0, padding: '2px 6px', borderRadius: 6, fontSize: 10, fontWeight: 700,
                     color: 'var(--brand)', background: 'color-mix(in oklch, var(--brand) 12%, white)' }}>官方</span>}
+                  {!showAvatar && c.unread > 0 && <span style={{ flexShrink: 0, minWidth: 18, height: 18, padding: '0 5px',
+                    borderRadius: 99, background: 'var(--brand)', color: '#fff', fontSize: 10, fontWeight: 800,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{c.unread > 99 ? '99+' : c.unread}</span>}
                 </div>
                 <span style={{ fontSize: 11.5, color: 'var(--ink-3)', flexShrink: 0 }}>{c.time}</span>
               </div>
@@ -146,13 +152,13 @@ function ChatActCard({ a }) {
   const { store, actions, nav } = useM();
   const cur = store.acts.find(x => x.id === a.id) || a;
   return (
-    <div onClick={() => nav.go('activity', { aid: a.id })} style={{ background: 'var(--surface)', borderRadius: 16,
-      boxShadow: 'var(--shadow-sm)', overflow: 'hidden', cursor: 'pointer', width: 230 }}>
-      <div style={{ height: 84, position: 'relative' }}><Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} dim />
+    <div onClick={() => nav.go('activity', { aid: a.id })} style={{ background: 'var(--surface)', borderRadius: 18,
+      boxShadow: 'var(--shadow-sm)', overflow: 'hidden', cursor: 'pointer', width: 276, flexShrink: 0 }}>
+      <div style={{ height: 108, position: 'relative' }}><Cover src={a.cover} seed={a.id + a.cat} icon={CATS[a.cat].icon} dim />
         <div style={{ position: 'absolute', top: 8, left: 8 }}><CatBadge cat={a.cat} size="sm" solid /></div></div>
-      <div style={{ padding: 11 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700 }} className="clamp1">{a.title}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink-3)', margin: '3px 0 9px' }}>{ActWhen.isCross(a) ? `${ActWhen.short(a.date)} → ${ActWhen.short(a.endDate)}` : ActWhen.short(a.date)} · 余 {a.cap - cur.signed} 位</div>
+      <div style={{ padding: '12px 13px 13px' }}>
+        <div style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.35 }} className="clamp1">{a.title}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', margin: '4px 0 10px' }}>{ActWhen.isCross(a) ? `${ActWhen.short(a.date)} → ${ActWhen.short(a.endDate)}` : ActWhen.short(a.date)} · 余 {a.cap - cur.signed} 位</div>
         <Btn variant={cur.joinedByMe ? 'ghost' : 'primary'} size="sm" full icon={cur.joinedByMe ? 'check' : 'ticket'}
           onClick={e => { e.stopPropagation(); actions.toggleSignup(a.id); }}>{cur.joinedByMe ? '已报名' : '报名'}</Btn>
       </div>

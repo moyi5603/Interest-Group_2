@@ -19,6 +19,7 @@ description: EXP 兴趣小组 PC 管理后台规范。在修改 site/ 内 PC 管
 |---------|------|
 | `dashboard` | 工作台 |
 | `groups` | 小组管理 |
+| `categories` | 分类管理（CRUD + 排序） |
 | `activities` | 活动管理 |
 | `signups` | 报名记录 |
 | `comments` / `moments` | 评论与小组圈 |
